@@ -1,0 +1,30 @@
+﻿# Dependencias
+node_modules/
+.pnpm-store/
+
+# Entornos y Secretos (Crítico para Seguridad)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Producción
+.next/
+out/
+build/
+
+# Logs y Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Configuración del IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
