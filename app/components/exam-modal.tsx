@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, ChevronRight, CheckCircle2, AlertCircle, Download, Send, User } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -99,10 +99,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [isAnswered, setIsAnswered] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
     const [isFinished, setIsFinished] = useState<boolean>(false);
-    const [isSending, setIsSending] = useState<boolean>(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
-    // Historial de respuestas para el reporte detallado
     const [answersLog, setAnswersLog] = useState<UserAnswerLog[]>([]);
 
     const certificateRef = useRef<HTMLDivElement>(null);
@@ -160,19 +158,11 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setAnswersLog([]);
     };
 
-    const handleSendResults = async () => {
-        setIsSending(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setIsSending(false);
-        alert('Resultados enviados exitosamente al sistema central.');
-    };
-
     const handleDownloadPDF = async () => {
         if (!certificateRef.current) return;
         setIsGeneratingPdf(true);
 
         try {
-            // Un breve retraso garantiza la estabilidad del pintado completo en navegadores basados en Chromium
             await new Promise((resolve) => setTimeout(resolve, 400));
 
             const canvas = await html2canvas(certificateRef.current, {
@@ -205,7 +195,6 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
 
             {/* CONTENEDOR DE CAPTURA ASÍNCRONO FUERA DEL VIEWPORT REAL */}
-            {/* Permanece siempre montado para evitar pérdidas de referencia en la API del DOM */}
             <div className="fixed top-0 left-[100vw] z-[100] pointer-events-none bg-white">
                 <div
                     ref={certificateRef}
@@ -249,36 +238,40 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                             </div>
                         </div>
 
-                        {/* DESGLOSE COMPLETO DE RESPUESTAS BUENAS Y MALAS */}
+                        {/* DESGLOSE SEGURO CON COMPROBACIÓN DE EXISTENCIA */}
                         <div className="space-y-6">
                             <h3 className="text-sm font-black uppercase text-neutral-400 tracking-widest border-b pb-2">Auditoría Operativa de Respuestas</h3>
-                            {answersLog.map((log, index) => (
-                                <div key={index} className="p-4 rounded-xl border border-neutral-100 bg-neutral-50/50 flex flex-col gap-2">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <h4 className="text-xs font-bold text-neutral-800 leading-relaxed">
-                                            <span className="text-neutral-400 mr-1">{index + 1}.</span> {log.questionText}
-                                        </h4>
-                                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold shrink-0 ${log.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                                            }`}>
-                                            {log.isCorrect ? 'Correcta' : 'Incorrecta'}
-                                        </span>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] mt-1">
-                                        <div>
-                                            <span className="font-semibold text-neutral-400">Seleccionado: </span>
-                                            <span className={log.isCorrect ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
-                                                {log.selectedText}
+                            {isFinished && answersLog && answersLog.length > 0 ? (
+                                answersLog.map((log, index) => (
+                                    <div key={index} className="p-4 rounded-xl border border-neutral-100 bg-neutral-50/50 flex flex-col gap-2">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <h4 className="text-xs font-bold text-neutral-800 leading-relaxed">
+                                                <span className="text-neutral-400 mr-1">{index + 1}.</span> {log.questionText}
+                                            </h4>
+                                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold shrink-0 ${log.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                {log.isCorrect ? 'Correcta' : 'Incorrecta'}
                                             </span>
                                         </div>
-                                        {!log.isCorrect && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] mt-1">
                                             <div>
-                                                <span className="font-semibold text-neutral-400">Solución Correcta: </span>
-                                                <span className="text-emerald-600 font-medium">{log.correctText}</span>
+                                                <span className="font-semibold text-neutral-400">Seleccionado: </span>
+                                                <span className={log.isCorrect ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
+                                                    {log.selectedText}
+                                                </span>
                                             </div>
-                                        )}
+                                            {!log.isCorrect && (
+                                                <div>
+                                                    <span className="font-semibold text-neutral-400">Solución Correcta: </span>
+                                                    <span className="text-emerald-600 font-medium">{log.correctText}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <p className="text-xs text-neutral-400 italic">No hay registros de respuestas en esta sesión.</p>
+                            )}
                         </div>
                     </div>
 
@@ -427,7 +420,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                         </div>
                                         <h2 className="text-3xl font-black text-neutral-900 mb-1">Evaluación No Aprobada</h2>
                                         <p className="text-neutral-500 mb-6 max-w-sm text-sm">
-                                            Necesitas un mínimo de 80% para aprobar. Genera el reporte para revisar tus fallas.
+                                            Has completado la prueba. Genera tu reporte aquí mismo para revisar detalladamente tus respuestas.
                                         </p>
                                     </>
                                 )}
@@ -442,23 +435,23 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row gap-3 w-full justify-center items-center">
-                                    <button onClick={handleSendResults} disabled={isSending} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50 text-sm">
-                                        <Send className="w-4 h-4" />
-                                        {isSending ? 'Enviando...' : 'Enviar Resultados'}
-                                    </button>
-
-                                    <button onClick={handleDownloadPDF} disabled={isGeneratingPdf} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50 text-sm">
+                                {/* PANEL UNIFICADO SIMÉTRICO: SOLO BOTÓN DE DESCARGAR PDF */}
+                                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center items-center">
+                                    <button
+                                        onClick={handleDownloadPDF}
+                                        disabled={isGeneratingPdf}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50 text-sm"
+                                    >
                                         <Download className="w-4 h-4" />
                                         {isGeneratingPdf ? 'Generando...' : 'Descargar PDF'}
                                     </button>
 
                                     {!passed ? (
-                                        <button onClick={handleRetry} className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#E65C00] text-white px-8 py-3 rounded-xl font-bold shadow-md transition-all hover:scale-105 text-sm">
-                                            Intentar nuevamente
+                                        <button onClick={handleRetry} className="w-full bg-[#FF6A00] hover:bg-[#E65C00] text-white px-8 py-3 rounded-xl font-bold shadow-md transition-all hover:scale-105 text-sm">
+                                            Reintentar
                                         </button>
                                     ) : (
-                                        <button onClick={onClose} className="w-full sm:w-auto bg-neutral-200 hover:bg-neutral-300 text-neutral-700 px-6 py-3 rounded-xl font-bold transition-all text-sm">
+                                        <button onClick={onClose} className="w-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 px-6 py-3 rounded-xl font-bold transition-all text-sm">
                                             Salir
                                         </button>
                                     )}
