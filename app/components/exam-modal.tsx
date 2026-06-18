@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, AlertCircle, Download, Send, User } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -91,7 +91,7 @@ const EXAM_QUESTIONS: Question[] = [
             'Colocar la pinza a un costado del empaque',
             'No utilizar la pinza y empujar el paquete manualmente',
             'Colocar la pinza debajo de la bolsa para ayudar a sostener el peso',
-            'Colocar la pinza en la parte superior para suspender la bolsa'
+            'Colocar la pinza in la parte superior para suspender la bolsa'
         ],
         correctIndex: 2,
         explanation: 'Para objetos de gran tamaño y pesados, colocar la pinza debajo de la bolsa ayuda con el peso del paquete y facilita que la máquina realice el cierre/sello correctamente.'
@@ -283,13 +283,6 @@ interface ExamModalProps {
     onLaunchSimulatorExam?: (applicantName: string) => void;
 }
 
-interface UserAnswerLog {
-    questionText: string;
-    selectedText: string;
-    correctText: string;
-    isCorrect: boolean;
-}
-
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
     const [step, setStep] = useState<'identity' | 'selection' | 'teorico'>('identity');
     const [applicantName, setApplicantName] = useState<string>('');
@@ -302,7 +295,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [isAnswered, setIsAnswered] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
     const [isFinished, setIsFinished] = useState<boolean>(false);
-    const [answersLog, setAnswersLog] = useState<UserAnswerLog[]>([]);
+    const [isSending, setIsSending] = useState<boolean>(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
     const certificateRef = useRef<HTMLDivElement>(null);
@@ -318,21 +311,9 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         if (isAnswered || !question) return;
         setSelectedOption(idx);
         setIsAnswered(true);
-
-        const isCorrectAnswer = idx === question.correctIndex;
-        if (isCorrectAnswer) {
+        if (idx === question.correctIndex) {
             setScore(prev => prev + 1);
         }
-
-        setAnswersLog(prev => [
-            ...prev,
-            {
-                questionText: question.question,
-                selectedText: question.options[idx],
-                correctText: question.options[question.correctIndex],
-                isCorrect: isCorrectAnswer
-            }
-        ]);
     };
 
     const handleNext = () => {
@@ -353,14 +334,19 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setIsAnswered(false);
         setScore(0);
         setIsFinished(false);
-        setAnswersLog([]);
+    };
+
+    const handleSendResults = async () => {
+        setIsSending(true);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setIsSending(false);
+        alert('Resultados enviados exitosamente al sistema central.');
     };
 
     const handleDownloadPDF = async () => {
-        // Activamos la bandera para forzar el montaje inmediato y visible del HTML del reporte
         setIsGeneratingPdf(true);
 
-        // Esperamos un ciclo completo del DOM (macro-task delay) para asegurar que el elemento exista y esté pintado
+        // Retardo controlado para permitir el ciclo completo de pintado (repaint) en Chrome
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         if (!certificateRef.current) {
@@ -378,23 +364,66 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
-                orientation: 'portrait',
+                orientation: 'landscape',
                 unit: 'px',
                 format: [canvas.width, canvas.height]
             });
 
             pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`Reporte_Entrenamiento_${applicantName.replace(/\s+/g, '_')}.pdf`);
+            pdf.save(`Certificado_${applicantName.replace(/\s+/g, '_')}.pdf`);
         } catch (error) {
-            console.error('Error generando el PDF en entorno de producción:', error);
+            console.error('Error generando el PDF:', error);
         } finally {
-            // Desmontamos el nodo una vez terminada la captura
             setIsGeneratingPdf(false);
         }
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+
+            {/* CONTENEDOR DE CAPTURA CRÍTICA: Posicionado a la derecha del viewport real para forzar layout completo sin obstruir */}
+            {isGeneratingPdf && (
+                <div className="fixed top-0 left-[100vw] z-[100] pointer-events-none bg-white">
+                    <div
+                        ref={certificateRef}
+                        className="w-[800px] h-[500px] bg-white border-[16px] border-[#FF6A00] p-12 flex flex-col justify-between items-center relative font-sans text-neutral-900"
+                    >
+                        <div className="absolute top-4 right-6 text-sm font-black tracking-widest text-neutral-300">AUTORYX STACK SECURITY</div>
+                        <div className="text-center">
+                            <h1 className="text-4xl font-black text-[#FF6A00] tracking-tight uppercase mb-2">Certificado de Finalización</h1>
+                            <p className="text-sm tracking-widest text-neutral-400 uppercase font-bold">Sistemas de Automatización Crítica</p>
+                        </div>
+
+                        <div className="text-center my-6">
+                            <p className="text-xs text-neutral-400 italic mb-1">Se otorga el presente reconocimiento a:</p>
+                            <h2 className="text-3xl font-black text-neutral-800 underline decoration-[#FF6A00] decoration-2 underline-offset-8">{applicantName}</h2>
+                        </div>
+
+                        <div className="bg-neutral-50 border border-neutral-100 rounded-xl p-4 w-full max-w-md flex justify-around items-center">
+                            <div className="text-center">
+                                <p className="text-[10px] uppercase font-bold text-neutral-400">Resultado</p>
+                                <p className={`text-2xl font-black ${score >= 8 ? 'text-emerald-500' : 'text-red-500'}`}>{score >= 8 ? 'APROBADO' : 'RECHAZADO'}</p>
+                            </div>
+                            <div className="w-px h-8 bg-neutral-200" />
+                            <div className="text-center">
+                                <p className="text-[10px] uppercase font-bold text-neutral-400">Puntaje</p>
+                                <p className="text-2xl font-black text-neutral-700">{Math.round((score / questions.length) * 100)}%</p>
+                            </div>
+                            <div className="w-px h-8 bg-neutral-200" />
+                            <div className="text-center">
+                                <p className="text-[10px] uppercase font-bold text-neutral-400">Aciertos</p>
+                                <p className="text-2xl font-black text-neutral-700">{score} / {questions.length}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between w-full border-t border-neutral-100 pt-4 text-[10px] text-neutral-400 font-mono">
+                            <div>ID EXAMEN: TX9X_TRAINING</div>
+                            <div>FECHA DE EMISIÓN: {new Date().toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
                 {/* Header */}
@@ -546,64 +575,6 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 const passed = percent >= 80;
                                 return (
                                     <div className="flex flex-col items-center justify-center py-4 text-center">
-
-                                        {/* Inyección segura al final del DOM: Se monta temporalmente sólo durante la descarga */}
-                                        {isGeneratingPdf && (
-                                            <div className="absolute top-0 left-0 z-[-10] w-[750px] bg-white text-neutral-900 p-8 font-sans border-[10px] border-[#FF6A00]">
-                                                <div ref={certificateRef}>
-                                                    <div className="flex justify-between items-center border-b-2 border-neutral-100 pb-4 mb-4">
-                                                        <div>
-                                                            <h1 className="text-2xl font-black text-[#FF6A00] tracking-tight uppercase">Reporte de Evaluación Técnica</h1>
-                                                            <p className="text-[10px] tracking-widest text-neutral-400 uppercase font-bold">Autoryx Training System</p>
-                                                        </div>
-                                                        <div className="text-right text-[9px] font-mono text-neutral-400">
-                                                            <div>FECHA EMISIÓN: {new Date().toLocaleDateString()}</div>
-                                                            <div>RESULTADO: {passed ? 'APROBADO' : 'RECHAZADO'}</div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="mb-4">
-                                                        <p className="text-[10px] text-neutral-400 italic">Nombre del Operador:</p>
-                                                        <h2 className="text-xl font-black text-neutral-800">{applicantName}</h2>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-3 gap-2 bg-neutral-50 border border-neutral-100 rounded-lg p-3 mb-4 text-center">
-                                                        <div>
-                                                            <p className="text-[9px] uppercase font-bold text-neutral-400">Puntaje</p>
-                                                            <p className={`text-lg font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{percent}%</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[9px] uppercase font-bold text-neutral-400">Aciertos</p>
-                                                            <p className="text-lg font-black text-neutral-700">{score} / {questions.length}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[9px] uppercase font-bold text-neutral-400">Estatus final</p>
-                                                            <p className={`text-lg font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{passed ? 'PASS' : 'FAIL'}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex flex-col gap-3 text-left">
-                                                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">Desglose Completo de Preguntas (Feedback para Entrenamiento)</h3>
-                                                        {answersLog.map((log, idx) => (
-                                                            <div key={idx} className="p-2.5 rounded-lg border border-neutral-200 bg-white text-[11px] leading-tight">
-                                                                <div className="flex items-start justify-between gap-4 mb-1">
-                                                                    <p className="font-bold text-neutral-800">{idx + 1}. {log.questionText}</p>
-                                                                    <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${log.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                                                                        {log.isCorrect ? 'Acierto' : 'Fallo'}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-neutral-600 mt-0.5"><span className="font-medium text-neutral-400">Respuesta del usuario:</span> {log.selectedText}</p>
-                                                                {!log.isCorrect && (
-                                                                    <p className="text-emerald-600 font-medium mt-0.5"><span className="font-medium text-neutral-400">Respuesta correcta:</span> {log.correctText}</p>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Vista de UI para el Usuario Final */}
                                         {passed ? (
                                             <>
                                                 <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4 animate-bounce">
@@ -636,16 +607,27 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                             </div>
                                         </div>
 
-                                        {/* Acciones de Fin de Examen */}
                                         <div className="flex flex-col sm:flex-row gap-3 w-full justify-center items-center">
-                                            <button
-                                                onClick={handleDownloadPDF}
-                                                disabled={isGeneratingPdf}
-                                                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                                {isGeneratingPdf ? 'Generando Reporte...' : 'Descargar PDF'}
-                                            </button>
+                                            {passed && (
+                                                <>
+                                                    <button
+                                                        onClick={handleSendResults}
+                                                        disabled={isSending}
+                                                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50"
+                                                    >
+                                                        <Send className="w-4 h-4" />
+                                                        {isSending ? 'Enviando...' : 'Enviar Resultados'}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleDownloadPDF}
+                                                        disabled={isGeneratingPdf}
+                                                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50"
+                                                    >
+                                                        <Download className="w-4 h-4" />
+                                                        {isGeneratingPdf ? 'Generando...' : 'Descargar PDF'}
+                                                    </button>
+                                                </>
+                                            )}
 
                                             {!passed ? (
                                                 <button
