@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, ChevronRight, CheckCircle2, AlertCircle, Download, Send, User } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -283,6 +283,13 @@ interface ExamModalProps {
     onLaunchSimulatorExam?: (applicantName: string) => void;
 }
 
+interface UserAnswerLog {
+    questionText: string;
+    selectedText: string;
+    correctText: string;
+    isCorrect: boolean;
+}
+
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
     const [step, setStep] = useState<'identity' | 'selection' | 'teorico'>('identity');
     const [applicantName, setApplicantName] = useState<string>('');
@@ -295,7 +302,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [isAnswered, setIsAnswered] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
     const [isFinished, setIsFinished] = useState<boolean>(false);
-    const [isSending, setIsSending] = useState<boolean>(false);
+    const [answersLog, setAnswersLog] = useState<UserAnswerLog[]>([]);
 
     const certificateRef = useRef<HTMLDivElement>(null);
     const question = questions[currentStep];
@@ -310,9 +317,21 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         if (isAnswered || !question) return;
         setSelectedOption(idx);
         setIsAnswered(true);
-        if (idx === question.correctIndex) {
+
+        const isCorrectAnswer = idx === question.correctIndex;
+        if (isCorrectAnswer) {
             setScore(prev => prev + 1);
         }
+
+        setAnswersLog(prev => [
+            ...prev,
+            {
+                questionText: question.question,
+                selectedText: question.options[idx],
+                correctText: question.options[question.correctIndex],
+                isCorrect: isCorrectAnswer
+            }
+        ]);
     };
 
     const handleNext = () => {
@@ -333,33 +352,30 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setIsAnswered(false);
         setScore(0);
         setIsFinished(false);
-    };
-
-    const handleSendResults = async () => {
-        setIsSending(true);
-        // Simulación de envío asíncrono optimizado a Supabase/Firebase
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setIsSending(false);
-        alert('Resultados enviados exitosamente al sistema central.');
+        setAnswersLog([]);
     };
 
     const handleDownloadPDF = async () => {
-        if (!certificateRef.current) return;
+        if (!certificateRef.current || typeof window === 'undefined') return;
         try {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+
             const canvas = await html2canvas(certificateRef.current, {
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                windowWidth: 850,
+                windowHeight: 1100
             });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
-                orientation: 'landscape',
+                orientation: 'portrait',
                 unit: 'px',
                 format: [canvas.width, canvas.height]
             });
             pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`Certificado_${applicantName.replace(/\s+/g, '_')}.pdf`);
+            pdf.save(`Reporte_Entrenamiento_${applicantName.replace(/\s+/g, '_')}.pdf`);
         } catch (error) {
             console.error('Error generando el PDF:', error);
         }
@@ -519,45 +535,65 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 return (
                                     <div className="flex flex-col items-center justify-center py-4 text-center">
 
-                                        {/* Nodo del DOM oculto/estructurado para Captura de Certificado */}
-                                        <div className="absolute left-[-9999px] top-[-9999px]">
+                                        {/* Elemento oculto de flujo seguro para exportar a PDF (Formato Carta con Feedback Completo) */}
+                                        <div className="pointer-events-none fixed left-0 top-0 h-0 w-0 overflow-hidden opacity-0 select-none">
                                             <div
                                                 ref={certificateRef}
-                                                className="w-[800px] h-[500px] bg-white border-[16px] border-[#FF6A00] p-12 flex flex-col justify-between items-center relative font-sans text-neutral-900"
+                                                className="w-[800px] bg-white border-[12px] border-[#FF6A00] p-10 flex flex-col font-sans text-neutral-900"
                                             >
-                                                <div className="absolute top-4 right-6 text-sm font-black tracking-widest text-neutral-300">AUTORYX STACK SECURITY</div>
-                                                <div className="text-center">
-                                                    <h1 className="text-4xl font-black text-[#FF6A00] tracking-tight uppercase mb-2">Certificado de Finalización</h1>
-                                                    <p className="text-sm tracking-widest text-neutral-400 uppercase font-bold">Sistemas de Automatización Crítica</p>
-                                                </div>
-                                                <div className="text-center my-6">
-                                                    <p className="text-xs text-neutral-400 italic mb-1">Se otorga el presente reconocimiento a:</p>
-                                                    <h2 className="text-3xl font-black text-neutral-800 underline decoration-[#FF6A00] decoration-2 underline-offset-8">{applicantName}</h2>
-                                                </div>
-                                                <div className="bg-neutral-50 border border-neutral-100 rounded-xl p-4 w-full max-w-md flex justify-around items-center">
-                                                    <div className="text-center">
-                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Resultado</p>
-                                                        <p className={`text-2xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{passed ? 'APROBADO' : 'RECHAZADO'}</p>
+                                                <div className="flex justify-between items-center border-b-2 border-neutral-100 pb-4 mb-6">
+                                                    <div>
+                                                        <h1 className="text-3xl font-black text-[#FF6A00] tracking-tight uppercase">Reporte de Entrenamiento</h1>
+                                                        <p className="text-xs tracking-widest text-neutral-400 uppercase font-bold">Autoryx Critical Automation Stack</p>
                                                     </div>
-                                                    <div className="w-px h-8 bg-neutral-200" />
-                                                    <div className="text-center">
+                                                    <div className="text-right text-[10px] font-mono text-neutral-400">
+                                                        <div>FECHA: {new Date().toLocaleDateString()}</div>
+                                                        <div>STATUS: {passed ? 'APROBADO' : 'RECHAZADO'}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mb-6">
+                                                    <p className="text-xs text-neutral-400 italic">Nombre del Operador/Aplicante:</p>
+                                                    <h2 className="text-2xl font-black text-neutral-800">{applicantName}</h2>
+                                                </div>
+
+                                                <div className="grid grid-cols-3 gap-4 bg-neutral-50 border border-neutral-100 rounded-xl p-4 mb-6 text-center">
+                                                    <div>
                                                         <p className="text-[10px] uppercase font-bold text-neutral-400">Puntaje</p>
-                                                        <p className="text-2xl font-black text-neutral-700">{percent}%</p>
+                                                        <p className={`text-xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{percent}%</p>
                                                     </div>
-                                                    <div className="w-px h-8 bg-neutral-200" />
-                                                    <div className="text-center">
+                                                    <div>
                                                         <p className="text-[10px] uppercase font-bold text-neutral-400">Aciertos</p>
-                                                        <p className="text-2xl font-black text-neutral-700">{score} / {questions.length}</p>
+                                                        <p className="text-xl font-black text-neutral-700">{score} / {questions.length}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Resultado Técnico</p>
+                                                        <p className={`text-xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{passed ? 'PASS' : 'FAIL'}</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex justify-between w-full border-t border-neutral-100 pt-4 text-[10px] text-neutral-400 font-mono">
-                                                    <div>ID EXAMEN: {Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
-                                                    <div>FECHA DE EMISIÓN: {new Date().toLocaleDateString()}</div>
+
+                                                {/* Sección de Feedback de Preguntas para el Entrenador */}
+                                                <div className="flex flex-col gap-4 text-left border-t border-neutral-100 pt-4">
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Desglose Técnico de Respuestas (Feedback del Sistema)</h3>
+                                                    {answersLog.map((log, idx) => (
+                                                        <div key={idx} className="p-3 rounded-lg border border-neutral-100 bg-neutral-50/50 text-xs">
+                                                            <div className="flex items-start justify-between gap-4 mb-1">
+                                                                <p className="font-bold text-neutral-800">{idx + 1}. {log.questionText}</p>
+                                                                <span className={`shrink-0 font-bold px-2 py-0.5 rounded text-[10px] ${log.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                                                                    {log.isCorrect ? 'Correcto' : 'Fallo'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-neutral-600"><span className="font-semibold text-neutral-500">Seleccionada:</span> {log.selectedText}</p>
+                                                            {!log.isCorrect && (
+                                                                <p className="text-emerald-700 font-medium"><span className="font-semibold text-neutral-500">Correcta esperada:</span> {log.correctText}</p>
+                                                            )}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Vista de Usuario Final */}
+                                        {/* Vista de UI para el Usuario Final */}
                                         {passed ? (
                                             <>
                                                 <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4 animate-bounce">
@@ -590,27 +626,15 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                             </div>
                                         </div>
 
-                                        {/* Acciones Condicionales Basadas en Resultado Aprobatorio */}
+                                        {/* Acciones del fin del examen */}
                                         <div className="flex flex-col sm:flex-row gap-3 w-full justify-center items-center">
-                                            {passed && (
-                                                <>
-                                                    <button
-                                                        onClick={handleSendResults}
-                                                        disabled={isSending}
-                                                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50"
-                                                    >
-                                                        <Send className="w-4 h-4" />
-                                                        {isSending ? 'Enviando...' : 'Enviar Resultados'}
-                                                    </button>
-                                                    <button
-                                                        onClick={handleDownloadPDF}
-                                                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105"
-                                                    >
-                                                        <Download className="w-4 h-4" />
-                                                        Descargar PDF
-                                                    </button>
-                                                </>
-                                            )}
+                                            <button
+                                                onClick={handleDownloadPDF}
+                                                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105"
+                                            >
+                                                <Download className="w-4 h-4" />
+                                                Descargar PDF
+                                            </button>
 
                                             {!passed ? (
                                                 <button
