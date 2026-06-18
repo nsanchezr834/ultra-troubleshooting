@@ -1,6 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 interface Question {
@@ -26,15 +25,15 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q2',
-        question: 'En la Bagger, una bolsa queda fuera de posición. ¿Qué deberias de hacer ?',
+        question: 'En la Bagger, una bolsa queda fuera de posición. ¿Qué deberias de hacer?',
         options: [
-            'Retirar la bolsa, colocarla en la bin que esta en la parte superior  y mandar el reprint label para que genere una nueva reimpresion de el pedido en ese momento no terminado',
+            'Retirar la bolsa, colocarla en la bin que esta en la parte superior y mandar el reprint label para que genere una nueva reimpresion de el pedido en ese momento no terminado',
             'Cancelar el pedido y esperar instrucciones',
             'Detener el proceso en donde este, mandar el robot a posicion de HOME',
             'Nada, continuar con el pedido'
         ],
         correctIndex: 0,
-        explanation: 'Se debe de retirar la bolsa y colocar en la bin superior, mandar el reprint label que es el boton amarillo en la UI y continuar con el pedido, esto es por que si esta fuera de posicion, no va a cerrar bien la bolsa,'
+        explanation: 'Se debe de retirar la bolsa y colocar en la bin superior, mandar el reprint label que es el boton amarillo en la UI y continuar con el pedido, esto es por que si esta fuera de posicion, no va a cerrar bien la bolsa.'
     },
     {
         id: 'q3',
@@ -87,6 +86,228 @@ interface UserAnswerLog {
     correctText: string;
 }
 
+// ─── Helper: wrap text and return lines ───────────────────────────────────────
+function splitLines(doc: jsPDF, text: string, maxWidth: number): string[] {
+    return doc.splitTextToSize(text, maxWidth) as string[];
+}
+
+// ─── PDF generation (pure jsPDF, no html2canvas) ──────────────────────────────
+function generatePDF(
+    applicantName: string,
+    score: number,
+    total: number,
+    percent: number,
+    passed: boolean,
+    answersLog: UserAnswerLog[]
+): void {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const PAGE_W = 210;
+    const PAGE_H = 297;
+    const MARGIN = 18;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+    const ORANGE = '#FF6A00';
+    const DARK = '#1a1a1a';
+    const GRAY = '#6b7280';
+    const LIGHT_GRAY = '#f3f4f6';
+    const GREEN = '#059669';
+    const RED = '#dc2626';
+
+    let y = 0;
+
+    // ── Orange header band ────────────────────────────────────────────────────
+    doc.setFillColor(ORANGE);
+    doc.rect(0, 0, PAGE_W, 42, 'F');
+
+    doc.setTextColor('#ffffff');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('REPORTE DE EVALUACIÓN', MARGIN, 18);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('AUTORYX STACK INTELLIGENT TRAINING', MARGIN, 25);
+
+    // Date + exam ID top-right
+    doc.setFontSize(7);
+    const dateStr = new Date().toLocaleDateString('es-MX');
+    doc.text(`ID: TX9X_TRAINING`, PAGE_W - MARGIN, 18, { align: 'right' });
+    doc.text(`EMISIÓN: ${dateStr}`, PAGE_W - MARGIN, 24, { align: 'right' });
+
+    y = 52;
+
+    // ── Operator card ─────────────────────────────────────────────────────────
+    doc.setFillColor(LIGHT_GRAY);
+    doc.roundedRect(MARGIN, y, CONTENT_W, 28, 3, 3, 'F');
+
+    doc.setTextColor(GRAY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('OPERADOR EVALUADO', MARGIN + 6, y + 8);
+
+    doc.setTextColor(DARK);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(applicantName || 'Sin Registro', MARGIN + 6, y + 18);
+
+    // Status / percent / score — right side
+    const statusColor = passed ? GREEN : RED;
+    const statusText = passed ? 'APROBADO' : 'RECHAZADO';
+
+    // Status
+    doc.setTextColor(GRAY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('ESTADO', PAGE_W - MARGIN - 80, y + 8);
+    doc.setTextColor(statusColor);
+    doc.setFontSize(11);
+    doc.text(statusText, PAGE_W - MARGIN - 80, y + 18);
+
+    // Separator
+    doc.setDrawColor('#d1d5db');
+    doc.line(PAGE_W - MARGIN - 54, y + 6, PAGE_W - MARGIN - 54, y + 24);
+
+    // Percent
+    doc.setTextColor(GRAY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('PORCENTAJE', PAGE_W - MARGIN - 48, y + 8);
+    doc.setTextColor(DARK);
+    doc.setFontSize(11);
+    doc.text(`${percent}%`, PAGE_W - MARGIN - 48, y + 18);
+
+    // Separator
+    doc.line(PAGE_W - MARGIN - 22, y + 6, PAGE_W - MARGIN - 22, y + 24);
+
+    // Score
+    doc.setTextColor(GRAY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.text('ACIERTOS', PAGE_W - MARGIN - 16, y + 8);
+    doc.setTextColor(DARK);
+    doc.setFontSize(11);
+    doc.text(`${score}/${total}`, PAGE_W - MARGIN - 16, y + 18);
+
+    y += 36;
+
+    // ── Section title ─────────────────────────────────────────────────────────
+    doc.setTextColor(GRAY);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('AUDITORÍA OPERATIVA DE RESPUESTAS', MARGIN, y);
+    doc.setDrawColor('#e5e7eb');
+    doc.line(MARGIN, y + 2, PAGE_W - MARGIN, y + 2);
+
+    y += 10;
+
+    // ── Answer cards ──────────────────────────────────────────────────────────
+    answersLog.forEach((log, index) => {
+        // Estimate height needed
+        const qLines = splitLines(doc, `${index + 1}. ${log.questionText}`, CONTENT_W - 30);
+        const selLines = splitLines(doc, `Seleccionado: ${log.selectedText}`, CONTENT_W - 12);
+        const corrLines = !log.isCorrect
+            ? splitLines(doc, `Solución correcta: ${log.correctText}`, CONTENT_W - 12)
+            : [];
+
+        const LINE_H = 4.5;
+        const cardH = 10 + (qLines.length + selLines.length + corrLines.length) * LINE_H + 6;
+
+        // Page break if needed
+        if (y + cardH > PAGE_H - 20) {
+            doc.addPage();
+            y = 20;
+        }
+
+        // Card background
+        const bgColor = log.isCorrect ? '#f0fdf4' : '#fff7f7';
+        doc.setFillColor(bgColor);
+        doc.roundedRect(MARGIN, y, CONTENT_W, cardH, 2, 2, 'F');
+
+        // Left accent bar
+        doc.setFillColor(log.isCorrect ? GREEN : RED);
+        doc.rect(MARGIN, y, 3, cardH, 'F');
+
+        // Badge top-right
+        const badgeColor = log.isCorrect ? GREEN : RED;
+        const badgeText = log.isCorrect ? 'CORRECTA' : 'INCORRECTA';
+        doc.setFillColor(badgeColor);
+        doc.roundedRect(PAGE_W - MARGIN - 24, y + 4, 22, 6, 1, 1, 'F');
+        doc.setTextColor('#ffffff');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6);
+        doc.text(badgeText, PAGE_W - MARGIN - 13, y + 8.2, { align: 'center' });
+
+        // Question text
+        let cy = y + 8;
+        doc.setTextColor(DARK);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        qLines.forEach((line: string) => {
+            doc.text(line, MARGIN + 6, cy);
+            cy += LINE_H;
+        });
+
+        cy += 2;
+
+        // Selected answer
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(GRAY);
+        doc.text('Seleccionado: ', MARGIN + 6, cy);
+        const labelW = doc.getTextWidth('Seleccionado: ');
+        doc.setTextColor(log.isCorrect ? GREEN : RED);
+        doc.setFont('helvetica', 'normal');
+        // First line inline, rest below
+        if (selLines.length > 0) {
+            doc.text(selLines[0].replace('Seleccionado: ', ''), MARGIN + 6 + labelW, cy);
+            selLines.slice(1).forEach((line: string) => {
+                cy += LINE_H;
+                doc.text(line, MARGIN + 6 + labelW, cy);
+            });
+        }
+        cy += LINE_H;
+
+        // Correct answer (only if wrong)
+        if (!log.isCorrect && corrLines.length > 0) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7.5);
+            doc.setTextColor(GRAY);
+            doc.text('Solución correcta: ', MARGIN + 6, cy);
+            const corrLabelW = doc.getTextWidth('Solución correcta: ');
+            doc.setTextColor(GREEN);
+            doc.setFont('helvetica', 'normal');
+            doc.text(corrLines[0].replace('Solución correcta: ', ''), MARGIN + 6 + corrLabelW, cy);
+            corrLines.slice(1).forEach((line: string) => {
+                cy += LINE_H;
+                doc.text(line, MARGIN + 6 + corrLabelW, cy);
+            });
+            cy += LINE_H;
+        }
+
+        y += cardH + 4;
+    });
+
+    // ── Footer ────────────────────────────────────────────────────────────────
+    if (y > PAGE_H - 20) {
+        doc.addPage();
+        y = PAGE_H - 16;
+    } else {
+        y = PAGE_H - 12;
+    }
+    doc.setTextColor('#d1d5db');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.text(
+        'CÓDIGO DE INTEGRIDAD REPORTE PROTEGIDO BAJO PROTOCOLO AUTORYX COGNITIVE SYSTEM',
+        PAGE_W / 2,
+        y,
+        { align: 'center' }
+    );
+
+    doc.save(`Reporte_Evaluacion_${applicantName.replace(/\s+/g, '_')}.pdf`);
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
     const [step, setStep] = useState<'identity' | 'selection' | 'teorico'>('identity');
     const [applicantName, setApplicantName] = useState<string>('');
@@ -100,12 +321,9 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [score, setScore] = useState<number>(0);
     const [isFinished, setIsFinished] = useState<boolean>(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
-
     const [answersLog, setAnswersLog] = useState<UserAnswerLog[]>([]);
 
-    const certificateRef = useRef<HTMLDivElement>(null);
     const question = questions[currentStep];
-
     const percent = Math.round((score / questions.length) * 100);
     const passed = percent >= 80;
 
@@ -121,16 +339,14 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setIsAnswered(true);
 
         const isCorrect = idx === question.correctIndex;
-        if (isCorrect) {
-            setScore(prev => prev + 1);
-        }
+        if (isCorrect) setScore(prev => prev + 1);
 
         setAnswersLog(prev => [
             ...prev,
             {
                 questionId: question.id,
                 questionText: question.question,
-                isCorrect: isCorrect,
+                isCorrect,
                 selectedText: question.options[idx],
                 correctText: question.options[question.correctIndex]
             }
@@ -158,34 +374,13 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setAnswersLog([]);
     };
 
-    const handleDownloadPDF = async () => {
-        if (!certificateRef.current) return;
+    const handleDownloadPDF = () => {
         setIsGeneratingPdf(true);
-
         try {
-            await new Promise((resolve) => setTimeout(resolve, 400));
-
-            const canvas = await html2canvas(certificateRef.current, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff',
-                windowWidth: 900,
-                windowHeight: 1100
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
-
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`Reporte_Evaluacion_${applicantName.replace(/\s+/g, '_')}.pdf`);
+            generatePDF(applicantName, score, questions.length, percent, passed, answersLog);
         } catch (error) {
             console.error('Error generando el PDF:', error);
-            alert('Error en el motor de generación del PDF.');
+            alert('Error al generar el PDF. Por favor intenta de nuevo.');
         } finally {
             setIsGeneratingPdf(false);
         }
@@ -193,95 +388,6 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-
-            {/* CONTENEDOR DE CAPTURA ASÍNCRONO FUERA DEL VIEWPORT REAL */}
-            <div className="fixed top-0 left-[100vw] z-[100] pointer-events-none bg-white">
-                <div
-                    ref={certificateRef}
-                    className="w-[900px] bg-white border-[20px] border-[#FF6A00] p-12 flex flex-col justify-between font-sans text-neutral-900"
-                    style={{ minHeight: '1100px' }}
-                >
-                    <div>
-                        <div className="flex justify-between items-start border-b border-neutral-200 pb-6 mb-8">
-                            <div>
-                                <h1 className="text-4xl font-black text-[#FF6A00] tracking-tight uppercase mb-1">Reporte de Evaluación</h1>
-                                <p className="text-xs tracking-widest text-neutral-400 uppercase font-black">Autoryx Stack Intelligent Training</p>
-                            </div>
-                            <div className="text-right text-xs font-mono text-neutral-400">
-                                <div>ID EXAMEN: TX9X_TRAINING</div>
-                                <div>EMISIÓN: {new Date().toLocaleDateString()}</div>
-                            </div>
-                        </div>
-
-                        <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-100 flex justify-between items-center mb-8">
-                            <div>
-                                <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider mb-1">Operador Evaluado</p>
-                                <h2 className="text-2xl font-black text-neutral-800">{applicantName || "Sin Registro"}</h2>
-                            </div>
-                            <div className="flex gap-8 text-center">
-                                <div>
-                                    <p className="text-[10px] uppercase font-bold text-neutral-400">Estado</p>
-                                    <p className={`text-xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>
-                                        {passed ? 'APROBADO' : 'RECHAZADO'}
-                                    </p>
-                                </div>
-                                <div className="w-px h-8 bg-neutral-200" />
-                                <div>
-                                    <p className="text-[10px] uppercase font-bold text-neutral-400">Porcentaje</p>
-                                    <p className="text-xl font-black text-neutral-700">{percent}%</p>
-                                </div>
-                                <div className="w-px h-8 bg-neutral-200" />
-                                <div>
-                                    <p className="text-[10px] uppercase font-bold text-neutral-400">Métricas</p>
-                                    <p className="text-xl font-black text-neutral-700">{score} / {questions.length}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* DESGLOSE SEGURO CON COMPROBACIÓN DE EXISTENCIA */}
-                        <div className="space-y-6">
-                            <h3 className="text-sm font-black uppercase text-neutral-400 tracking-widest border-b pb-2">Auditoría Operativa de Respuestas</h3>
-                            {isFinished && answersLog && answersLog.length > 0 ? (
-                                answersLog.map((log, index) => (
-                                    <div key={index} className="p-4 rounded-xl border border-neutral-100 bg-neutral-50/50 flex flex-col gap-2">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <h4 className="text-xs font-bold text-neutral-800 leading-relaxed">
-                                                <span className="text-neutral-400 mr-1">{index + 1}.</span> {log.questionText}
-                                            </h4>
-                                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold shrink-0 ${log.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                {log.isCorrect ? 'Correcta' : 'Incorrecta'}
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] mt-1">
-                                            <div>
-                                                <span className="font-semibold text-neutral-400">Seleccionado: </span>
-                                                <span className={log.isCorrect ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
-                                                    {log.selectedText}
-                                                </span>
-                                            </div>
-                                            {!log.isCorrect && (
-                                                <div>
-                                                    <span className="font-semibold text-neutral-400">Solución Correcta: </span>
-                                                    <span className="text-emerald-600 font-medium">{log.correctText}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-xs text-neutral-400 italic">No hay registros de respuestas en esta sesión.</p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="text-center text-[10px] text-neutral-300 font-mono pt-8 mt-12 border-t border-neutral-100 uppercase tracking-widest">
-                        CÓDIGO DE INTEGRIDAD REPORTE PROTEGIDO BAJO PROTOCOLO AUTORYX COGNITIVE SYSTEM
-                    </div>
-                </div>
-            </div>
-
-            {/* Interfaz de usuario interactiva */}
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
                 {/* Header */}
@@ -297,6 +403,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
                 {/* Content */}
                 <div className="p-6 overflow-y-auto grow">
+
+                    {/* STEP: identity */}
                     {step === 'identity' && (
                         <form onSubmit={handleStart} className="flex flex-col items-center justify-center py-8 animate-in fade-in duration-300">
                             <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center mb-4">
@@ -322,13 +430,13 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                         </form>
                     )}
 
+                    {/* STEP: selection */}
                     {step === 'selection' && (
                         <div className="flex flex-col items-center justify-center py-8 animate-in fade-in duration-300">
                             <h3 className="text-2xl font-black text-neutral-900 mb-2">Selecciona la Modalidad</h3>
                             <p className="text-neutral-500 mb-8 max-w-sm text-center text-sm">
                                 Hola <span className="font-bold text-neutral-800">{applicantName}</span>, elige si deseas realizar el examen teórico o el práctico.
                             </p>
-
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-lg">
                                 <button onClick={() => setStep('teorico')} className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group">
                                     <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -339,7 +447,6 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                         <p className="text-xs text-neutral-500 mt-2">Evaluación integral con reportes de fallas automatizados.</p>
                                     </div>
                                 </button>
-
                                 <button onClick={() => onLaunchSimulatorExam && onLaunchSimulatorExam(applicantName)} className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group">
                                     <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <CheckCircle2 className="w-8 h-8" />
@@ -353,6 +460,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                         </div>
                     )}
 
+                    {/* STEP: teorico */}
                     {step === 'teorico' && (
                         !isFinished ? (
                             <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
@@ -386,7 +494,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                         }
 
                                         return (
-                                            <button key={idx} onClick={() => handleSelectOption(idx)} disabled={isAnswered} className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center justify-between gap-4 ${btnClass}`}>
+                                            <button key={idx} onClick={() => handleSelectOption(idx)} disabled={isAnswered}
+                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center justify-between gap-4 ${btnClass}`}>
                                                 <span className="text-sm">{opt}</span>
                                                 {icon}
                                             </button>
@@ -435,7 +544,6 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     </div>
                                 </div>
 
-                                {/* PANEL UNIFICADO SIMÉTRICO: SOLO BOTÓN DE DESCARGAR PDF */}
                                 <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center items-center">
                                     <button
                                         onClick={handleDownloadPDF}
@@ -464,7 +572,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 {/* Footer Controls */}
                 {step === 'teorico' && !isFinished && (
                     <div className="bg-neutral-50 p-4 border-t border-neutral-200 shrink-0 flex justify-end">
-                        <button onClick={handleNext} disabled={!isAnswered} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${isAnswered ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'}`}>
+                        <button onClick={handleNext} disabled={!isAnswered}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${isAnswered ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'}`}>
                             {currentStep === questions.length - 1 ? 'Finalizar' : 'Siguiente Pregunta'}
                             <ChevronRight className="w-4 h-4" />
                         </button>
