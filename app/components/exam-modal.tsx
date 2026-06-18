@@ -303,6 +303,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [score, setScore] = useState<number>(0);
     const [isFinished, setIsFinished] = useState<boolean>(false);
     const [answersLog, setAnswersLog] = useState<UserAnswerLog[]>([]);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
     const certificateRef = useRef<HTMLDivElement>(null);
     const question = questions[currentStep];
@@ -356,28 +357,39 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     };
 
     const handleDownloadPDF = async () => {
-        if (!certificateRef.current || typeof window === 'undefined') return;
-        try {
-            await new Promise((resolve) => setTimeout(resolve, 250));
+        // Activamos la bandera para forzar el montaje inmediato y visible del HTML del reporte
+        setIsGeneratingPdf(true);
 
+        // Esperamos un ciclo completo del DOM (macro-task delay) para asegurar que el elemento exista y esté pintado
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        if (!certificateRef.current) {
+            setIsGeneratingPdf(false);
+            return;
+        }
+
+        try {
             const canvas = await html2canvas(certificateRef.current, {
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#ffffff',
-                windowWidth: 850,
-                windowHeight: 1100
+                backgroundColor: '#ffffff'
             });
+
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'px',
                 format: [canvas.width, canvas.height]
             });
+
             pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
             pdf.save(`Reporte_Entrenamiento_${applicantName.replace(/\s+/g, '_')}.pdf`);
         } catch (error) {
-            console.error('Error generando el PDF:', error);
+            console.error('Error generando el PDF en entorno de producción:', error);
+        } finally {
+            // Desmontamos el nodo una vez terminada la captura
+            setIsGeneratingPdf(false);
         }
     };
 
@@ -535,63 +547,61 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 return (
                                     <div className="flex flex-col items-center justify-center py-4 text-center">
 
-                                        {/* Elemento oculto de flujo seguro para exportar a PDF (Formato Carta con Feedback Completo) */}
-                                        <div className="pointer-events-none fixed left-0 top-0 h-0 w-0 overflow-hidden opacity-0 select-none">
-                                            <div
-                                                ref={certificateRef}
-                                                className="w-[800px] bg-white border-[12px] border-[#FF6A00] p-10 flex flex-col font-sans text-neutral-900"
-                                            >
-                                                <div className="flex justify-between items-center border-b-2 border-neutral-100 pb-4 mb-6">
-                                                    <div>
-                                                        <h1 className="text-3xl font-black text-[#FF6A00] tracking-tight uppercase">Reporte de Entrenamiento</h1>
-                                                        <p className="text-xs tracking-widest text-neutral-400 uppercase font-bold">Autoryx Critical Automation Stack</p>
-                                                    </div>
-                                                    <div className="text-right text-[10px] font-mono text-neutral-400">
-                                                        <div>FECHA: {new Date().toLocaleDateString()}</div>
-                                                        <div>STATUS: {passed ? 'APROBADO' : 'RECHAZADO'}</div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mb-6">
-                                                    <p className="text-xs text-neutral-400 italic">Nombre del Operador/Aplicante:</p>
-                                                    <h2 className="text-2xl font-black text-neutral-800">{applicantName}</h2>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-4 bg-neutral-50 border border-neutral-100 rounded-xl p-4 mb-6 text-center">
-                                                    <div>
-                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Puntaje</p>
-                                                        <p className={`text-xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{percent}%</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Aciertos</p>
-                                                        <p className="text-xl font-black text-neutral-700">{score} / {questions.length}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Resultado Técnico</p>
-                                                        <p className={`text-xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{passed ? 'PASS' : 'FAIL'}</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Sección de Feedback de Preguntas para el Entrenador */}
-                                                <div className="flex flex-col gap-4 text-left border-t border-neutral-100 pt-4">
-                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1">Desglose Técnico de Respuestas (Feedback del Sistema)</h3>
-                                                    {answersLog.map((log, idx) => (
-                                                        <div key={idx} className="p-3 rounded-lg border border-neutral-100 bg-neutral-50/50 text-xs">
-                                                            <div className="flex items-start justify-between gap-4 mb-1">
-                                                                <p className="font-bold text-neutral-800">{idx + 1}. {log.questionText}</p>
-                                                                <span className={`shrink-0 font-bold px-2 py-0.5 rounded text-[10px] ${log.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                                                                    {log.isCorrect ? 'Correcto' : 'Fallo'}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-neutral-600"><span className="font-semibold text-neutral-500">Seleccionada:</span> {log.selectedText}</p>
-                                                            {!log.isCorrect && (
-                                                                <p className="text-emerald-700 font-medium"><span className="font-semibold text-neutral-500">Correcta esperada:</span> {log.correctText}</p>
-                                                            )}
+                                        {/* Inyección segura al final del DOM: Se monta temporalmente sólo durante la descarga */}
+                                        {isGeneratingPdf && (
+                                            <div className="absolute top-0 left-0 z-[-10] w-[750px] bg-white text-neutral-900 p-8 font-sans border-[10px] border-[#FF6A00]">
+                                                <div ref={certificateRef}>
+                                                    <div className="flex justify-between items-center border-b-2 border-neutral-100 pb-4 mb-4">
+                                                        <div>
+                                                            <h1 className="text-2xl font-black text-[#FF6A00] tracking-tight uppercase">Reporte de Evaluación Técnica</h1>
+                                                            <p className="text-[10px] tracking-widest text-neutral-400 uppercase font-bold">Autoryx Training System</p>
                                                         </div>
-                                                    ))}
+                                                        <div className="text-right text-[9px] font-mono text-neutral-400">
+                                                            <div>FECHA EMISIÓN: {new Date().toLocaleDateString()}</div>
+                                                            <div>RESULTADO: {passed ? 'APROBADO' : 'RECHAZADO'}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mb-4">
+                                                        <p className="text-[10px] text-neutral-400 italic">Nombre del Operador:</p>
+                                                        <h2 className="text-xl font-black text-neutral-800">{applicantName}</h2>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-2 bg-neutral-50 border border-neutral-100 rounded-lg p-3 mb-4 text-center">
+                                                        <div>
+                                                            <p className="text-[9px] uppercase font-bold text-neutral-400">Puntaje</p>
+                                                            <p className={`text-lg font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{percent}%</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[9px] uppercase font-bold text-neutral-400">Aciertos</p>
+                                                            <p className="text-lg font-black text-neutral-700">{score} / {questions.length}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[9px] uppercase font-bold text-neutral-400">Estatus final</p>
+                                                            <p className={`text-lg font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{passed ? 'PASS' : 'FAIL'}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-3 text-left">
+                                                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">Desglose Completo de Preguntas (Feedback para Entrenamiento)</h3>
+                                                        {answersLog.map((log, idx) => (
+                                                            <div key={idx} className="p-2.5 rounded-lg border border-neutral-200 bg-white text-[11px] leading-tight">
+                                                                <div className="flex items-start justify-between gap-4 mb-1">
+                                                                    <p className="font-bold text-neutral-800">{idx + 1}. {log.questionText}</p>
+                                                                    <span className={`shrink-0 font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${log.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                                                                        {log.isCorrect ? 'Acierto' : 'Fallo'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-neutral-600 mt-0.5"><span className="font-medium text-neutral-400">Respuesta del usuario:</span> {log.selectedText}</p>
+                                                                {!log.isCorrect && (
+                                                                    <p className="text-emerald-600 font-medium mt-0.5"><span className="font-medium text-neutral-400">Respuesta correcta:</span> {log.correctText}</p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         {/* Vista de UI para el Usuario Final */}
                                         {passed ? (
@@ -626,14 +636,15 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                             </div>
                                         </div>
 
-                                        {/* Acciones del fin del examen */}
+                                        {/* Acciones de Fin de Examen */}
                                         <div className="flex flex-col sm:flex-row gap-3 w-full justify-center items-center">
                                             <button
                                                 onClick={handleDownloadPDF}
-                                                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105"
+                                                disabled={isGeneratingPdf}
+                                                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50"
                                             >
                                                 <Download className="w-4 h-4" />
-                                                Descargar PDF
+                                                {isGeneratingPdf ? 'Generando Reporte...' : 'Descargar PDF'}
                                             </button>
 
                                             {!passed ? (
