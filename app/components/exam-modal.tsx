@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { X, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, ChevronRight, CheckCircle2, AlertCircle, Download, Send, User } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 interface Question {
     id: string;
@@ -24,19 +26,19 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q2',
-        question: 'En la Bagger, una bolsa queda fuera de posición y el sistema se detiene. ¿Qué severidad tiene esta falla?',
+        question: 'En la Bagger, una bolsa queda fuera de posición. ¿Qué deberias de hacer ?',
         options: [
-            'Baja',
-            'Media',
-            'Alta',
-            'Crítica'
+            'Retirar la bolsa, colocarla en la bin que esta en la parte superior  y mandar el reprint label para que genere una nueva reimpresion de el pedido en ese momento no terminado',
+            'Cancelar el pedido y esperar instrucciones',
+            'Detener el proceso en donde este, mandar el robot a posicion de HOME',
+            'Nada, continuar con el pedido'
         ],
-        correctIndex: 1,
-        explanation: 'Es una falla Media porque requiere intervención manual para corregir la bolsa, pero no daña la máquina ni requiere escalamiento de nivel 2.'
+        correctIndex: 0,
+        explanation: 'Se debe de retirar la bolsa y colocar en la bin superior, mandar el reprint label que es el boton amarillo en la UI y continuar con el pedido, esto es por que si esta fuera de posicion, no va a cerrar bien la bolsa,'
     },
     {
         id: 'q3',
-        question: 'Durante un ciclo en Tote, recibes el error de "Producto fuera del rango de fecha". ¿Qué debes hacer con el producto?',
+        question: 'Durante un ciclo en Tote, recibes el error de "Producto no escaneado". ¿Qué debes hacer con el producto?',
         options: [
             'Tirarlo a la basura',
             'Empacarlo de todos modos',
@@ -44,7 +46,7 @@ const EXAM_QUESTIONS: Question[] = [
             'Forzar el escáner y continuar'
         ],
         correctIndex: 2,
-        explanation: 'El producto debe apartarse para revisión posterior; el operador no debe tomar la decisión final sobre productos expirados.'
+        explanation: 'El producto debe apartarse para revisión posterior; el operador no debe tomar la decisión final.'
     },
     {
         id: 'q4',
@@ -52,7 +54,7 @@ const EXAM_QUESTIONS: Question[] = [
         options: [
             'La bolsa más chica',
             'La bolsa mediana estándar',
-            'La bolsa más grande',
+            'Una caja compacta',
             'No se requiere bolsa, se colocan sueltos'
         ],
         correctIndex: 2,
@@ -60,7 +62,7 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q5',
-        question: 'Si tienes un problema con la orden en el robot Phil (por ejemplo, no se imprime la etiqueta y continúa solicitando otro producto), ¿cuál es el procedimiento correcto?',
+        question: 'Si tienes un problem con la orden en el robot Phil (por ejemplo, no se imprime la etiqueta y continúa solicitando otro producto), ¿cuál es el procedimiento correcto?',
         options: [
             'Dejar el tote abajo en el rack y esperar a que el robot se autocorrige',
             'Ingresar todo al mismo tote, dejarlo arriba en el rack, levantar un pick fault, seleccionar order package y presionar "FAIL JOB"',
@@ -99,7 +101,7 @@ const EXAM_QUESTIONS: Question[] = [
         question: '¿Qué debes hacer si el robot se detiene porque la Bagger se quedó sin bolsas (Out of Bags)?',
         options: [
             'Apagar la máquina y reportar mantenimiento de inmediato',
-            'Cambiar el rollo de bolsas vacío por uno nuevo para que el robot continúe',
+            'Detener el robot, mandar la fault de out of bags para que un Fiel Agent pueda resolver el problema.',
             'Forzar el reinicio del brazo robótico sin cambiar nada',
             'Cambiar a operación manual y empacar sin bolsas'
         ],
@@ -144,15 +146,15 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q12',
-        question: 'Si el escáner automático no puede leer el código de barras porque la etiqueta salió borrosa o maltratada, ¿cuál es la opción correcta?',
+        question: 'El robot coloca el paquete terminado en un contenedor (bin) que no corresponde a la ruta de envío. ¿Qué reporte se debe seleccionar?',
         options: [
-            'App Not Working',
-            'Label Won\'t Scan',
-            'Out of Labels',
-            'Product Dropped'
+            'Product Dropped',
+            'Package Dropped on Floor',
+            'Package Dropped in Wrong Bin',
+            'Bin Location Adjustment Needed'
         ],
-        correctIndex: 1,
-        explanation: 'Debes elegir "Label Won\'t Scan" cuando el código de barras o la etiqueta están borrosos, dañados o ilegibles para el escáner.'
+        correctIndex: 2,
+        explanation: '"Package Dropped in Wrong Bin" se selecciona cuando el brazo robótico deposita el paquete final en un contenedor equivocado.'
     },
     {
         id: 'q13',
@@ -216,15 +218,15 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q18',
-        question: 'Si el mecanismo encargado de doblar o empujar los sobres de envío (Mailer Folder) se queda atascado o inmóvil, ¿qué reporte es el adecuado?',
+        question: 'Si en tu visor de control dejas de recibir la transmisión de video de la muñeca del brazo izquierdo, ¿cuál es el reporte adecuado?',
         options: [
-            'Chest Frozen',
-            'Mailer Folder Frozen',
-            'Bag Jam',
-            'Left Gripper Not Working'
+            'Head Cam Out',
+            'Left Wrist Cam Out',
+            'Left Arm Frozen',
+            'App Not Working'
         ],
         correctIndex: 1,
-        explanation: '"Mailer Folder Frozen" es el reporte específico para fallos en el mecanismo plegador o empujador de sobres (Mailer Folder).'
+        explanation: '"Left Wrist Cam Out" se selecciona cuando la cámara montada en la muñeca izquierda pierde la conexión o deja de dar imagen.'
     },
     {
         id: 'q19',
@@ -278,11 +280,12 @@ const EXAM_QUESTIONS: Question[] = [
 
 interface ExamModalProps {
     onClose: () => void;
-    onLaunchSimulatorExam?: () => void;
+    onLaunchSimulatorExam?: (applicantName: string) => void;
 }
 
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
-    const [mode, setMode] = useState<'selection' | 'teorico'>('selection');
+    const [step, setStep] = useState<'identity' | 'selection' | 'teorico'>('identity');
+    const [applicantName, setApplicantName] = useState<string>('');
     const [questions, setQuestions] = useState<Question[]>(() => {
         const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
         return shuffled.slice(0, 10);
@@ -292,8 +295,16 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [isAnswered, setIsAnswered] = useState<boolean>(false);
     const [score, setScore] = useState<number>(0);
     const [isFinished, setIsFinished] = useState<boolean>(false);
+    const [isSending, setIsSending] = useState<boolean>(false);
 
+    const certificateRef = useRef<HTMLDivElement>(null);
     const question = questions[currentStep];
+
+    const handleStart = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!applicantName.trim()) return;
+        setStep('selection');
+    };
 
     const handleSelectOption = (idx: number) => {
         if (isAnswered || !question) return;
@@ -324,9 +335,40 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setIsFinished(false);
     };
 
+    const handleSendResults = async () => {
+        setIsSending(true);
+        // Simulación de envío asíncrono optimizado a Supabase/Firebase
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setIsSending(false);
+        alert('Resultados enviados exitosamente al sistema central.');
+    };
+
+    const handleDownloadPDF = async () => {
+        if (!certificateRef.current) return;
+        try {
+            const canvas = await html2canvas(certificateRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save(`Certificado_${applicantName.replace(/\s+/g, '_')}.pdf`);
+        } catch (error) {
+            console.error('Error generando el PDF:', error);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
                 {/* Header */}
                 <div className="bg-[#FF6A00] px-6 py-4 flex items-center justify-between shrink-0">
                     <h2 className="text-white font-bold text-lg flex items-center gap-2">
@@ -343,16 +385,47 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
                 {/* Content */}
                 <div className="p-6 overflow-y-auto grow">
-                    {mode === 'selection' ? (
+
+                    {/* Paso 1: Registro del Aplicante */}
+                    {step === 'identity' && (
+                        <form onSubmit={handleStart} className="flex flex-col items-center justify-center py-8 animate-in fade-in duration-300">
+                            <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                                <User className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-2xl font-black text-neutral-900 mb-2">Registro de Aplicante</h3>
+                            <p className="text-neutral-500 mb-6 max-w-sm text-center text-sm">
+                                Por favor ingresa tu nombre completo para personalizar el examen y tu certificado de aprobación.
+                            </p>
+                            <div className="w-full max-w-md flex flex-col gap-4">
+                                <input
+                                    type="text"
+                                    required
+                                    value={applicantName}
+                                    onChange={(e) => setApplicantName(e.target.value)}
+                                    placeholder="Nombre y Apellidos"
+                                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-[#FF6A00] transition-all text-neutral-800"
+                                />
+                                <button
+                                    type="submit"
+                                    className="w-full bg-[#FF6A00] hover:bg-[#E65C00] text-white py-3 rounded-xl font-bold shadow-lg shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    Continuar a Selección
+                                </button>
+                            </div>
+                        </form>
+                    )}
+
+                    {/* Paso 2: Selección de Modalidad */}
+                    {step === 'selection' && (
                         <div className="flex flex-col items-center justify-center py-8 animate-in fade-in duration-300">
                             <h3 className="text-2xl font-black text-neutral-900 mb-2">Selecciona la Modalidad</h3>
-                            <p className="text-neutral-500 mb-8 max-w-sm text-center">
-                                Elige si deseas realizar el cuestionario de preguntas de opción múltiple o el examen de práctica dentro del simulador interactivo.
+                            <p className="text-neutral-500 mb-8 max-w-sm text-center text-sm">
+                                Hola <span className="font-bold text-neutral-800">{applicantName}</span>, elige si deseas realizar el examen teórico o el práctico en el entorno simulado.
                             </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-lg">
                                 <button
-                                    onClick={() => setMode('teorico')}
+                                    onClick={() => setStep('teorico')}
                                     className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group"
                                 >
                                     <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -365,7 +438,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 </button>
 
                                 <button
-                                    onClick={() => onLaunchSimulatorExam && onLaunchSimulatorExam()}
+                                    onClick={() => onLaunchSimulatorExam && onLaunchSimulatorExam(applicantName)}
                                     className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group"
                                 >
                                     <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -378,10 +451,12 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 </button>
                             </div>
                         </div>
-                    ) : (
+                    )}
+
+                    {/* Paso 3: Flujo del Examen e Interfaz de Resultados */}
+                    {step === 'teorico' && (
                         !isFinished ? (
                             <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
-                                {/* Progress bar */}
                                 <div className="flex flex-col gap-2">
                                     <div className="flex justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
                                         <span>Pregunta {currentStep + 1} de {questions.length}</span>
@@ -395,12 +470,10 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     </div>
                                 </div>
 
-                                {/* Question */}
                                 <h3 className="text-xl font-bold text-neutral-800 leading-snug">
                                     {question.question}
                                 </h3>
 
-                                {/* Options */}
                                 <div className="flex flex-col gap-3">
                                     {question.options.map((opt, idx) => {
                                         let btnClass = "border-neutral-200 bg-white text-neutral-700 hover:border-[#FF6A00] hover:bg-orange-50";
@@ -432,9 +505,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     })}
                                 </div>
 
-                                {/* Explanation */}
                                 {isAnswered && (
-                                    <div className="mt-2 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-sm animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col gap-1">
+                                    <div className="mt-2 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-sm flex flex-col gap-1 animate-in fade-in duration-200">
                                         <span className="font-bold uppercase tracking-wider text-xs text-blue-600 mb-1">Explicación</span>
                                         {question.explanation}
                                     </div>
@@ -445,79 +517,133 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 const percent = Math.round((score / questions.length) * 100);
                                 const passed = percent >= 80;
                                 return (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center animate-in zoom-in-95 duration-500">
+                                    <div className="flex flex-col items-center justify-center py-4 text-center">
+
+                                        {/* Nodo del DOM oculto/estructurado para Captura de Certificado */}
+                                        <div className="absolute left-[-9999px] top-[-9999px]">
+                                            <div
+                                                ref={certificateRef}
+                                                className="w-[800px] h-[500px] bg-white border-[16px] border-[#FF6A00] p-12 flex flex-col justify-between items-center relative font-sans text-neutral-900"
+                                            >
+                                                <div className="absolute top-4 right-6 text-sm font-black tracking-widest text-neutral-300">AUTORYX STACK SECURITY</div>
+                                                <div className="text-center">
+                                                    <h1 className="text-4xl font-black text-[#FF6A00] tracking-tight uppercase mb-2">Certificado de Finalización</h1>
+                                                    <p className="text-sm tracking-widest text-neutral-400 uppercase font-bold">Sistemas de Automatización Crítica</p>
+                                                </div>
+                                                <div className="text-center my-6">
+                                                    <p className="text-xs text-neutral-400 italic mb-1">Se otorga el presente reconocimiento a:</p>
+                                                    <h2 className="text-3xl font-black text-neutral-800 underline decoration-[#FF6A00] decoration-2 underline-offset-8">{applicantName}</h2>
+                                                </div>
+                                                <div className="bg-neutral-50 border border-neutral-100 rounded-xl p-4 w-full max-w-md flex justify-around items-center">
+                                                    <div className="text-center">
+                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Resultado</p>
+                                                        <p className={`text-2xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>{passed ? 'APROBADO' : 'RECHAZADO'}</p>
+                                                    </div>
+                                                    <div className="w-px h-8 bg-neutral-200" />
+                                                    <div className="text-center">
+                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Puntaje</p>
+                                                        <p className="text-2xl font-black text-neutral-700">{percent}%</p>
+                                                    </div>
+                                                    <div className="w-px h-8 bg-neutral-200" />
+                                                    <div className="text-center">
+                                                        <p className="text-[10px] uppercase font-bold text-neutral-400">Aciertos</p>
+                                                        <p className="text-2xl font-black text-neutral-700">{score} / {questions.length}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between w-full border-t border-neutral-100 pt-4 text-[10px] text-neutral-400 font-mono">
+                                                    <div>ID EXAMEN: {Math.random().toString(36).substr(2, 9).toUpperCase()}</div>
+                                                    <div>FECHA DE EMISIÓN: {new Date().toLocaleDateString()}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Vista de Usuario Final */}
                                         {passed ? (
                                             <>
-                                                <div className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mb-6">
-                                                    <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+                                                <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4 animate-bounce">
+                                                    <CheckCircle2 className="w-10 h-10 text-emerald-500" />
                                                 </div>
-                                                <h2 className="text-3xl font-black text-neutral-900 mb-2">¡Examen Aprobado!</h2>
-                                                <p className="text-neutral-500 mb-8 max-w-sm">
-                                                    ¡Felicidades! Has completado y aprobado el examen de certificación de entrenamiento.
+                                                <h2 className="text-3xl font-black text-neutral-900 mb-1">¡Examen Aprobado!</h2>
+                                                <p className="text-neutral-500 mb-6 max-w-sm text-sm">
+                                                    Felicidades <span className="font-bold text-neutral-700">{applicantName}</span>. Has acreditado la evaluación teórica del sistema.
                                                 </p>
                                             </>
                                         ) : (
                                             <>
-                                                <div className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center mb-6">
-                                                    <AlertCircle className="w-12 h-12 text-red-500" />
+                                                <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                                                    <AlertCircle className="w-10 h-10 text-red-500" />
                                                 </div>
-                                                <h2 className="text-3xl font-black text-neutral-900 mb-2">No Aprobado</h2>
-                                                <p className="text-neutral-500 mb-8 max-w-sm text-lg font-medium">
-                                                    Intenta nuevamente para alcanzar el 80% requerido.
+                                                <h2 className="text-3xl font-black text-neutral-900 mb-1">Evaluación No Aprobada</h2>
+                                                <p className="text-neutral-500 mb-6 max-w-sm text-sm">
+                                                    Necesitas un mínimo de 80% para aprobar. Intenta de nuevo para obtener tu acreditación.
                                                 </p>
                                             </>
                                         )}
 
-                                        <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 w-full max-w-sm mb-8">
-                                            <div className="text-sm text-neutral-500 font-bold uppercase tracking-wider mb-1">Puntuación Final</div>
+                                        <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 w-full max-w-sm mb-6">
+                                            <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-1">Puntuación Final</div>
                                             <div className={`text-5xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>
                                                 {percent}%
                                             </div>
-                                            <div className="text-sm text-neutral-400 mt-2">
-                                                Aciertos: {score} de {questions.length} (Mínimo requerido: 80%)
+                                            <div className="text-xs text-neutral-400 mt-2 font-medium">
+                                                Aciertos: {score} de {questions.length} (Requerido: 80%)
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-4">
-                                            {!passed ? (
+                                        {/* Acciones Condicionales Basadas en Resultado Aprobatorio */}
+                                        <div className="flex flex-col sm:flex-row gap-3 w-full justify-center items-center">
+                                            {passed && (
                                                 <>
                                                     <button
-                                                        onClick={handleRetry}
-                                                        className="bg-[#FF6A00] hover:bg-[#E65C00] text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-orange-500/30 transition-all hover:scale-105 active:scale-95"
+                                                        onClick={handleSendResults}
+                                                        disabled={isSending}
+                                                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105 disabled:opacity-50"
                                                     >
-                                                        Intentar nuevamente
+                                                        <Send className="w-4 h-4" />
+                                                        {isSending ? 'Enviando...' : 'Enviar Resultados'}
                                                     </button>
                                                     <button
-                                                        onClick={onClose}
-                                                        className="bg-neutral-200 hover:bg-neutral-300 text-neutral-700 px-8 py-3 rounded-full font-bold transition-all hover:scale-105 active:scale-95"
+                                                        onClick={handleDownloadPDF}
+                                                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:scale-105"
                                                     >
-                                                        Cerrar
+                                                        <Download className="w-4 h-4" />
+                                                        Descargar PDF
                                                     </button>
                                                 </>
+                                            )}
+
+                                            {!passed ? (
+                                                <button
+                                                    onClick={handleRetry}
+                                                    className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#E65C00] text-white px-8 py-3 rounded-xl font-bold shadow-md transition-all hover:scale-105"
+                                                >
+                                                    Intentar nuevamente
+                                                </button>
                                             ) : (
                                                 <button
                                                     onClick={onClose}
-                                                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 active:scale-95"
+                                                    className="w-full sm:w-auto bg-neutral-200 hover:bg-neutral-300 text-neutral-700 px-6 py-3 rounded-xl font-bold transition-all"
                                                 >
-                                                    Volver al Inicio
+                                                    Salir
                                                 </button>
                                             )}
                                         </div>
                                     </div>
                                 );
                             })()
-                        ))}
+                        )
+                    )}
                 </div>
 
                 {/* Footer Controls */}
-                {mode === 'teorico' && !isFinished && (
+                {step === 'teorico' && !isFinished && (
                     <div className="bg-neutral-50 p-4 border-t border-neutral-200 shrink-0 flex justify-end">
                         <button
                             onClick={handleNext}
                             disabled={!isAnswered}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all ${isAnswered
-                                    ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105'
-                                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${isAnswered
+                                ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105'
+                                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                                 }`}
                         >
                             {currentStep === questions.length - 1 ? 'Finalizar' : 'Siguiente Pregunta'}
