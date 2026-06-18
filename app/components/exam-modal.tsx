@@ -56,7 +56,7 @@ const EXAM_QUESTIONS: Question[] = [
             'Una caja compacta',
             'No se requiere bolsa, se colocan sueltos'
         ],
-        correctIndex: 2,
+        correctIndex: 1,
         explanation: 'De acuerdo con el consejo de operación del robot Phil, cuando sean más de 5 productos se tiene que ocupar la bolsa más grande, de lo contrario se ocupará la bolsa más chica.'
     },
     {
@@ -70,6 +70,210 @@ const EXAM_QUESTIONS: Question[] = [
         ],
         correctIndex: 1,
         explanation: 'Ante problemas con la orden en el robot Phil, se debe ingresar todo al mismo tote y dejarlo en la parte de hasta arriba del rack. Luego, se levanta un pick fault, seleccionas order package y después presionas "FAIL JOB".'
+    },
+    {
+        id: 'q6',
+        question: 'En las estaciones de Packie y Future, si la Bagger arroja la bolsa sin abrir por causa del aire con los grippers cerrados, ¿qué acción correctiva debes tomar?',
+        options: [
+            'Volver a reiniciar la estación robótica',
+            'Realizar un movimiento vertical de arriba a abajo con la bolsa para forzar que entre el aire en la posición correcta',
+            'Soplar manualmente dentro del área de la Bagger',
+            'Marcar la bolsa como defectuosa en el sistema y desecharla'
+        ],
+        correctIndex: 1,
+        explanation: 'De acuerdo con las pautas de operación, realizar un movimiento vertical de arriba a abajo obliga a que entre el aire en la posición correcta para que la bolsa se abra y continúe el ciclo.'
+    },
+    {
+        id: 'q7',
+        question: 'Al empacar productos grandes y pesados en Packie y Future, ¿cómo se debe colocar la pinza para facilitar el cierre?',
+        options: [
+            'Colocar la pinza a un costado del empaque',
+            'No utilizar la pinza y empujar el paquete manualmente',
+            'Colocar la pinza debajo de la bolsa para ayudar a sostener el peso',
+            'Colocar la pinza in la parte superior para suspender la bolsa'
+        ],
+        correctIndex: 2,
+        explanation: 'Para objetos de gran tamaño y pesados, colocar la pinza debajo de la bolsa ayuda con el peso del paquete y facilita que la máquina realice el cierre/sello correctamente.'
+    },
+    {
+        id: 'q8',
+        question: '¿Qué debes hacer si el robot se detiene porque la Bagger se quedó sin bolsas (Out of Bags)?',
+        options: [
+            'Apagar la máquina y reportar mantenimiento de inmediato',
+            'Detener el robot, mandar la fault de out of bags para que un Fiel Agent pueda resolver el problema.',
+            'Forzar el reinicio del brazo robótico sin cambiar nada',
+            'Cambiar a operación manual y empacar sin bolsas'
+        ],
+        correctIndex: 1,
+        explanation: 'La opción "Out of Bags" indica que el rollo de bolsas se ha terminado y se requiere reemplazarlo por uno nuevo para que el ciclo continúe.'
+    },
+    {
+        id: 'q9',
+        question: '¿Cuándo se debe seleccionar la opción "Out of Labels" en la Bagger?',
+        options: [
+            'Cuando la impresora no tiene papel térmico o la etiqueta presenta problemas de impresión',
+            'Cuando no hay productos en la banda transportadora',
+            'Cuando el brazo robótico no puede succionar las bolsas',
+            'Cuando la Bagger se sobrecalienta'
+        ],
+        correctIndex: 0,
+        explanation: '"Out of Labels" se utiliza cuando el rollo de etiquetas está vacío o la impresora presenta fallas para imprimir la guía de envío.'
+    },
+    {
+        id: 'q10',
+        question: 'Si una bolsa se atasca en el mecanismo de sellado o apertura de la Bagger, ¿qué reporte debes levantar?',
+        options: [
+            'Out of Bags',
+            'Bad Seal',
+            'Bag Jam',
+            'Other Robot Issue'
+        ],
+        correctIndex: 2,
+        explanation: '"Bag Jam" es la opción específica para cuando una bolsa queda atascada en cualquier parte del mecanismo de la Bagger.'
+    },
+    {
+        id: 'q11',
+        question: 'Si detectas que la bolsa de un paquete quedó arrugada, quemada o mal cerrada en los extremos, ¿qué fallo reportarías?',
+        options: [
+            'Bad Seal',
+            'Bag Jam',
+            'Out of Bags',
+            'Product Dropped'
+        ],
+        correctIndex: 0,
+        explanation: '"Bad Seal" es el fallo que indica que el sellado de la bolsa quedó abierto, quemado, arrugado o defectuoso de alguna forma.'
+    },
+    {
+        id: 'q12',
+        question: 'El robot coloca el paquete terminado en un contenedor (bin) que no corresponde a la ruta de envío. ¿Qué reporte se debe seleccionar?',
+        options: [
+            'Product Dropped',
+            'Package Dropped on Floor',
+            'Package Dropped in Wrong Bin',
+            'Bin Location Adjustment Needed'
+        ],
+        correctIndex: 2,
+        explanation: '"Package Dropped in Wrong Bin" se selecciona cuando el brazo robótico deposita el paquete final en un contenedor equivocado.'
+    },
+    {
+        id: 'q13',
+        question: '¿Cuándo es correcto seleccionar la opción "Out of Product"?',
+        options: [
+            'Cuando el rack de bolsas está vacío',
+            'Cuando ya no hay más artículos disponibles en la zona de alimentación para ser escaneados o empacados',
+            'Cuando el robot tira un producto al suelo',
+            'Cuando la cámara de la cabeza falla'
+        ],
+        correctIndex: 1,
+        explanation: '"Out of Product" se reporta cuando la estación se queda sin artículos físicos disponibles para continuar el flujo de empaque.'
+    },
+    {
+        id: 'q14',
+        question: 'Si el contenedor de paquetes terminados listos para envío se llena por completo, ¿qué debes hacer?',
+        options: [
+            'Seleccionar "Package Bin Full", vaciar el contenedor y continuar',
+            'Seleccionar "Hospital Bin Full" y cambiar de estación',
+            'Detener la celda con botón de emergencia y llamar a mantenimiento',
+            'Continuar colocando paquetes encima hasta que se caigan'
+        ],
+        correctIndex: 0,
+        explanation: '"Package Bin Full" es para reportar que el contenedor de salida está a su máxima capacidad y requiere vaciado físico.'
+    },
+    {
+        id: 'q15',
+        question: '¿Qué significa la alerta o reporte de "Hospital Bin Full"?',
+        options: [
+            'Que el contenedor de paquetes listos para enviar está lleno',
+            'Que el contenedor de artículos rechazados o con problemas requiere ser vaciado',
+            'Que el robot se ha lesionado en sus articulaciones',
+            'Que el software del visor se congeló'
+        ],
+        correctIndex: 1,
+        explanation: '"Hospital Bin Full" indica que el contenedor donde se colocan artículos defectuosos o con problemas está lleno.'
+    },
+    {
+        id: 'q16',
+        question: 'Si notas que el robot intenta dejar los productos en un contenedor pero no se alinea correctamente con su posición física, ¿qué reporte debes usar?',
+        options: [
+            'Bin Location Adjustment Needed',
+            'Package Dropped in Wrong Bin',
+            'Left Arm Frozen',
+            'Other Product Issue'
+        ],
+        correctIndex: 0,
+        explanation: 'Se reporta "Bin Location Adjustment Needed" cuando la alineación del robot respecto al contenedor físico está desviada y requiere ajuste de posición.'
+    },
+    {
+        id: 'q17',
+        question: 'Si en tu visor de control dejas de recibir la transmisión de video de la muñeca del brazo izquierdo, ¿cuál es el reporte adecuado?',
+        options: [
+            'Head Cam Out',
+            'Left Wrist Cam Out',
+            'Left Arm Frozen',
+            'App Not Working'
+        ],
+        correctIndex: 1,
+        explanation: '"Left Wrist Cam Out" se selecciona cuando la cámara montada en la muñeca izquierda pierde la conexión o deja de dar imagen.'
+    },
+    {
+        id: 'q18',
+        question: 'El robot intenta sujetar un artículo pero los dedos de la pinza derecha no cierran ni aplican fuerza. ¿Qué debes reportar?',
+        options: [
+            'Right Arm Frozen',
+            'Right Gripper Not Working',
+            'Left Gripper Not Working',
+            'Other Robot Issue'
+        ],
+        correctIndex: 1,
+        explanation: '"Right Gripper Not Working" se selecciona específicamente cuando la pinza o griper del brazo derecho presenta problemas de apertura, cierre o fuerza.'
+    },
+    {
+        id: 'q19',
+        question: 'Si el sistema autónomo de toma de decisiones del robot falla y este deja de realizar tareas por sí solo sin causa física visible, ¿qué reporte aplica?',
+        options: [
+            'App Not Working',
+            'Autonomy Not Working',
+            'Left Arm Frozen',
+            'Other Headset Issue'
+        ],
+        correctIndex: 1,
+        explanation: '"Autonomy Not Working" se reporta cuando el software de autonomía del robot falla, impidiendo que tome decisiones o ejecute trayectorias de forma autónoma.'
+    },
+    {
+        id: 'q20',
+        question: '¿Para qué sirve reportar la falla con la opción "Other" en la pantalla de selección de fallos del simulador?',
+        options: [
+            'Para reiniciar el robot automáticamente',
+            'Para reportar cualquier otro problema técnico o falla que no haya sido mencionado en las categorías anteriores de la capacitación',
+            'Para apagar las cámaras de seguridad',
+            'Para pausar el simulador indefinidamente'
+        ],
+        correctIndex: 1,
+        explanation: '"Other" se reserva para fallas y problemas imprevistos que no coinciden con ninguna de las opciones específicas provistas en el menú.'
+    },
+    {
+        id: 'q21',
+        question: 'Si detectas que la bolsa de un paquete quedó arrugada, quemada o mal cerrada en los extremos, ¿qué fallo reportarías?',
+        options: [
+            'Bad Seal',
+            'Bag Jam',
+            'Out of Bags',
+            'Product Dropped'
+        ],
+        correctIndex: 0,
+        explanation: '"Bad Seal" es el fallo que indica que el sellado de la bolsa quedó abierto, quemado, arrugado o defectuoso de alguna forma.'
+    },
+    {
+        id: 'q22',
+        question: 'Si en tu visor de control la cámara principal de la cabeza del robot pierde señal completamente, ¿qué reporte debes levantar?',
+        options: [
+            'Left Wrist Cam Out',
+            'Right Wrist Cam Out',
+            'Head Cam Out',
+            'App Not Working'
+        ],
+        correctIndex: 2,
+        explanation: '"Head Cam Out" se selecciona cuando la cámara principal ubicada en la cabeza del robot pierde señal o deja de transmitir video.'
     }
 ];
 
@@ -313,7 +517,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [applicantName, setApplicantName] = useState<string>('');
     const [questions, setQuestions] = useState<Question[]>(() => {
         const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 5);
+        return shuffled.slice(0, 10);
     });
     const [currentStep, setCurrentStep] = useState<number>(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -365,7 +569,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
     const handleRetry = () => {
         const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
-        setQuestions(shuffled.slice(0, 5));
+        setQuestions(shuffled.slice(0, 10));
         setCurrentStep(0);
         setSelectedOption(null);
         setIsAnswered(false);
