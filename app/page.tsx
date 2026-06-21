@@ -1,12 +1,23 @@
 /**
  * app/page.tsx
- * Server Component — fetcha datos de Supabase y los pasa a HomeClient.
+ * Server Component — verifica sesión y renderiza StartingPage o HomeClient.
  */
 
+import { cookies } from 'next/headers';
+import { verifySessionToken } from './lib/security';
 import { getClientsDatabase, getWorkflowsDatabase } from './lib/queries/ultra';
 import HomeClient from './components/home-client';
+import StartingPage from './components/starting';
 
 export default async function HomeTroubleshooting() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get('session_id')?.value;
+  const isAuthenticated = verifySessionToken(sessionToken);
+
+  if (!isAuthenticated) {
+    return <StartingPage />;
+  }
+
   const [clientsDatabase, workflowsDatabase] = await Promise.all([
     getClientsDatabase(),
     getWorkflowsDatabase(),

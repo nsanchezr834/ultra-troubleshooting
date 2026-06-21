@@ -40,7 +40,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo — Fleetwood',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Fleetwood.',
-                src: '/proceso_completo_fleetwood.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_fleetwood.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -53,7 +53,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo — Fleetwood',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Fleetwood.',
-                src: '/proceso_completo_fleetwood.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_fleetwood.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -66,7 +66,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo — Future 2.0',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Future 2.0: desde la recepción del pedido hasta el depósito final de la bolsa.',
-                src: '/proceso_completo_future.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_future.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -74,7 +74,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Falla — Bolsa Fuera de Posición',
                 description:
                     'La bolsa queda fuera de posición dentro de la bagger durante el proceso de embolsado, interrumpiendo el ciclo operativo.',
-                src: '/falla_future.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/falla_future.mp4',
                 badge: 'ERROR',
                 badgeColor: 'red',
             },
@@ -168,7 +168,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Error: Producto Pasado',
                 description:
                     'Caso de manejo de error cuando el sistema detecta un producto fuera del rango de fecha. Incluye ruta de excepción completa.',
-                src: '/error_prodcuto_pasado.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/error_producto_pasado_phil.mp4',
                 badge: 'ERROR',
                 badgeColor: 'red',
             },
@@ -181,7 +181,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo',
                 description:
                     'Proceso correcto de cómo hacer el laboratorio del robot Bagger Label.',
-                src: '/proceso_completo_bagger_label.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_bagger_label.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -194,7 +194,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo',
                 description:
                     'Proceso correcto del flujo completo para armar y depositar cajas.',
-                src: '/proceso_completo_box.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_box.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -207,7 +207,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo',
                 description:
                     'Proceso correcto del flujo completo de clasificación Pick Sort.',
-                src: '/proceso_completo_pick.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_pick.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -220,7 +220,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo — Tower Stack/Unstack',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Tower Stack/Unstack: apilado y desapilado de producto.',
-                src: '/proceso_tower_completo.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_tower_completo.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -316,6 +316,7 @@ function VideoCard({ entry }: { entry: VideoEntry }) {
                 <video
                     ref={videoRef}
                     key={entry.src}
+                    src={entry.src}
                     controls={!activeInteraction} // Hide controls when interaction is active
                     playsInline
                     preload="metadata"
@@ -326,7 +327,6 @@ function VideoCard({ entry }: { entry: VideoEntry }) {
                         console.error('[VideoCard] Error al cargar el vídeo:', entry.src, e);
                     }}
                 >
-                    <source src={entry.src} type="video/mp4" />
                     Tu navegador no soporta reproducción de vídeo HTML5.
                 </video>
 
@@ -449,6 +449,7 @@ function VideoCarousel({ videos }: { videos: VideoEntry[] }) {
                 <div className="aspect-video w-full bg-neutral-950">
                     <video
                         key={activeVideo.src}
+                        src={activeVideo.src}
                         controls
                         playsInline
                         preload="metadata"
@@ -458,7 +459,6 @@ function VideoCarousel({ videos }: { videos: VideoEntry[] }) {
                             console.error('[VideoCarousel] Error al cargar el vídeo:', activeVideo.src, e);
                         }}
                     >
-                        <source src={activeVideo.src} type="video/mp4" />
                         Tu navegador no soporta reproducción de vídeo HTML5.
                     </video>
                 </div>
