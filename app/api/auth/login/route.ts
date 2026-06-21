@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { secureCompare, createSessionToken, rateLimiter } from '../../../lib/security';
 
-// Trigger rebuild to pull correct (non-empty) ACCESS_PASSWORD env var
-
-
 
 export async function POST(request: NextRequest) {
   // 1. Obtener la IP del cliente para el rate limiting
@@ -56,19 +53,6 @@ export async function POST(request: NextRequest) {
 
     // 5. Comparación segura contra la variable de entorno
     const serverPassword = process.env.ACCESS_PASSWORD;
-    
-    // Log de diagnóstico seguro en Vercel
-    console.log("--- DIAGNÓSTICO DE SEGURIDAD ---");
-    console.log("¿ACCESS_PASSWORD está definida?", serverPassword !== undefined);
-    console.log("Longitud de la contraseña del servidor:", serverPassword ? serverPassword.length : 0);
-    console.log("Keys de entorno disponibles (filtradas):", 
-      Object.keys(process.env).filter(key => 
-        !key.toLowerCase().includes("key") && 
-        !key.toLowerCase().includes("secret") && 
-        !key.toLowerCase().includes("password") && 
-        !key.toLowerCase().includes("token")
-      )
-    );
 
     if (!serverPassword) {
       console.error("ERROR CRÍTICO: La variable de entorno ACCESS_PASSWORD no está definida.");

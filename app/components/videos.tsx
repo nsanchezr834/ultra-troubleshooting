@@ -87,7 +87,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo — Monty',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Monty con prueba interactiva.',
-                src: '/proceso_completo_monty.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_monty.mp4',
                 badge: 'INTERACTIVO',
                 badgeColor: 'blue',
                 interactions: [
@@ -118,7 +118,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo — Venus',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Venus.',
-                src: '/proceso_completo_venus.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_venus.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -131,7 +131,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo — Packie',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Packie.',
-                src: '/proceso_completo_packie.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_packie.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -139,7 +139,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Fallido — Packie',
                 description:
                     'Demostración de un error durante el proceso operativo del robot Packie.',
-                src: '/proceso_fallido_packie.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_tower_completo.mp4',
                 badge: 'ERROR',
                 badgeColor: 'red',
             },
@@ -147,7 +147,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Gripper — Producto Grande',
                 description:
                     'Vista desde el gripper demostrando el proceso de ingreso y manejo de un producto de gran tamaño.',
-                src: '/proceso_packie_grande.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Proceso%20Packie%20Grande.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -160,7 +160,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo',
                 description:
                     'Ciclo operativo estándar de Phil: escaneo de tote, colocación de artículos, sellado y finalización de pedido.',
-                src: '/proceso_completo_phil.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Proceso%20Completo%20_Phil.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
