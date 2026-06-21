@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { secureCompare, createSessionToken, rateLimiter } from '../../../lib/security';
 
-// Trigger rebuild to pull fresh ACCESS_PASSWORD env var from Vercel dashboard
+// Trigger rebuild to pull correct (non-empty) ACCESS_PASSWORD env var
+
 
 
 export async function POST(request: NextRequest) {
