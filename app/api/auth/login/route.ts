@@ -55,6 +55,20 @@ export async function POST(request: NextRequest) {
 
     // 5. Comparación segura contra la variable de entorno
     const serverPassword = process.env.ACCESS_PASSWORD;
+    
+    // Log de diagnóstico seguro en Vercel
+    console.log("--- DIAGNÓSTICO DE SEGURIDAD ---");
+    console.log("¿ACCESS_PASSWORD está definida?", serverPassword !== undefined);
+    console.log("Longitud de la contraseña del servidor:", serverPassword ? serverPassword.length : 0);
+    console.log("Keys de entorno disponibles (filtradas):", 
+      Object.keys(process.env).filter(key => 
+        !key.toLowerCase().includes("key") && 
+        !key.toLowerCase().includes("secret") && 
+        !key.toLowerCase().includes("password") && 
+        !key.toLowerCase().includes("token")
+      )
+    );
+
     if (!serverPassword) {
       console.error("ERROR CRÍTICO: La variable de entorno ACCESS_PASSWORD no está definida.");
       return NextResponse.json(
