@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { secureCompare, createSessionToken, rateLimiter } from '../../../lib/security';
 
+// Trigger rebuild to pull fresh ACCESS_PASSWORD env var from Vercel dashboard
+
+
 export async function POST(request: NextRequest) {
   // 1. Obtener la IP del cliente para el rate limiting
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
