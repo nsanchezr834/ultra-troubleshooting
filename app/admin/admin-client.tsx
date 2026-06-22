@@ -371,20 +371,14 @@ export default function AdminClient() {
             {/* Header */}
             <header className="bg-[#0b0c13] border-b border-white/[0.04] px-8 py-4 flex items-center justify-between z-10 shrink-0">
                 <div className="flex items-center gap-4">
-                    <div className="h-9 w-36 relative flex items-center">
+                    <div className="h-10 w-40 relative flex items-center">
                         <Image
-                            src="/logo_autoryx.svg"
+                            src="/autoryx_logo.webp"
                             alt="Autoryx Logo"
                             fill
                             className="object-contain object-left"
                             priority
                         />
-                    </div>
-                    <div className="border-l border-white/[0.08] pl-4 py-1">
-                        <h1 className="text-lg font-bold tracking-wide flex items-center gap-2">
-                            <span className="text-[10px] bg-[#00A8FC]/20 text-[#00A8FC] px-2.5 py-0.5 rounded-full border border-[#00A8FC]/30 uppercase font-bold tracking-widest">Admin Dashboard</span>
-                        </h1>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Métricas de Retorno de Inversión (ROI) y Curva de Aprendizaje</p>
                     </div>
                 </div>
 
