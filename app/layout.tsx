@@ -15,9 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Ultra — Training Tool",
   description: "Training Tool",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({
