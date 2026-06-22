@@ -371,15 +371,11 @@ export default function AdminClient() {
             {/* Header */}
             <header className="bg-[#0b0c13] border-b border-white/[0.04] px-8 py-4 flex items-center justify-between z-10 shrink-0">
                 <div className="flex items-center gap-4">
-                    <div className="h-10 w-40 relative flex items-center">
-                        <Image
-                            src="/autoryx_logo.webp"
-                            alt="Autoryx Logo"
-                            fill
-                            className="object-contain object-left"
-                            priority
-                        />
-                    </div>
+                    <img
+                        src="/autoryx_logo.webp"
+                        alt="Autoryx Logo"
+                        className="h-10 w-auto object-contain object-left"
+                    />
                 </div>
 
                 <div className="flex items-center gap-3">
