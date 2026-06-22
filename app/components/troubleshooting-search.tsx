@@ -43,6 +43,14 @@ export default function TroubleshootingSearch({
     }
   }, [isExpert]);
 
+  // Sincronizar selectedCategory con el modo de búsqueda
+  React.useEffect(() => {
+    if (selectedCategory) {
+      setSearchMode('category');
+      setShowAllFaults(true);
+    }
+  }, [selectedCategory]);
+
   // Estados para panel de especificidad (ERR-MEC-014)
   const [isSpecificOpen, setIsSpecificOpen] = useState(false);
   const [selectedError, setSelectedError] = useState('');

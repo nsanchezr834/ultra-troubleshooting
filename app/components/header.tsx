@@ -7,7 +7,7 @@ import { Moon, Sun, GraduationCap, Zap } from 'lucide-react';
 interface HeaderProps {
     isNavigatedToDashboard: boolean;
     onResetFlow: () => void;
-    activeModule?: 'menu' | 'asistencia' | 'troubleshooting' | 'test';
+    activeModule?: 'menu' | 'asistencia' | 'troubleshooting' | 'test' | 'seguridad';
     onBackToMenu?: () => void;
     isTroubleNavigated?: boolean;
     onResetTroubleFlow?: () => void;

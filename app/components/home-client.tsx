@@ -17,11 +17,12 @@ import TroubleshootingSearch from './troubleshooting-search';
 import ExamModal from './exam-modal';
 import SimulatorModal from './simulator-modal';
 import { TraineeIdentity } from '../lib/training';
+import SafetyCases from './safety-cases';
 
 import { ClientConfig, RobotConfig } from '@/config/robots-db';
 import { WorkflowConfig } from '@/config/workflows-db';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
-import { BookOpenCheck, MonitorPlay, Activity, Wrench, GraduationCap, ChevronRight, Settings, Server, ShieldAlert, Cpu } from 'lucide-react';
+import { BookOpenCheck, MonitorPlay, Activity, Wrench, GraduationCap, ChevronRight, Settings, Server, ShieldAlert, Cpu, Siren } from 'lucide-react';
 
 interface HomeClientProps {
     clientsDatabase: Record<string, ClientConfig>;
@@ -31,7 +32,7 @@ interface HomeClientProps {
 type ClientWithLogo = ClientConfig & { logo_url?: string };
 
 export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeClientProps) {
-    const [activeModule, setActiveModule] = useState<'menu' | 'asistencia' | 'troubleshooting' | 'test'>('menu');
+    const [activeModule, setActiveModule] = useState<'menu' | 'asistencia' | 'troubleshooting' | 'test' | 'seguridad'>('menu');
 
     // ESTADOS DE ASISTENCIA
     const [selectedClientKey, setSelectedClientKey] = useState<string>('');
@@ -205,10 +206,8 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                             </p>
                         </div>
 
-                        {/* Grid de módulos — Capacitación: 3 tarjetas | Operativo: 2 tarjetas */}
-                        <div className={`grid grid-cols-1 gap-6 sm:gap-8 w-full max-w-5xl mx-auto px-2 mt-2 ${
-                            appMode === 'operativo' ? 'md:grid-cols-2' : 'md:grid-cols-3'
-                        }`}>
+                        {/* Grid de módulos — Adaptativo: 2x2 en pantallas grandes | 1 columna en celular */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 w-full max-w-4xl mx-auto px-2 mt-2">
                             
                             {/* 1. ASISTENCIA — Solo en modo Capacitación */}
                             {appMode === 'capacitacion' && (
@@ -303,6 +302,42 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                                     <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                                 </div>
                             </div>
+
+                            {/* 4. SEGURIDAD — Solo en modo Capacitación */}
+                            {appMode === 'capacitacion' && (
+                                <div 
+                                    onClick={() => {
+                                        setActiveModule('seguridad');
+                                    }}
+                                    className={`border rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(239,68,68,0.35)] hover:bg-red-500 hover:border-red-500 hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[280px] sm:min-h-[320px] ${
+                                        isDarkMode
+                                            ? 'bg-[#12131a]/65 backdrop-blur-[20px] border-white/[0.08] text-neutral-100'
+                                            : 'bg-white/65 backdrop-blur-[20px] border-white/[0.6] text-neutral-900 shadow-slate-200/50'
+                                    }`}
+                                >
+                                    <div className="flex flex-col gap-5">
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-red-500 transition-all duration-300 ${
+                                            isDarkMode ? 'bg-red-500/20 text-red-500' : 'bg-red-500/10 text-red-500'
+                                        }`}>
+                                            <Siren className="w-7 h-7" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black font-sans tracking-tight mb-2 group-hover:text-white transition-colors duration-300">
+                                                SEGURIDAD
+                                            </h3>
+                                            <p className={`text-xs sm:text-[13px] font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300 ${
+                                                isDarkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                            }`}>
+                                                <span className="font-extrabold text-red-600 group-hover:text-white">Importante</span> esta seccion identifica consejos de seguridad en tomar en cuenta.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs font-bold text-neutral-400 group-hover:text-white transition-colors mt-6">
+                                        <span>Ver consejos de seguridad</span>
+                                        <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                    </div>
+                                </div>
+                            )}
 
                         </div>
                     </div>
@@ -450,6 +485,10 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                             </div>
                         </div>
                     </div>
+                )}
+
+                {activeModule === 'seguridad' && (
+                    <SafetyCases isDarkMode={isDarkMode} />
                 )}
 
             </div>

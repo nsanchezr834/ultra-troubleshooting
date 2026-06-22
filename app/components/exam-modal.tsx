@@ -275,6 +275,102 @@ const EXAM_QUESTIONS: Question[] = [
         ],
         correctIndex: 2,
         explanation: '"Head Cam Out" se selecciona cuando la cámara principal ubicada en la cabeza del robot pierde señal o deja de transmitir video.'
+    },
+    {
+        id: 'q23',
+        question: 'Si observas un atoramiento físico debajo de la mesa de operación y el brazo del robot está mal posicionado haciendo fuerza, ¿cuál es la acción correcta?',
+        options: [
+            'Presionar el botón HOME para forzar la autorecuperación',
+            'Escalar e informar de inmediato al supervisor en turno para evitar daños mayores y forzado de motores',
+            'Tratar de mover el brazo manualmente aplicando fuerza física',
+            'Pausar la celda y esperar a que el robot se desatore solo'
+        ],
+        correctIndex: 1,
+        explanation: 'Cuando el robot está en una posición comprometida o atorado debajo de la estructura, intentar hacer HOME puede jalar la mesa y forzar los motores. Se debe avisar inmediatamente al supervisor.'
+    },
+    {
+        id: 'q24',
+        question: 'En el Caso de Estudio 2 de seguridad, ¿cuál es el peligro principal asociado con la caída o desprendimiento de una impresora térmica de su posición?',
+        options: [
+            'Pérdida de la conexión a internet en toda la nave',
+            'Provocar daños materiales al equipo y un alto riesgo de lesiones físicas al personal circundante si cae o proyecta algún objeto',
+            'Que el robot entre de inmediato en modo de desarrollo "held for dev"',
+            'Ninguno, las impresoras están diseñadas para soportar caídas repetidas'
+        ],
+        correctIndex: 1,
+        explanation: 'La caída de una impresora térmica no solo daña el equipo, sino que representa un grave peligro de golpe o proyección para el personal de DC, Customer o Training alrededor.'
+    },
+    {
+        id: 'q25',
+        question: 'Si el robot está en una posición incorrecta o comprometida, ¿por qué es imperativo contactar al supervisor antes de enviar cualquier comando de Home?',
+        options: [
+            'Porque el supervisor es el único que puede autorizar la impresión de etiquetas',
+            'Porque el robot puede jalar la estructura física, forzar los motores y causar daños catastróficos que requieran escalaciones mayores',
+            'Para verificar si las cámaras de la muñeca están calibradas',
+            'No es imperativo; el operador siempre debe tratar de solucionarlo solo primero'
+        ],
+        correctIndex: 1,
+        explanation: 'Mandar comandos de movimiento cuando el robot está mecánicamente trabado o comprometido daña los actuadores y fuerza los servomotores.'
+    },
+    {
+        id: 'q26',
+        question: '¿Quién tiene la capacidad y autorización total de intervenir directamente para resolver atoramientos mecánicos graves sin forzar el sistema?',
+        options: [
+            'El operador en entrenamiento (Trainee) por su cuenta',
+            'El supervisor en turno, quien cuenta con la capacidad para resolver y prevenir escalaciones',
+            'Cualquier persona que pase cerca de la celda de empaque',
+            'Nadie, se debe esperar a que el robot se apague por software'
+        ],
+        correctIndex: 1,
+        explanation: 'El supervisor en turno está capacitado para actuar de forma segura ante situaciones de riesgo y evitar daños mecánicos costosos en la celda.'
+    },
+    {
+        id: 'q27',
+        question: 'Escenario: Estás operando y el robot se atora debajo de la mesa. La mesa comienza a vibrar y a moverse ligeramente. El software te da la opción de mandar a HOME. Y tú, ¿qué harías?',
+        options: [
+            'Presionar HOME rápidamente para ganarle al tiempo del ciclo',
+            'Ignorar la vibración y mandar un comando de autonomía',
+            'Detener todo movimiento y notificar inmediatamente al supervisor que el robot está atorado y comprometido',
+            'Mover el torso del robot manualmente usando el joystick'
+        ],
+        correctIndex: 2,
+        explanation: 'Ante cualquier vibración o atoramiento físico, no se debe intentar mover el robot sin antes avisar al supervisor en turno.'
+    },
+    {
+        id: 'q28',
+        question: 'Escenario: Durante tus movimientos con el torso, golpeas accidentalmente la base de la impresora de etiquetas y ves que se inclina peligrosamente fuera de su base. Y tú, ¿qué harías?',
+        options: [
+            'Continuar la operación asumiendo que no se va a caer',
+            'Escalar de forma imperativa la situación de riesgo al supervisor en turno antes de que caiga y dañe a alguien o al equipo',
+            'Esperar a que termine el turno para acomodarla',
+            'Empujar el robot para que la detenga con el brazo'
+        ],
+        correctIndex: 1,
+        explanation: 'Cualquier situación de riesgo o peligro de caída de periféricos pesados debe ser reportada de forma imperativa al supervisor de inmediato.'
+    },
+    {
+        id: 'q29',
+        question: 'Escenario: El robot está fuera de su posición normal y notas que una de las pinzas (grippers) está presionando con fuerza la mesa metálica. El sistema te pide enviar un comando de reinicio de motores. Y tú, ¿qué harías?',
+        options: [
+            'Reincorporar los motores desde el headset sin revisar la posición',
+            'Pausar de inmediato y pedir al supervisor que evalúe la posición antes de forzar los motores y dañar los grippers',
+            'Estirar el brazo del robot manualmente para destrabarlo',
+            'Apagar la luz de la torreta y continuar operando'
+        ],
+        correctIndex: 1,
+        explanation: 'Si el gripper está ejerciendo fuerza constante sobre una superficie rígida, reiniciar motores o mandar Home forzará las articulaciones del brazo.'
+    },
+    {
+        id: 'q30',
+        question: 'Escenario: Ves que una persona del equipo on-site ingresa al perímetro del robot para acomodar la impresora que está mal colocada, pero no ha pausado el robot por completo. Y tú, ¿qué harías?',
+        options: [
+            'Esperar a que la persona termine su ajuste y no reportar nada',
+            'Detener de inmediato todo movimiento del robot presionando el paro de emergencia o pausa y notificar al supervisor',
+            'Mandar al robot a HOME para que no estorbe a la persona',
+            'Apagar únicamente la cámara de la cabeza para no ver el accidente'
+        ],
+        correctIndex: 1,
+        explanation: 'La seguridad física del personal es la máxima prioridad. Se debe detener inmediatamente el robot si alguien ingresa al perímetro de trabajo sin el bloqueo correspondiente.'
     }
 ];
 
