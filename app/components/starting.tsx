@@ -10,6 +10,7 @@ export default function StartingPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
   // Obtener el token CSRF al montar el componente
   useEffect(() => {
@@ -35,10 +36,19 @@ export default function StartingPage() {
     if (loading) return;
 
     setError("");
+
+    // Interceptar la palabra "admin" para cambiar a modo administrador
+    if (!isAdminMode && password.trim().toLowerCase() === "admin") {
+      setPassword("");
+      setIsAdminMode(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const endpoint = isAdminMode ? "/api/auth/admin-login" : "/api/auth/login";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -53,9 +63,12 @@ export default function StartingPage() {
 
       if (res.ok && data.success) {
         setSuccess(true);
-        // Recargar la página para que el Server Component vuelva a evaluar la sesión
         setTimeout(() => {
-          window.location.reload();
+          if (isAdminMode) {
+            window.location.href = "/admin";
+          } else {
+            window.location.reload();
+          }
         }, 800);
       } else {
         setError(data.error || "Credenciales incorrectas.");
@@ -88,20 +101,20 @@ export default function StartingPage() {
 
       {/* ── Contenedor de Vidrio Esmerilado (Glassmorphism) ── */}
       <div className="relative z-10 w-full max-w-[420px] mx-4 transition-all duration-500">
-        <div className="bg-[#12131a]/65 backdrop-blur-[24px] rounded-2xl border border-white/[0.07] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] shadow-[#FF5A00]/5 flex flex-col items-center">
+        <div className={`bg-[#12131a]/65 backdrop-blur-[24px] rounded-2xl border border-white/[0.07] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ${isAdminMode ? 'shadow-[#00A8FC]/5' : 'shadow-[#FF5A00]/5'} flex flex-col items-center`}>
           
           {/* Encabezado */}
           <div className="flex flex-col items-center mb-8">
             <div className="w-14 h-14 rounded-full bg-white/[0.02] border border-white/[0.08] flex items-center justify-center mb-4 shadow-inner shadow-white/5 relative group">
               {/* Resplandor trasero para el icono */}
-              <div className="absolute inset-0 rounded-full bg-[#FF5A00] opacity-0 group-hover:opacity-10 blur-md transition-opacity duration-300" />
-              <Lock className="w-6 h-6 text-[#FF5A00] transition-transform duration-300 group-hover:scale-105" />
+              <div className={`absolute inset-0 rounded-full ${isAdminMode ? 'bg-[#00A8FC] opacity-10' : 'bg-[#FF5A00] opacity-0 group-hover:opacity-10'} blur-md transition-opacity duration-300`} />
+              <Lock className={`w-6 h-6 ${isAdminMode ? 'text-[#00A8FC]' : 'text-[#FF5A00]'} transition-transform duration-300 group-hover:scale-105`} />
             </div>
             <h1 className="text-xl font-semibold text-white tracking-wide">
-              Acceso Seguro
+              {isAdminMode ? 'Acceso Admin' : 'Acceso Seguro'}
             </h1>
             <p className="text-xs text-gray-400 mt-1.5 text-center px-4">
-              Ingresa la clave de acceso de Ultra para continuar
+              {isAdminMode ? 'Ingresa la clave de administrador para continuar' : 'Ingresa la clave de acceso de Ultra para continuar'}
             </p>
           </div>
 
@@ -113,7 +126,7 @@ export default function StartingPage() {
                 htmlFor="password" 
                 className="text-xs font-medium text-gray-300 tracking-wider uppercase pl-0.5"
               >
-                Contraseña
+                {isAdminMode ? 'Contraseña Administrador' : 'Contraseña'}
               </label>
               
               <div className="relative w-full">
@@ -125,7 +138,7 @@ export default function StartingPage() {
                   disabled={loading || success}
                   required
                   placeholder="••••••••••••"
-                  className="w-full bg-[#0d0e12]/80 border border-white/[0.08] focus:border-[#FF5A00]/70 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none transition-all duration-300 pr-11 shadow-inner shadow-black/40"
+                  className={`w-full bg-[#0d0e12]/80 border border-white/[0.08] ${isAdminMode ? 'focus:border-[#00A8FC]/70' : 'focus:border-[#FF5A00]/70'} rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none transition-all duration-300 pr-11 shadow-inner shadow-black/40`}
                 />
                 
                 {/* Botón Mostrar/Ocultar contraseña */}
@@ -149,17 +162,32 @@ export default function StartingPage() {
             <button
               type="submit"
               disabled={loading || success}
-              className="relative overflow-hidden w-full bg-[#FF5A00] hover:bg-[#E04F00] active:scale-[0.98] disabled:active:scale-100 text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75 shadow-lg shadow-[#FF5A00]/25 mt-2 flex items-center justify-center gap-2 group"
+              className={`relative overflow-hidden w-full ${isAdminMode ? 'bg-[#00A8FC] hover:bg-[#0086C9] shadow-[#00A8FC]/25' : 'bg-[#FF5A00] hover:bg-[#E04F00] shadow-[#FF5A00]/25'} active:scale-[0.98] disabled:active:scale-100 text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75 shadow-lg mt-2 flex items-center justify-center gap-2 group`}
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : success ? (
                 <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
               ) : (
-                "Entrar"
+                isAdminMode ? 'Entrar al Panel Admin' : 'Entrar'
               )}
               {success && <span>Acceso Autorizado</span>}
             </button>
+
+            {/* Link para volver a modo operador */}
+            {isAdminMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAdminMode(false);
+                  setPassword("");
+                  setError("");
+                }}
+                className="mt-1 text-xs text-neutral-500 hover:text-[#00A8FC] transition-colors focus:outline-none text-center self-center"
+              >
+                ← Volver al acceso normal
+              </button>
+            )}
           </form>
 
           {/* Espacio reservado para mensajes de error / notificaciones */}
