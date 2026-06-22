@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User, Lock, Loader2 } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User, Lock, Loader2, Star } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { validateAndRegisterTrainee, saveExamResult, TraineeIdentity } from '../lib/training';
 
@@ -619,6 +619,9 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const examStartTime = React.useRef<number | null>(null);
     const [attemptCount, setAttemptCount] = useState<number>(1);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [showRatingSurvey, setShowRatingSurvey] = useState(false);
+    const [ratingValue, setRatingValue] = useState(0);
+    const [ratingHover, setRatingHover] = useState(0);
 
     const question = questions[currentStep];
     const percent = Math.round((score / questions.length) * 100);
@@ -672,37 +675,53 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             setSelectedOption(null);
             setIsAnswered(false);
         } else {
-            // Última pregunta — calcular resultados finales y persistir
-            setIsFinished(true);
+            // Mostrar encuesta de confianza antes de finalizar
+            setShowRatingSurvey(true);
+        }
+    };
 
-            // Capturamos el score final directo del estado
-            const finalScore = score;
-            const finalPercent = Math.round((finalScore / questions.length) * 100);
-            const finalPassed = finalPercent >= 80;
-            const durationSec = examStartTime.current
-                ? Math.round((Date.now() - examStartTime.current) / 1000)
-                : null;
+    const submitRatingSurvey = (rating: number) => {
+        setShowRatingSurvey(false);
+        setIsFinished(true);
 
-            // Solo persistir si hay identidad vinculada (PIN válido)
-            if (traineeIdentity) {
-                setSaveStatus('saving');
-                saveExamResult({
-                    traineeId: traineeIdentity.traineeId,
-                    sessionId: traineeIdentity.sessionId,
-                    robotId: null,
-                    score: finalScore,
-                    maxScore: questions.length,
-                    passed: finalPassed,
-                    answers: answersLog,
-                    durationSec: durationSec ?? undefined,
-                    attemptNumber: attemptCount,
-                })
-                    .then(() => setSaveStatus('saved'))
-                    .catch((err) => {
-                        console.error('[Fase 3] Error guardando resultado:', err);
-                        setSaveStatus('error');
-                    });
+        const finalScore = score;
+        const finalPercent = Math.round((finalScore / questions.length) * 100);
+        const finalPassed = finalPercent >= 80;
+        const durationSec = examStartTime.current
+            ? Math.round((Date.now() - examStartTime.current) / 1000)
+            : null;
+
+        // Clonar y agregar la valoración de confianza al log de respuestas
+        const finalAnswers = [
+            ...answersLog,
+            {
+                questionId: 'feedback_rating',
+                questionText: '¿Qué tan seguro te sientes para resolver esta falla en el robot real ahora que usaste el simulador?',
+                isCorrect: true,
+                selectedText: String(rating),
+                correctText: ''
             }
+        ];
+
+        // Solo persistir si hay identidad vinculada (PIN válido)
+        if (traineeIdentity) {
+            setSaveStatus('saving');
+            saveExamResult({
+                traineeId: traineeIdentity.traineeId,
+                sessionId: traineeIdentity.sessionId,
+                robotId: null,
+                score: finalScore,
+                maxScore: questions.length,
+                passed: finalPassed,
+                answers: finalAnswers,
+                durationSec: durationSec ?? undefined,
+                attemptNumber: attemptCount,
+            })
+                .then(() => setSaveStatus('saved'))
+                .catch((err) => {
+                    console.error('[Fase 3] Error guardando resultado:', err);
+                    setSaveStatus('error');
+                });
         }
     };
 
@@ -869,10 +888,59 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                         </div>
                     )}
 
-                    {/* STEP: teorico */}
                     {step === 'teorico' && (
                         !isFinished ? (
-                            <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
+                            showRatingSurvey ? (
+                                <div className="flex flex-col items-center justify-center py-6 text-center animate-in zoom-in duration-300">
+                                    <div className="w-16 h-16 rounded-full bg-[#FF6A00]/10 border border-[#FF6A00]/25 flex items-center justify-center mx-auto mb-6">
+                                        <Star className="w-8 h-8 text-[#FF6A00]" />
+                                    </div>
+                                    
+                                    <h3 className="text-2xl font-black text-neutral-800 mb-2">Encuesta de Confianza</h3>
+                                    <p className="text-neutral-500 mb-8 max-w-sm text-sm">
+                                        ¿Qué tan seguro te sientes para resolver esta falla en el robot real ahora que usaste el simulador de Ultra?
+                                    </p>
+                                    
+                                    <div className="flex items-center justify-center gap-3 mb-8">
+                                        {[1, 2, 3, 4, 5].map((val) => (
+                                            <button
+                                                key={val}
+                                                type="button"
+                                                onClick={() => setRatingValue(val)}
+                                                onMouseEnter={() => setRatingHover(val)}
+                                                onMouseLeave={() => setRatingHover(0)}
+                                                className="p-1 transition-transform hover:scale-125 focus:outline-none"
+                                            >
+                                                <Star
+                                                    className={`w-10 h-10 transition-colors ${
+                                                        val <= (ratingHover || ratingValue)
+                                                            ? 'text-[#FF6A00] fill-[#FF6A00]'
+                                                            : 'text-neutral-300'
+                                                    }`}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="text-xs text-[#FF6A00] font-bold mb-8 uppercase tracking-wider h-4">
+                                        {ratingValue === 1 && 'Nada seguro'}
+                                        {ratingValue === 2 && 'Poco seguro'}
+                                        {ratingValue === 3 && 'Seguro'}
+                                        {ratingValue === 4 && 'Muy seguro'}
+                                        {ratingValue === 5 && 'Totalmente seguro (Listo para operar)'}
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => submitRatingSurvey(ratingValue)}
+                                        disabled={ratingValue === 0}
+                                        className="w-full bg-[#FF6A00] hover:bg-[#E65C00] disabled:bg-neutral-100 disabled:text-neutral-400 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all duration-200 shadow-md shadow-orange-500/10 text-sm max-w-sm"
+                                    >
+                                        Ver Resultados
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
                                 <div className="flex flex-col gap-2">
                                     <div className="flex justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
                                         <span>Pregunta {currentStep + 1} de {questions.length}</span>
@@ -919,6 +987,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     </div>
                                 )}
                             </div>
+                        )
                         ) : (
                             <div className="flex flex-col items-center justify-center py-4 text-center">
                                 {passed ? (

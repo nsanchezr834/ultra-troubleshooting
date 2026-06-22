@@ -17,7 +17,7 @@ export const metadata = {
 export default async function TrainerPage() {
     const cookieStore = await cookies();
     const trainerToken = cookieStore.get('trainer_session_id')?.value;
-    const isTrainer = verifySessionToken(trainerToken);
+    const isTrainer = verifySessionToken(trainerToken, 'trainer');
 
     if (!isTrainer) {
         return <TrainerStartingPage />;

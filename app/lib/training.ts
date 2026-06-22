@@ -62,15 +62,26 @@ export async function validateAndRegisterTrainee(
         throw new Error('PIN inválido o sesión no activa. Verifica con tu Trainer.');
     }
 
-    // 2. Upsert del trainee (crea si no existe, recupera si ya existe)
-    const { data: trainee, error: traineeError } = await supabase
+    // 2. Intentar buscar trainee existente para evitar conflictos de upsert (insensible a mayúsculas/minúsculas)
+    const { data: existingTrainee } = await supabase
         .from('trainees')
-        .upsert(
-            { session_id: session.id, full_name: normalizedName },
-            { onConflict: 'session_id,full_name', ignoreDuplicates: false }
-        )
         .select('id, full_name')
-        .single();
+        .eq('session_id', session.id)
+        .ilike('full_name', normalizedName)
+        .maybeSingle();
+
+    let trainee = existingTrainee;
+    let traineeError = null;
+
+    if (!trainee) {
+        const { data: newTrainee, error: insertError } = await supabase
+            .from('trainees')
+            .insert({ session_id: session.id, full_name: normalizedName })
+            .select('id, full_name')
+            .single();
+        trainee = newTrainee;
+        traineeError = insertError;
+    }
 
     if (traineeError || !trainee) {
         throw new Error('Error al registrar el participante. Intenta de nuevo.');

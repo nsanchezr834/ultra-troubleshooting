@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HelpCircle, Mic, MicOff, Settings, LogOut, Pause, Bell, X, Check, Download, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { HelpCircle, Mic, MicOff, Settings, LogOut, Pause, Bell, X, Check, Download, AlertCircle, CheckCircle2, Loader2, Star } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { saveExamResult, TraineeIdentity } from '../lib/training';
 
@@ -358,6 +358,9 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
     const [answersLog, setAnswersLog] = useState<AnswerRecord[]>([]);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [showRatingSurvey, setShowRatingSurvey] = useState(false);
+    const [ratingValue, setRatingValue] = useState(0);
+    const [ratingHover, setRatingHover] = useState(0);
 
     const examStartTime = useRef<number | null>(null);
 
@@ -393,42 +396,57 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
             setExamQuestionIndex(prev => prev + 1);
             setCurrentScreen('main');
         } else {
-            setExamFinished(true);
+            // Mostrar encuesta de confianza
+            setShowRatingSurvey(true);
+        }
+    };
 
-            if (traineeIdentity) {
-                setSaveStatus('saving');
-                const finalScore = examScore;
-                const finalPercent = Math.round((finalScore / questions.length) * 100);
-                const finalPassed = finalPercent >= 80;
-                const durationSec = examStartTime.current
-                    ? Math.round((Date.now() - examStartTime.current) / 1000)
-                    : null;
+    const submitRatingSurvey = (rating: number) => {
+        setShowRatingSurvey(false);
+        setExamFinished(true);
 
-                const formattedAnswers = answersLog.map(rec => ({
-                    questionId: rec.question.id,
-                    questionText: rec.question.instruction,
-                    selectedText: rec.reportedFault,
-                    isCorrect: rec.isCorrect,
-                    correctText: rec.question.expectedFaultTitle
-                }));
+        if (traineeIdentity) {
+            setSaveStatus('saving');
+            const finalScore = examScore;
+            const finalPercent = Math.round((finalScore / questions.length) * 100);
+            const finalPassed = finalPercent >= 80;
+            const durationSec = examStartTime.current
+                ? Math.round((Date.now() - examStartTime.current) / 1000)
+                : null;
 
-                saveExamResult({
-                    traineeId: traineeIdentity.traineeId,
-                    sessionId: traineeIdentity.sessionId,
-                    robotId: null,
-                    score: finalScore,
-                    maxScore: questions.length,
-                    passed: finalPassed,
-                    answers: formattedAnswers,
-                    durationSec: durationSec ?? undefined,
-                    attemptNumber: 1,
-                })
-                    .then(() => setSaveStatus('saved'))
-                    .catch((err) => {
-                        console.error('[Simulador] Error guardando resultado:', err);
-                        setSaveStatus('error');
-                    });
-            }
+            const formattedAnswers = answersLog.map(rec => ({
+                questionId: rec.question.id,
+                questionText: rec.question.instruction,
+                selectedText: rec.reportedFault,
+                isCorrect: rec.isCorrect,
+                correctText: rec.question.expectedFaultTitle
+            }));
+
+            // Agregar la valoración de confianza
+            formattedAnswers.push({
+                questionId: 'feedback_rating',
+                questionText: '¿Qué tan seguro te sientes para resolver esta falla en el robot real ahora que usaste el simulador?',
+                selectedText: String(rating),
+                isCorrect: true,
+                correctText: ''
+            });
+
+            saveExamResult({
+                traineeId: traineeIdentity.traineeId,
+                sessionId: traineeIdentity.sessionId,
+                robotId: null,
+                score: finalScore,
+                maxScore: questions.length,
+                passed: finalPassed,
+                answers: formattedAnswers,
+                durationSec: durationSec ?? undefined,
+                attemptNumber: 1,
+            })
+                .then(() => setSaveStatus('saved'))
+                .catch((err) => {
+                    console.error('[Simulador] Error guardando resultado:', err);
+                    setSaveStatus('error');
+                });
         }
     };
 
@@ -816,6 +834,59 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
                                 <button onClick={handleNextExamQuestion}
                                     className="w-full bg-[#FF6A00] hover:bg-[#E65C00] text-white font-black py-4 rounded-xl text-xl transition-all hover:scale-105 active:scale-95 shadow-lg">
                                     {examQuestionIndex === questions.length - 1 ? 'Ver Resultados' : 'Siguiente Escenario'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Exam Rating Survey Overlay ── */}
+                    {isExamMode && showRatingSurvey && (
+                        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95 rounded-2xl backdrop-blur-lg">
+                            <div className="bg-[#181922] border border-[#FF6A00]/30 p-8 rounded-3xl max-w-md w-full text-center shadow-[0_0_50px_rgba(255,106,0,0.15)] animate-in zoom-in duration-300">
+                                <div className="w-16 h-16 rounded-full bg-[#FF6A00]/10 border border-[#FF6A00]/20 flex items-center justify-center mx-auto mb-6">
+                                    <Star className="w-8 h-8 text-[#FF5A00]" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-white mb-2">Encuesta de Confianza</h2>
+                                <p className="text-gray-400 mb-6 text-sm">
+                                    ¿Qué tan seguro te sientes para resolver esta falla en el robot real ahora que usaste el simulador de Ultra?
+                                </p>
+                                
+                                <div className="flex items-center justify-center gap-3 mb-8">
+                                    {[1, 2, 3, 4, 5].map((val) => (
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => setRatingValue(val)}
+                                            onMouseEnter={() => setRatingHover(val)}
+                                            onMouseLeave={() => setRatingHover(0)}
+                                            className="p-1 transition-transform hover:scale-125 focus:outline-none"
+                                        >
+                                            <Star
+                                                className={`w-10 h-10 transition-colors ${
+                                                    val <= (ratingHover || ratingValue)
+                                                        ? 'text-[#FF5A00] fill-[#FF5A00]'
+                                                        : 'text-neutral-600'
+                                                }`}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="text-xs text-[#FF5A00] font-semibold mb-6 uppercase tracking-wider h-4">
+                                    {ratingValue === 1 && 'Nada seguro'}
+                                    {ratingValue === 2 && 'Poco seguro'}
+                                    {ratingValue === 3 && 'Seguro'}
+                                    {ratingValue === 4 && 'Muy seguro'}
+                                    {ratingValue === 5 && 'Totalmente seguro (Listo para operar)'}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => submitRatingSurvey(ratingValue)}
+                                    disabled={ratingValue === 0}
+                                    className="w-full bg-[#FF6A00] hover:bg-[#E65C00] disabled:bg-neutral-800 disabled:text-neutral-500 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-all duration-200 shadow-lg shadow-[#FF6A00]/20"
+                                >
+                                    Ver Resultados
                                 </button>
                             </div>
                         </div>

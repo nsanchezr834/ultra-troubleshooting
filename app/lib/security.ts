@@ -25,15 +25,17 @@ export function generateCsrfToken(): string {
 interface SessionPayload {
   authenticated: boolean;
   expiresAt: number;
+  role?: 'trainer' | 'admin';
 }
 
 /**
  * Crea un token de sesión firmado criptográficamente de forma síncrona y sin estado.
  */
-export function createSessionToken(): string {
+export function createSessionToken(role?: 'trainer' | 'admin'): string {
   const payload: SessionPayload = {
     authenticated: true,
     expiresAt: Date.now() + 2 * 60 * 60 * 1000, // Expiración en 2 horas
+    role,
   };
   const payloadStr = JSON.stringify(payload);
   const payloadB64 = Buffer.from(payloadStr).toString('base64');
@@ -44,7 +46,7 @@ export function createSessionToken(): string {
 /**
  * Verifica un token de sesión firmado. Retorna true si es válido y no ha expirado.
  */
-export function verifySessionToken(token?: string): boolean {
+export function verifySessionToken(token?: string, expectedRole?: 'trainer' | 'admin'): boolean {
   if (!token) return false;
   const parts = token.split('.');
   if (parts.length !== 2) return false;
@@ -66,6 +68,10 @@ export function verifySessionToken(token?: string): boolean {
     const payload: SessionPayload = JSON.parse(payloadStr);
 
     if (payload.expiresAt < Date.now()) {
+      return false;
+    }
+
+    if (expectedRole && payload.role !== expectedRole) {
       return false;
     }
 

@@ -3,10 +3,10 @@ import { cookies } from 'next/headers';
 import { secureCompare, createSessionToken, rateLimiter } from '../../../lib/security';
 
 /**
- * POST /api/auth/trainer-login
- * Autentica al Trainer con TRAINER_PASSWORD.
- * Usa la misma lógica de seguridad que el operador (CSRF, rate limiting, timing-safe compare).
- * Escribe una cookie separada 'trainer_session_id' para no interferir con la sesión de operador.
+ * POST /api/auth/admin-login
+ * Autentica al Administrador con ADMIN_PASSWORD.
+ * Usa la misma lógica de seguridad que el trainer (CSRF, rate limiting, timing-safe compare).
+ * Escribe la cookie 'admin_session_id'.
  */
 export async function POST(request: NextRequest) {
     const ip =
@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
         request.headers.get('x-real-ip') ||
         '127.0.0.1';
 
-    // Rate limiting compartido (misma instancia — protege ambos endpoints)
     const limitCheck = rateLimiter.check(ip);
     if (limitCheck.isLocked) {
         const minutesLeft = Math.ceil(limitCheck.remainingMs / 60000);
@@ -44,26 +43,26 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Credenciales incorrectas.' }, { status: 401 });
         }
 
-        const trainerPassword = process.env.TRAINER_PASSWORD;
-        if (!trainerPassword) {
-            console.error('ERROR CRÍTICO: TRAINER_PASSWORD no está definida.');
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        if (!adminPassword) {
+            console.error('ERROR CRÍTICO: ADMIN_PASSWORD no está definida.');
             return NextResponse.json(
                 { error: 'Error de configuración interna del servidor.' },
                 { status: 500 }
             );
         }
 
-        const isMatch = secureCompare(password, trainerPassword);
+        const isMatch = secureCompare(password, adminPassword);
         if (!isMatch) {
             rateLimiter.recordFailure(ip);
             return NextResponse.json({ error: 'Credenciales incorrectas.' }, { status: 401 });
         }
 
-        // Autenticación exitosa — sesión de Trainer en cookie separada
+        // Autenticación exitosa — sesión de Admin en cookie separada
         rateLimiter.reset(ip);
-        const sessionToken = createSessionToken('trainer');
+        const sessionToken = createSessionToken('admin');
 
-        cookieStore.set('trainer_session_id', sessionToken, {
+        cookieStore.set('admin_session_id', sessionToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
@@ -76,7 +75,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Error en endpoint trainer-login:', error);
+        console.error('Error en endpoint admin-login:', error);
         return NextResponse.json({ error: 'Ocurrió un error en el servidor.' }, { status: 500 });
     }
 }
