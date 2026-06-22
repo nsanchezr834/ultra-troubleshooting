@@ -52,13 +52,13 @@ const EXAM_QUESTIONS: Question[] = [
         id: 'q4',
         question: 'En el robot Phil, si una orden contiene 6 productos, ¿qué tamaño de bolsa debes utilizar para el empaque?',
         options: [
-            'La bolsa más chica',
-            'La bolsa mediana estándar',
+            'La bolsa pequeña (medida estándar)',
+            'La bolsa de mayor tamaño',
             'Una caja compacta',
             'No se requiere bolsa, se colocan sueltos'
         ],
         correctIndex: 1,
-        explanation: 'De acuerdo con el consejo de operación del robot Phil, cuando sean más de 5 productos se tiene que ocupar la bolsa más grande, de lo contrario se ocupará la bolsa más chica.'
+        explanation: 'De acuerdo con el consejo de operación del robot Phil, si el tote contiene 6 productos o más se ocupa la bolsa de mayor tamaño, y si tiene 5 productos o menos se ocupa la bolsa pequeña (medida estándar).'
     },
     {
         id: 'q5',
@@ -74,7 +74,7 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q6',
-        question: 'En las estaciones de Packie y Future, si la Bagger arroja la bolsa sin abrir por causa del aire con los grippers cerrados, ¿qué acción correctiva debes tomar?',
+        question: 'En las estaciones de Packie y Future, si la Bagger arroja la bolsa sin abrir por causa del aire con los grippers cerrados, ¿qué acción corrective debes tomar?',
         options: [
             'Volver a reiniciar la estación robótica',
             'Realizar un movimiento vertical de arriba a abajo con la bolsa para forzar que entre el aire en la posición correcta',
@@ -134,7 +134,7 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q11',
-        question: 'Si detectas que la bolsa de un paquete quedó arrugada, quemada o mal cerrada en los extremos, ¿qué fallo reportarías?',
+        question: 'Si detectas que la bolsa de un paquete quedó arrugada, quemada o mal cerrada en los extremos (aplica a Packie, Future, Fleetwood o Bagger Label), ¿qué fallo reportarías?',
         options: [
             'Bad Seal',
             'Bag Jam',
@@ -158,15 +158,15 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q13',
-        question: '¿Cuándo es correcto seleccionar la opción "Out of Product"?',
+        question: '¿Cuándo es correcto seleccionar la opción "Out of Product" (Falla Global)?',
         options: [
             'Cuando el rack de bolsas está vacío',
-            'Cuando ya no hay más artículos disponibles en la zona de alimentación para ser escaneados o empacados',
+            'Cuando ya no hay artículos físicos en la zona de alimentación o cuando no hay un lote (batch) cargado para seguir el trabajo',
             'Cuando el robot tira un producto al suelo',
             'Cuando la cámara de la cabeza falla'
         ],
         correctIndex: 1,
-        explanation: '"Out of Product" se reporta cuando la estación se queda sin artículos físicos disponibles para continuar el flujo de empaque.'
+        explanation: '"Out of Product" se reporta de forma global para todos los robots cuando se agota el producto en la zona o cuando no hay batch cargada en el sistema para continuar el trabajo.'
     },
     {
         id: 'q14',
@@ -194,15 +194,15 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q16',
-        question: 'Si notas que el robot intenta dejar los productos en un contenedor pero no se alinea correctamente con su posición física, ¿qué reporte debes usar?',
+        question: '¿En qué casos se debe reportar la falla "Bin Location Adjustment Needed"?',
         options: [
-            'Bin Location Adjustment Needed',
-            'Package Dropped in Wrong Bin',
-            'Left Arm Frozen',
-            'Other Product Issue'
+            'Cuando no hay bin de depósito, el robot no lo alcanza físicamente, o en el caso de Customer no está el bin del color solicitado',
+            'Cuando el robot tira un paquete al suelo de la estación',
+            'Cuando la aplicación del visor se congela inesperadamente',
+            'Cuando el brazo izquierdo se detiene a la mitad del recorrido'
         ],
         correctIndex: 0,
-        explanation: 'Se reporta "Bin Location Adjustment Needed" cuando la alineación del robot respecto al contenedor físico está desviada y requiere ajuste de posición.'
+        explanation: 'Se reporta "Bin Location Adjustment Needed" cuando no hay bin de depósito, el robot no lo alcanza, o el contenedor de Customer no es del color solicitado.'
     },
     {
         id: 'q17',
@@ -254,15 +254,15 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q21',
-        question: 'Si detectas que la bolsa de un paquete quedó arrugada, quemada o mal cerrada en los extremos, ¿qué fallo reportarías?',
+        question: '¿Cuál de los siguientes robots utiliza un flujo de trabajo basado exclusivamente en contenedores (Totes) en lugar de una embolsadora (Bagger)?',
         options: [
-            'Bad Seal',
-            'Bag Jam',
-            'Out of Bags',
-            'Product Dropped'
+            'Packie 2.0',
+            'Future 2.0',
+            'Phil',
+            'Bagger Label'
         ],
-        correctIndex: 0,
-        explanation: '"Bad Seal" es el fallo que indica que el sellado de la bolsa quedó abierto, quemado, arrugado o defectuoso de alguna forma.'
+        correctIndex: 2,
+        explanation: 'El robot Phil opera con el flujo de trabajo de Totes (contenedores), mientras que robots como Packie, Future y Bagger Label utilizan embolsadoras (Baggers).'
     },
     {
         id: 'q22',
@@ -277,6 +277,24 @@ const EXAM_QUESTIONS: Question[] = [
         explanation: '"Head Cam Out" se selecciona cuando la cámara principal ubicada en la cabeza del robot pierde señal o deja de transmitir video.'
     }
 ];
+
+// ─── Helper: shuffle options and adjust correctIndex ──────────────────────────
+function shuffleQuestionOptions(q: Question): Question {
+    const optionsWithOriginalIndices = q.options.map((opt, idx) => ({
+        text: opt,
+        originalIndex: idx,
+    }));
+    // Mezcla aleatoria simple
+    const shuffledOptions = [...optionsWithOriginalIndices].sort(() => Math.random() - 0.5);
+    // Encontrar el nuevo índice correcto
+    const correctIndex = shuffledOptions.findIndex(item => item.originalIndex === q.correctIndex);
+    return {
+        ...q,
+        options: shuffledOptions.map(item => item.text),
+        correctIndex,
+    };
+}
+
 
 interface ExamModalProps {
     onClose: () => void;
@@ -605,7 +623,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [validationError, setValidationError] = useState<string>('');
     const [questions, setQuestions] = useState<Question[]>(() => {
         const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 10);
+        return shuffled.slice(0, 10).map(shuffleQuestionOptions);
     });
     const [currentStep, setCurrentStep] = useState<number>(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -727,7 +745,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
     const handleRetry = () => {
         const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
-        setQuestions(shuffled.slice(0, 10));
+        setQuestions(shuffled.slice(0, 10).map(shuffleQuestionOptions));
         setCurrentStep(0);
         setSelectedOption(null);
         setIsAnswered(false);

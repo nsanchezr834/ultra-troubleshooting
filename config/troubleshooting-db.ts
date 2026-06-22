@@ -126,6 +126,96 @@ export const TROUBLESHOOTING_DATABASE: TroubleshootingKnowledge[] = [
     severity: "CRITICAL",
     resolution_protocol: "Detener de inmediato todo movimiento del robot. Mantener el volumen de audio del equipo activo para coordinarse con ingeniería on-site. Evaluar la situación visualmente antes de reanudar cualquier comando. Al momento de enviar el fault, automáticamente el robot entra en fase de autorrecuperación y se reiniciará el módulo reportado. Posteriormente, debe pasarse a posición de HOME e iniciar nuevamente la operación. Si el robot no se recupera tras esto, se enviará de forma automática un mensaje en el canal de Slack notificando que sigue en espera de intervención.",
     sop_reference: "SOP 2-F, SOP 2-G, Estándares de Seguridad (Volumen)"
+  },
+  {
+    id: "ERR-BAG-001",
+    category: "Qué hacer en caso de...",
+    symptom: "La bagger escupe de forma abrupta la bolsa o no imprime más (Out of Bags)",
+    root_cause: "El rollo de bolsas se consumió por completo durante la operación estándar en un robot con embolsadora.",
+    severity: "MEDIUM",
+    resolution_protocol: "Si la bagger escupe de forma abrupta la bolsa y tras presionar la pantalla del display en la bagger no imprime más, es muy probable que se haya terminado el rollo de bolsas. En este caso, se debe detener el robot y levantar la fault correspondiente en: Fault -> Bagger -> Out of Bags para que un Field Agent realice el reemplazo físico del rollo.",
+    sop_reference: "SOP 11-A, Bagger Standard"
+  },
+  {
+    id: "ERR-BAG-002",
+    category: "Problemas con el robot",
+    symptom: "Bolsa atascada en Bagger (Bag Jam)",
+    root_cause: "Una bolsa queda atrapada en el mecanismo de sellado, apertura o alimentación por desalineación física o falla neumática.",
+    severity: "HIGH",
+    resolution_protocol: "Pausar la celda robótica. Levantar el reporte de fallo 'Bag Jam' en la pantalla del simulador. Llamar a soporte o mantenimiento en sitio para retirar la bolsa atascada de manera segura antes de reanudar.",
+    sop_reference: "SOP 11-B, Bagger Standard"
+  },
+  {
+    id: "ERR-BAG-003",
+    category: "Problemas con el robot",
+    symptom: "Bolsa arrugada, quemada o mal sellada en los extremos (Bad Seal)",
+    root_cause: "Falla en la temperatura o calibración del mecanismo de sellado térmico en robots con bagger (Fleetwood, Packie, Future, e interno Bagger-Label). No aplica a robots de puro Tote (como Phil).",
+    severity: "MEDIUM",
+    resolution_protocol: "Pausar la estación. Reportar 'Bad Seal' en el simulador. Verificar la temperatura de la embolsadora o la colocación de la bolsa. Si el ítem es pesado, recordar colocar la pinza debajo para soportar el peso y facilitar el sello.",
+    sop_reference: "SOP 11-C, Bagger Standard"
+  },
+  {
+    id: "ERR-BIN-001",
+    category: "Qué hacer en caso de...",
+    symptom: "Robot deposita el paquete terminado en un contenedor equivocado (Package Dropped in Wrong Bin)",
+    root_cause: "Falla de lectura del escáner de guías o descalibración lógica de rutas de salida.",
+    severity: "MEDIUM",
+    resolution_protocol: "Reportar 'Package Dropped in Wrong Bin' en el simulador para que quede registro. Recuperar el paquete de forma segura y colocarlo manualmente en el contenedor de la ruta correcta.",
+    sop_reference: "SOP 12-A, Mapeo de Destinos"
+  },
+  {
+    id: "ERR-BIN-002",
+    category: "Qué hacer en caso de...",
+    symptom: "El contenedor de paquetes terminados listos para envío está lleno (Package Bin Full)",
+    root_cause: "Acumulación física de paquetes terminados en el contenedor de salida de la estación.",
+    severity: "LOW",
+    resolution_protocol: "Reportar 'Package Bin Full' en el simulador. Proceder a vaciar físicamente el contenedor de salida colocando los paquetes en la banda o carro correspondiente y reanudar la marcha.",
+    sop_reference: "SOP 12-B, Manejo de Salidas"
+  },
+  {
+    id: "ERR-BIN-003",
+    category: "Qué hacer en caso de...",
+    symptom: "El contenedor de artículos rechazados o defectuosos está lleno (Hospital Bin Full)",
+    root_cause: "Saturación del contenedor de hospitalización debido a productos defectuosos o descartes durante el turno.",
+    severity: "LOW",
+    resolution_protocol: "Reportar 'Hospital Bin Full' en el simulador. Vaciar el contenedor de hospitalización y notificar al supervisor para la auditoría de los productos retenidos.",
+    sop_reference: "SOP 12-C, Área de Descarte"
+  },
+  {
+    id: "ERR-BIN-004",
+    category: "Qué hacer en caso de...",
+    symptom: "Alineación incorrecta del robot con el bin físico o necesidad de reubicar contenedores (Bin Location Adjustment Needed)",
+    root_cause: "El robot intenta depositar productos en un contenedor pero no se alinea correctamente, no hay bin de depósito o no se alcanza, o en el caso de Customer no está el bin del color solicitado.",
+    severity: "MEDIUM",
+    resolution_protocol: "Levantar el reporte 'Bin Location Adjustment Needed' en el simulador. Ajustar la posición física del bin para que quede alineado al robot o verificar que esté colocado el bin del color que solicita el cliente.",
+    sop_reference: "SOP 12-D, Calibración de Bins"
+  },
+  {
+    id: "ERR-PRO-001",
+    category: "Qué hacer en caso de...",
+    symptom: "Falta de productos en la zona de alimentación (Out of Product) - Global",
+    root_cause: "Se agotaron los artículos físicos en la banda de entrada o rack de alimentación, o no hay un lote (batch) cargado en el sistema.",
+    severity: "LOW",
+    resolution_protocol: "Reportar 'Out of Product' en el simulador. Esto aplica de forma global a todos los robots cuando ya no hay más producto en la zona o cuando no hay batch cargada en el sistema para seguir el trabajo.",
+    sop_reference: "SOP 10-A, Abastecimiento"
+  },
+  {
+    id: "ERR-SW-006",
+    category: "Software",
+    symptom: "La aplicación en el visor/headset se congela, se cierra inesperadamente o no responde (App Not Working)",
+    root_cause: "Crash del navegador integrado, bug de runtime en el headset o falta de memoria de la app.",
+    severity: "HIGH",
+    resolution_protocol: "Reportar 'App Not Working' en el simulador para que se genere el ticket. Reiniciar la aplicación desde el visor y reestablecer la conexión con el servidor.",
+    sop_reference: "SOP 4-E, Headset Troubleshoot"
+  },
+  {
+    id: "ERR-SW-007",
+    category: "Software",
+    symptom: "Problema técnico imprevisto con el visor o software (Other Headset Issue)",
+    root_cause: "Problemas diversos en el visor que no corresponden a categorías conocidas (descalibración de tracking, audio cortado, etc.).",
+    severity: "MEDIUM",
+    resolution_protocol: "Levantar el fault 'Other Headset Issue' en la categoría de software del simulador para el reporte automatizado con el equipo técnico.",
+    sop_reference: "SOP 4-F, Headset Troubleshoot"
   }
 ];
 

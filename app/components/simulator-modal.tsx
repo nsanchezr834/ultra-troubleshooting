@@ -24,7 +24,7 @@ const ALL_SIMULATION_QUESTIONS: SimulationQuestion[] = [
     { id: 'sq2', instruction: 'La aplicación en el visor se cerró inesperadamente.', expectedFaultTitle: 'App Not Working', category: 'Headset / App / Software' },
     { id: 'sq3', instruction: 'El brazo izquierdo del robot se congeló y no responde.', expectedFaultTitle: 'Left Arm Frozen', category: 'Robot' },
     { id: 'sq4', instruction: 'El paquete se cayó de la pinza al suelo.', expectedFaultTitle: 'Package Dropped on Floor', category: 'Order / Package' },
-    { id: 'sq5', instruction: 'Ya no hay más productos para empacar en la banda.', expectedFaultTitle: 'Out of Product', category: 'Product / Bins' },
+    { id: 'sq5', instruction: 'Ya no hay artículos físicos en la zona de alimentación, o no hay un lote (batch) cargado en el sistema para seguir el trabajo.', expectedFaultTitle: 'Out of Product', category: 'Product / Bins' },
     { id: 'sq6', instruction: 'El robot intentó meter un paquete en un contenedor equivocado.', expectedFaultTitle: 'Package Dropped in Wrong Bin', category: 'Order / Package' },
     { id: 'sq7', instruction: 'No hay etiquetas térmicas en la impresora.', expectedFaultTitle: 'Out of Labels', category: 'Bagger' },
     { id: 'sq8', instruction: 'El contenedor de paquetes terminados está lleno a su capacidad máxima.', expectedFaultTitle: 'Package Bin Full', category: 'Product / Bins' },
@@ -38,15 +38,14 @@ const ALL_SIMULATION_QUESTIONS: SimulationQuestion[] = [
     { id: 'sq14', instruction: 'Revisas el paquete sellado y notas que el cierre de la bolsa quedó quemado y abierto en un extremo.', expectedFaultTitle: 'Bad Seal', category: 'Order / Package' },
     { id: 'sq15', instruction: 'La cámara instalada en la cabeza del robot dejó de transmitir video al visor.', expectedFaultTitle: 'Head Cam Out', category: 'Robot' },
     { id: 'sq16', instruction: 'El contenedor de artículos rechazados (hospital bin) llegó a su capacidad máxima y no caben más artículos.', expectedFaultTitle: 'Hospital Bin Full', category: 'Product / Bins' },
-    { id: 'sq17', instruction: 'Notas que el robot intenta depositar productos en un contenedor pero su pinza no llega al centro; la posición del bin está desplazada.', expectedFaultTitle: 'Bin Location Adjustment Needed', category: 'Product / Bins' },
+    { id: 'sq17', instruction: 'Se necesita mover el bin de depósito, el robot no lo alcanza físicamente, o no se tiene el bin en Customer del color que se solicita.', expectedFaultTitle: 'Bin Location Adjustment Needed', category: 'Product / Bins' },
     { id: 'sq18', instruction: 'La cámara de la muñeca izquierda perdió la conexión y el visor muestra una pantalla negra en esa vista.', expectedFaultTitle: 'Left Wrist Cam Out', category: 'Robot' },
     { id: 'sq19', instruction: 'La impresora de etiquetas terminó su rollo y ya no puede generar guías de envío para los paquetes actuales.', expectedFaultTitle: 'Out of Labels', category: 'Bagger' },
     { id: 'sq20', instruction: 'Un artículo cayó fuera del conveyor durante el movimiento del brazo y quedó en el suelo de la estación.', expectedFaultTitle: 'Product Dropped', category: 'Product / Bins' },
     { id: 'sq21', instruction: 'La pinza derecha del robot pierde agarre constantemente y deja caer los artículos antes de empacarlos.', expectedFaultTitle: 'Right Gripper Not Working', category: 'Robot' },
     { id: 'sq22', instruction: 'El cuello del robot no puede girar para orientar las cámaras hacia la banda de productos.', expectedFaultTitle: 'Neck Frozen', category: 'Robot' },
     { id: 'sq23', instruction: 'El torso del robot se quedó bloqueado en su posición y no responde a ningún comando de rotación.', expectedFaultTitle: 'Chest Frozen', category: 'Robot' },
-    { id: 'sq24', instruction: 'El mecanismo doblador de sobres (Mailer Folder) dejó de moverse a mitad del ciclo de empaque.', expectedFaultTitle: 'Mailer Folder Frozen', category: 'Robot' },
-    { id: 'sq25', instruction: 'El visor presenta un problema técnico con el headset que no corresponde a ninguna categoría de falla conocida del sistema.', expectedFaultTitle: 'Other Headset Issue', category: 'Headset / App / Software' },
+    { id: 'sq24', instruction: 'El visor presenta un problema técnico con el headset que no corresponde a ninguna categoría de falla conocida del sistema.', expectedFaultTitle: 'Other Headset Issue', category: 'Headset / App / Software' },
 ];
 
 // ─── Shuffle + slice helper ───────────────────────────────────────────────────
@@ -364,6 +363,54 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
 
     const examStartTime = useRef<number | null>(null);
 
+    // ── Estado de Pause e interactividad del Workflow ──
+    const [isPaused, setIsPaused] = useState(false);
+    const [workflowStep, setWorkflowStep] = useState(0);
+
+    const WORKFLOW_STEPS = [
+        { label: 'Obtener Pedido', nextMsg: 'Pedido obtenido correctamente. Siguiente paso: Escanear Producto.' },
+        { label: 'Escanear Producto', nextMsg: 'Artículo escaneado y registrado en el sistema. Siguiente paso: Confirmar colocado en Bolsa/Tote.' },
+        { label: 'Confirmar Colocado', nextMsg: 'Artículo colocado dentro de la bolsa o tote de forma segura. Siguiente paso: Sellar Bolsa.' },
+        { label: 'Sellar Bolsa', nextMsg: 'Bolsa sellada térmicamente con éxito. Siguiente paso: Finalizar Pedido.' },
+        { label: 'Finalizar Pedido', nextMsg: 'Pedido finalizado y enviado al canal de despacho. Listo para iniciar un nuevo ciclo.' }
+    ];
+
+    const handlePauseClick = () => {
+        setIsPaused(true);
+        setInfoDialog({
+            show: true,
+            title: 'Robot Pausado',
+            message: 'El robot ha sido pausado de forma segura. El botón de pausa se ha convertido en HOME para retornar al robot a su posición original. IMPORTANTE: Al presionar HOME, si el robot tiene un objeto en las pinzas, lo soltará y este se caerá al suelo.'
+        });
+    };
+
+    const handleHomeClick = () => {
+        setIsPaused(false);
+        setInfoDialog({
+            show: true,
+            title: 'Home (Retorno a Origen)',
+            message: 'El robot ha retornado a su posición de inicio (HOME). ADVERTENCIA: Cualquier objeto que estuviera en las pinzas ha sido liberado y cayó al suelo.'
+        });
+    };
+
+    const handleMarkFailedClick = () => {
+        setInfoDialog({
+            show: true,
+            title: 'Marcar como Fallido',
+            message: 'Este botón se utiliza cuando un proceso o procedimiento realizado no fue correcto. En el sistema de control (DC), marcar la tarea como fallida le indica a la IA que no debe aprender de este comportamiento erróneo.'
+        });
+    };
+
+    const handleWorkflowAccept = () => {
+        const currentStepData = WORKFLOW_STEPS[workflowStep];
+        setInfoDialog({
+            show: true,
+            title: `Paso de Workflow: ${currentStepData.label}`,
+            message: currentStepData.nextMsg
+        });
+        setWorkflowStep(prev => (prev + 1) % WORKFLOW_STEPS.length);
+    };
+
     const setInfoDialog = (data: { show: boolean, title: string, message: string } | null) => {
         if (!data) { setInfoDialogState(null); return; }
 
@@ -590,20 +637,43 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
                     {/* ── SCREEN: main ── */}
                     {currentScreen === 'main' && (
                         <div className="flex gap-2 mt-auto">
-                            <button className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#9E9E9E] hover:bg-[#BDBDBD] text-white font-bold py-4 rounded-xl text-lg">
-                                Pause <Pause className="w-12 h-12" fill="currentColor" />
-                            </button>
+                            {isPaused ? (
+                                <button onClick={handleHomeClick}
+                                    className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#FF6A00] hover:bg-[#E65C00] text-white font-bold py-4 rounded-xl text-lg relative overflow-hidden group animate-pulse">
+                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                                    <span className="relative">Home</span>
+                                    <svg className="w-12 h-12 relative text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                </button>
+                            ) : (
+                                <button onClick={handlePauseClick}
+                                    className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#9E9E9E] hover:bg-[#BDBDBD] text-white font-bold py-4 rounded-xl text-lg relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                                    <span className="relative">Pause</span>
+                                    <Pause className="w-12 h-12 relative" fill="currentColor" />
+                                </button>
+                            )}
+
                             <button onClick={handleElegirFault}
                                 className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#FF3D00] hover:bg-[#FF5252] text-white font-bold py-4 rounded-xl text-lg relative overflow-hidden group">
                                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                                 <span className="relative">Elegir Fault</span>
                                 <Bell className="w-12 h-12 relative animate-bounce" fill="currentColor" />
                             </button>
-                            <button className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#FFC107] hover:bg-[#FFD54F] text-white font-bold py-4 rounded-xl text-lg">
-                                Marcar como fallido <X className="w-12 h-12 stroke-[3]" />
+
+                            <button onClick={handleMarkFailedClick}
+                                className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#FFC107] hover:bg-[#FFD54F] text-white font-bold py-4 rounded-xl text-lg relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                                <span className="relative">Marcar como fallido</span>
+                                <X className="w-12 h-12 stroke-[3] relative" />
                             </button>
-                            <button className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#00A8FC] hover:bg-[#29B6F6] text-white font-bold py-4 rounded-xl text-lg">
-                                Aceptar <Check className="w-12 h-12 stroke-[3]" />
+
+                            <button onClick={handleWorkflowAccept}
+                                className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#00A8FC] hover:bg-[#29B6F6] text-white font-bold py-4 rounded-xl text-lg relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                                <span className="relative text-base uppercase font-black tracking-wider">{WORKFLOW_STEPS[workflowStep].label}</span>
+                                <Check className="w-12 h-12 stroke-[3] relative" />
                             </button>
                         </div>
                     )}
@@ -719,34 +789,15 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
                     {/* ── SCREEN: fault-robot ── */}
                     {currentScreen === 'fault-robot' && (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                            <div className="grid grid-cols-4 gap-2 mb-2">
+                            <div className="grid grid-cols-4 gap-2 mb-4">
                                 {[
                                     { title: 'Left Arm Frozen', msg: 'Selecciona si el brazo izquierdo del robot no responde o se congeló.' },
                                     { title: 'Right Arm Frozen', msg: 'Selecciona si el brazo derecho del robot no responde o se congeló.' },
                                     { title: 'Chest Frozen', msg: 'Selecciona si el torso o pecho del robot dejó de moverse.' },
-                                    { title: 'Mailer Folder Frozen', msg: 'Selecciona si el mecanismo de la carpeta de envíos se atascó.' },
-                                ].map(({ title, msg }) => (
-                                    <button key={title} onClick={() => setInfoDialog({ show: true, title, message: msg })}
-                                        className="bg-[#FF3D00] hover:bg-[#FF5252] text-white font-bold py-4 rounded-xl text-xl leading-tight transition-transform active:scale-95">
-                                        {title}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="grid grid-cols-4 gap-2 mb-2">
-                                {[
                                     { title: 'Head Cam Out', msg: 'Selecciona si la cámara de la cabeza perdió conexión o no da video.' },
                                     { title: 'Left Wrist Cam Out', msg: 'Selecciona si la cámara de la muñeca izquierda perdió conexión.' },
                                     { title: 'Right Wrist Cam Out', msg: 'Selecciona si la cámara de la muñeca derecha perdió conexión.' },
                                     { title: 'Left Gripper Not Working', msg: 'Selecciona si la pinza izquierda no abre, no cierra, o no tiene fuerza.' },
-                                ].map(({ title, msg }) => (
-                                    <button key={title} onClick={() => setInfoDialog({ show: true, title, message: msg })}
-                                        className="bg-[#FF3D00] hover:bg-[#FF5252] text-white font-bold py-4 rounded-xl text-xl leading-tight transition-transform active:scale-95">
-                                        {title}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="grid grid-cols-4 gap-2 mb-4">
-                                {[
                                     { title: 'Right Gripper Not Working', msg: 'Selecciona si la pinza derecha no abre, no cierra, o no tiene fuerza.' },
                                     { title: 'Neck Frozen', msg: 'Selecciona si el cuello del robot no puede girar o se atascó.' },
                                     { title: 'Other Robot Issue', msg: 'Selecciona para reportar cualquier otro fallo de hardware del robot.' },

@@ -78,6 +78,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         adviceNumber: 4,
                         content: 'Prioriza que el moviemiento de los brazos sea minimo y que el movimiento sea de el robot completamente por los espacios reducidos.',
                         isException: false
+                    },
+                    {
+                        id: 'packie-2.0__5',
+                        adviceNumber: 5,
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        isException: false
                     }
                 ]
             },
@@ -109,6 +115,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'future-2.0__4',
                         adviceNumber: 4,
                         content: 'Prioriza que el moviemiento de los brazos sea minimo y que el movimiento sea de el robot completamente por los espacios reducidos.',
+                        isException: false
+                    },
+                    {
+                        id: 'future-2.0__5',
+                        adviceNumber: 5,
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
                     }
                 ]
@@ -175,6 +187,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'fleetwood-pack__4',
                         adviceNumber: 4,
                         content: 'Si la bolsa no abre correctamente, desliza las pinzas cerradas de forma vertical sobre la bolsa sutilmente. Esto permitirá que ingrese el aire y la abra.',
+                        isException: false
+                    },
+                    {
+                        id: 'fleetwood-pack__5',
+                        adviceNumber: 5,
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
                     }
                 ]
@@ -246,7 +264,7 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'phil__3',
                         adviceNumber: 3,
-                        content: 'Cuando sean mas de 5 productos se tiene que ocupar la bolsa mas grande, si no se ocuapara la bolsa mas chica.',
+                        content: 'Si el tote contiene 6 productos o más se ocupa la bolsa de mayor tamaño, y si tiene 5 productos o menos se ocupa la bolsa pequeña (medida estándar).',
                         isException: false
                     },
                     {
@@ -266,6 +284,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         adviceNumber: 6,
                         content: 'Es tambien importante saber que si el tote contiene una etiqueta no se olvide ingresarla tambien en el sobre bolsa.',
                         isException: false
+                    },
+                    {
+                        id: 'phil__7',
+                        adviceNumber: 7,
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        isException: false
                     }
                 ]
             },
@@ -275,7 +299,42 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
         id: 'outerspace',
         name: 'Outerspace',
         robots: [
-            { id: 'mercury', name: 'Mercury', status: 'active', faults: [] },
+            { 
+                id: 'mercury', 
+                name: 'Mercury', 
+                status: 'active', 
+                faults: [],
+                advises: [
+                    {
+                        id: 'mercury__1',
+                        adviceNumber: 1,
+                        title: 'Ubicación Contenedor',
+                        content: 'Al iniciar la tarea si te solicita el workflow escanear el cointener se escanea el codigo de barras que se encuentra de el lado derecho de el robot a lado de donde estan los productos en un carrito.',
+                        isException: false
+                    },
+                    {
+                        id: 'mercury__2',
+                        adviceNumber: 2,
+                        title: 'Selección de Bolsa',
+                        content: 'Para saber que tamaña de bolsa ocupar depende de el producto, productos singulares y de menor tamaño van en las bolsas de 03, si es un producto algo mas voluminoso en el 04 y si es un multiproducto ocupar la 05.',
+                        isException: false
+                    },
+                    {
+                        id: 'mercury__3',
+                        adviceNumber: 3,
+                        title: 'Uso de Tool / Barra Negra',
+                        content: 'Ocupa la tool que es la barra de color negro para aplastar la bolsa y pueda cerrar de manera mas facil. También ocupa esta misma herramienta para doblar la hoja en 4.',
+                        isException: false
+                    },
+                    {
+                        id: 'mercury__4',
+                        adviceNumber: 4,
+                        title: 'Posición y Movilidad',
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        isException: false
+                    }
+                ]
+            },
             { 
                 id: 'venus', 
                 name: 'Venus', 
@@ -301,6 +360,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         adviceNumber: 3,
                         title: 'Uso de Tool / Barra Negra',
                         content: 'Ocupa la tool que es la barra de color negro para aplastar la bolsa y pueda cerrar de manera mas facil. También ocupa esta misma herramienta para doblar la hoja en 4.',
+                        isException: false
+                    },
+                    {
+                        id: 'venus__4',
+                        adviceNumber: 4,
+                        title: 'Posición y Movilidad',
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
                     }
                 ]
