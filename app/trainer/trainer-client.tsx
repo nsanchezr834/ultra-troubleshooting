@@ -791,6 +791,14 @@ export default function TrainerClient() {
                                                 <Award className="w-3 h-3" />
                                                 Último: {last.score}/{last.max_score} ({last.percentage}%)
                                             </span>
+                                            {(() => {
+                                                const isSim = last.answers && Array.isArray(last.answers) && last.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                                                return (
+                                                    <span className="text-[10px] text-neutral-400 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
+                                                        {isSim ? 'Simulación' : 'Teórico'}
+                                                    </span>
+                                                );
+                                            })()}
                                             <span className="flex items-center gap-1.5">
                                                 <Clock className="w-3 h-3" />
                                                 {formatDuration(last.duration_sec)}
@@ -821,6 +829,14 @@ export default function TrainerClient() {
                                                                 <span className="text-[11px] text-neutral-500 hidden sm:inline">
                                                                     ({a.score}/{a.max_score} aciertos)
                                                                 </span>
+                                                                {(() => {
+                                                                    const isSim = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                                                                    return (
+                                                                        <span className="text-[10px] text-neutral-400 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
+                                                                            {isSim ? 'Simulación' : 'Teórico'}
+                                                                        </span>
+                                                                    );
+                                                                })()}
                                                                 <span className="text-xs text-neutral-600">
                                                                     {formatDuration(a.duration_sec)}
                                                                 </span>

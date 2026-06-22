@@ -9,6 +9,7 @@ interface Question {
     options: string[];
     correctIndex: number;
     explanation: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 const EXAM_QUESTIONS: Question[] = [
@@ -50,12 +51,12 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q4',
-        question: 'En el robot Phil, si una orden contiene 6 productos, ¿qué tamaño de bolsa debes utilizar para el empaque?',
+        question: 'Estás operando el robot Phil y ves que la orden actual en el lote (tote) tiene 7 productos acumulados. Al prepararte para el empaque, ¿qué decisión de empaque debes tomar?',
         options: [
-            'La bolsa pequeña (medida estándar)',
-            'La bolsa de mayor tamaño',
-            'Una caja compacta',
-            'No se requiere bolsa, se colocan sueltos'
+            'Colocarlos todos en una bolsa pequeña para ahorrar espacio',
+            'Elegir la bolsa de mayor tamaño disponible para el tote',
+            'Dividir el pedido en 2 bolsas pequeñas diferentes',
+            'Reportar Out of Product y esperar asistencia'
         ],
         correctIndex: 1,
         explanation: 'De acuerdo con el consejo de operación del robot Phil, si el tote contiene 6 productos o más se ocupa la bolsa de mayor tamaño, y si tiene 5 productos o menos se ocupa la bolsa pequeña (medida estándar).'
@@ -74,7 +75,7 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q6',
-        question: 'En las estaciones de Packie y Future, si la Bagger arroja la bolsa sin abrir por causa del aire con los grippers cerrados, ¿qué acción corrective debes tomar?',
+        question: 'Estás operando Packie y notas que el robot intenta colocar el producto pero la bolsa arrojada por la Bagger está completamente cerrada debido a falta de aire, con los grippers ya cerrados. ¿Qué debes hacer físicamente?',
         options: [
             'Volver a reiniciar la estación robótica',
             'Realizar un movimiento vertical de arriba a abajo con la bolsa para forzar que entre el aire en la posición correcta',
@@ -86,12 +87,12 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q7',
-        question: 'Al empacar productos grandes y pesados en Packie y Future, ¿cómo se debe colocar la pinza para facilitar el cierre?',
+        question: 'Te asignan empacar una caja de herramientas pesada y voluminosa en la estación Future. Para evitar que el peso venza la bolsa y asegurar que la máquina logre sellarla correctamente, ¿cómo debes posicionar la pinza de soporte?',
         options: [
             'Colocar la pinza a un costado del empaque',
             'No utilizar la pinza y empujar el paquete manualmente',
             'Colocar la pinza debajo de la bolsa para ayudar a sostener el peso',
-            'Colocar la pinza in la parte superior para suspender la bolsa'
+            'Colocar la pinza en la parte superior para suspender la bolsa'
         ],
         correctIndex: 2,
         explanation: 'Para objetos de gran tamaño y pesados, colocar la pinza debajo de la bolsa ayuda con el peso del paquete y facilita que la máquina realice el cierre/sello correctamente.'
@@ -110,19 +111,19 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q9',
-        question: '¿Cuándo se debe seleccionar la opción "Out of Labels" en la Bagger?',
+        question: 'Estás monitoreando la Bagger y notas que el robot colocó el paquete pero la impresora térmica está pitando y la etiqueta sale en blanco o no sale. ¿Qué acción debes reportar en la interfaz de control?',
         options: [
-            'Cuando la impresora no tiene papel térmico o la etiqueta presenta problemas de impresión',
-            'Cuando no hay productos en la banda transportadora',
-            'Cuando el brazo robótico no puede succionar las bolsas',
-            'Cuando la Bagger se sobrecalienta'
+            'Reportar Out of Labels para alertar sobre el rollo vacío o falla de impresión',
+            'Reiniciar el robot inmediatamente',
+            'Reportar Bag Jam',
+            'Reportar Product Dropped'
         ],
         correctIndex: 0,
         explanation: '"Out of Labels" se utiliza cuando el rollo de etiquetas está vacío o la impresora presenta fallas para imprimir la guía de envío.'
     },
     {
         id: 'q10',
-        question: 'Si una bolsa se atasca en el mecanismo de sellado o apertura de la Bagger, ¿qué reporte debes levantar?',
+        question: 'Durante la operación, escuchas un ruido en la Bagger y ves que una bolsa plástica se dobló y quedó atrapada entre las mordazas de sellado impidiendo que bajen. ¿Qué reporte debes levantar de inmediato en tu interfaz?',
         options: [
             'Out of Bags',
             'Bad Seal',
@@ -158,12 +159,12 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q13',
-        question: '¿Cuándo es correcto seleccionar la opción "Out of Product" (Falla Global)?',
+        question: 'Estás supervisando la celda de empaque y notas que la banda transportadora lleva 10 minutos detenida porque el área de Warehouse no ha enviado más cajas de producto, y la interfaz indica que no hay lotes de trabajo activos. ¿Qué fallo global reportarías?',
         options: [
-            'Cuando el rack de bolsas está vacío',
-            'Cuando ya no hay artículos físicos en la zona de alimentación o cuando no hay un lote (batch) cargado para seguir el trabajo',
-            'Cuando el robot tira un producto al suelo',
-            'Cuando la cámara de la cabeza falla'
+            'Hospital Bin Full',
+            'Out of Product (Falla Global) para alertar al sistema y suspender ciclo',
+            'Bin Location Adjustment Needed',
+            'Head Cam Out'
         ],
         correctIndex: 1,
         explanation: '"Out of Product" se reporta de forma global para todos los robots cuando se agota el producto en la zona o cuando no hay batch cargada en el sistema para continuar el trabajo.'
@@ -182,24 +183,24 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q15',
-        question: '¿Qué significa la alerta o reporte de "Hospital Bin Full"?',
+        question: 'Estás empacando y el robot rechaza un producto dañado. Al intentar colocarlo en la bin de rechazo (hospital bin), el producto rebota y cae porque la bin está desbordada de artículos acumulados. ¿Qué reporte debes levantar?',
         options: [
-            'Que el contenedor de paquetes listos para enviar está lleno',
-            'Que el contenedor de artículos rechazados o con problemas requiere ser vaciado',
-            'Que el robot se ha lesionado en sus articulaciones',
-            'Que el software del visor se congeló'
+            'Package Bin Full',
+            'Hospital Bin Full',
+            'Product Dropped',
+            'Other'
         ],
         correctIndex: 1,
         explanation: '"Hospital Bin Full" indica que el contenedor donde se colocan artículos defectuosos o con problemas está lleno.'
     },
     {
         id: 'q16',
-        question: '¿En qué casos se debe reportar la falla "Bin Location Adjustment Needed"?',
+        question: 'El robot intenta depositar el paquete final, pero notas que estira el brazo al máximo y roza la estructura porque el contenedor físico de depósito fue movido accidentalmente fuera de su rango de alcance. ¿Qué reporte debes seleccionar?',
         options: [
-            'Cuando no hay bin de depósito, el robot no lo alcanza físicamente, o en el caso de Customer no está el bin del color solicitado',
-            'Cuando el robot tira un paquete al suelo de la estación',
-            'Cuando la aplicación del visor se congela inesperadamente',
-            'Cuando el brazo izquierdo se detiene a la mitad del recorrido'
+            'Bin Location Adjustment Needed',
+            'Package Dropped in Wrong Bin',
+            'App Not Working',
+            'Left Arm Frozen'
         ],
         correctIndex: 0,
         explanation: 'Se reporta "Bin Location Adjustment Needed" cuando no hay bin de depósito, el robot no lo alcanza, o el contenedor de Customer no es del color solicitado.'
@@ -230,7 +231,7 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q19',
-        question: 'Si el sistema autónomo de toma de decisiones del robot falla y este deja de realizar tareas por sí solo sin causa física visible, ¿qué reporte aplica?',
+        question: 'Estás operando la celda y observas que el robot se queda totalmente estático en medio de la trayectoria. No hay luces rojas, no hay fallas mecánicas en las pinzas, pero la IA del robot no envía ningún comando ni reacciona para continuar. ¿Qué reporte debes levantar?',
         options: [
             'App Not Working',
             'Autonomy Not Working',
@@ -242,31 +243,31 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q20',
-        question: '¿Para qué sirve reportar la falla con la opción "Other" en la pantalla de selección de fallos del simulador?',
+        question: 'Durante tu turno, ocurre una falla extraña: el sistema de enfriamiento de la celda empieza a emitir un zumbido inusual y la interfaz del visor muestra caracteres corruptos no vistos en la capacitación. ¿Qué reporte debes levantar al no existir una categoría específica?',
         options: [
-            'Para reiniciar el robot automáticamente',
-            'Para reportar cualquier otro problema técnico o falla que no haya sido mencionado en las categorías anteriores de la capacitación',
-            'Para apagar las cámaras de seguridad',
-            'Para pausar el simulador indefinidamente'
+            'Reiniciar el robot automáticamente',
+            'Levantar reporte bajo la opción Other para documentar la falla imprevista',
+            'Apagar las cámaras',
+            'Pausar el simulador'
         ],
         correctIndex: 1,
         explanation: '"Other" se reserva para fallas y problemas imprevistos que no coinciden con ninguna de las opciones específicas provistas en el menú.'
     },
     {
         id: 'q21',
-        question: '¿Cuál de los siguientes robots utiliza un flujo de trabajo basado exclusivamente en contenedores (Totes) en lugar de una embolsadora (Bagger)?',
+        question: 'Te asignan a operar la estación Phil. Al revisar el flujo de trabajo en tu headset, te das cuenta de que no hay ninguna máquina Bagger instalada. ¿Qué contenedor o elemento debes preparar para que el robot deposite los productos?',
         options: [
-            'Packie 2.0',
-            'Future 2.0',
-            'Phil',
-            'Bagger Label'
+            'Bolsas plásticas de rollo',
+            'Cajas de cartón corrugado',
+            'Contenedores de plástico (Totes)',
+            'Sobres acolchados'
         ],
         correctIndex: 2,
         explanation: 'El robot Phil opera con el flujo de trabajo de Totes (contenedores), mientras que robots como Packie, Future y Bagger Label utilizan embolsadoras (Baggers).'
     },
     {
         id: 'q22',
-        question: 'Si en tu visor de control la cámara principal de la cabeza del robot pierde señal completamente, ¿qué reporte debes levantar?',
+        question: 'Estás operando la celda y de repente pierdes la vista general de la estación de empaque en tu headset (pantalla en negro en la cámara superior), aunque sigues viendo el video de las cámaras de las muñecas. ¿Qué reporte debes levantar?',
         options: [
             'Left Wrist Cam Out',
             'Right Wrist Cam Out',
@@ -711,6 +712,53 @@ async function generatePDF(
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
+    const EXAM_LENGTH = 15;
+
+    const selectNextAdaptiveQuestion = (lastQuestion: Question, wasCorrect: boolean, currentQuestionsList: Question[]): Question => {
+        const usedIds = new Set(currentQuestionsList.map(q => q.id));
+        
+        // Determine target difficulty
+        const lastQuestionDiff = lastQuestion.difficulty || 'easy';
+        let targetDiff: 'easy' | 'medium' | 'hard' = lastQuestionDiff;
+        if (wasCorrect) {
+            if (lastQuestionDiff === 'easy') targetDiff = 'medium';
+            else if (lastQuestionDiff === 'medium') targetDiff = 'hard';
+        } else {
+            if (lastQuestionDiff === 'hard') targetDiff = 'medium';
+            else if (lastQuestionDiff === 'medium') targetDiff = 'easy';
+        }
+        
+        // Get all questions with difficulty
+        const allQuestions = EXAM_QUESTIONS.map(q => {
+            const num = parseInt(q.id.replace('q', ''), 10);
+            const difficulty: 'easy' | 'medium' | 'hard' = num > 20 ? 'hard' : num > 10 ? 'medium' : 'easy';
+            return { ...q, difficulty };
+        });
+        
+        // Try target difficulty first
+        let available = allQuestions.filter(q => q.difficulty === targetDiff && !usedIds.has(q.id));
+        
+        // Fallback order
+        if (available.length === 0) {
+            const fallbackOrder: Record<'easy' | 'medium' | 'hard', ('easy' | 'medium' | 'hard')[]> = {
+                easy: ['medium', 'hard'],
+                medium: ['hard', 'easy'],
+                hard: ['medium', 'easy']
+            };
+            for (const diff of fallbackOrder[targetDiff]) {
+                available = allQuestions.filter(q => q.difficulty === diff && !usedIds.has(q.id));
+                if (available.length > 0) break;
+            }
+        }
+        
+        if (available.length === 0) {
+            available = allQuestions.filter(q => !usedIds.has(q.id));
+        }
+        
+        const chosen = available[Math.floor(Math.random() * available.length)];
+        return shuffleQuestionOptions(chosen);
+    };
+
     const [step, setStep] = useState<'identity' | 'selection' | 'teorico'>('identity');
     const [applicantName, setApplicantName] = useState<string>('');
     const [sessionPin, setSessionPin] = useState<string>('');
@@ -718,8 +766,14 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [isValidating, setIsValidating] = useState<boolean>(false);
     const [validationError, setValidationError] = useState<string>('');
     const [questions, setQuestions] = useState<Question[]>(() => {
-        const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 10).map(shuffleQuestionOptions);
+        const allQuestions = EXAM_QUESTIONS.map(q => {
+            const num = parseInt(q.id.replace('q', ''), 10);
+            const difficulty: 'easy' | 'medium' | 'hard' = num > 20 ? 'hard' : num > 10 ? 'medium' : 'easy';
+            return { ...q, difficulty };
+        });
+        const easyQuestions = allQuestions.filter(q => q.difficulty === 'easy');
+        const firstQ = easyQuestions[Math.floor(Math.random() * easyQuestions.length)];
+        return [shuffleQuestionOptions(firstQ)];
     });
     const [currentStep, setCurrentStep] = useState<number>(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -738,8 +792,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [ratingHover, setRatingHover] = useState(0);
 
     const question = questions[currentStep];
-    const percent = Math.round((score / questions.length) * 100);
-    const passed = percent >= 80;
+    const percent = Math.round((score / EXAM_LENGTH) * 100);
+    const passed = percent >= 90;
 
     const handleStart = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -781,6 +835,11 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 correctText: question.options[question.correctIndex]
             }
         ]);
+
+        if (questions.length < EXAM_LENGTH) {
+            const nextQ = selectNextAdaptiveQuestion(question, isCorrect, questions);
+            setQuestions(prev => [...prev, nextQ]);
+        }
     };
 
     const handleNext = () => {
@@ -799,8 +858,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setIsFinished(true);
 
         const finalScore = score;
-        const finalPercent = Math.round((finalScore / questions.length) * 100);
-        const finalPassed = finalPercent >= 80;
+        const finalPercent = Math.round((finalScore / EXAM_LENGTH) * 100);
+        const finalPassed = finalPercent >= 90;
         const durationSec = examStartTime.current
             ? Math.round((Date.now() - examStartTime.current) / 1000)
             : null;
@@ -825,7 +884,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 sessionId: traineeIdentity.sessionId,
                 robotId: null,
                 score: finalScore,
-                maxScore: questions.length,
+                maxScore: EXAM_LENGTH,
                 passed: finalPassed,
                 answers: finalAnswers,
                 durationSec: durationSec ?? undefined,
@@ -840,8 +899,14 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     };
 
     const handleRetry = () => {
-        const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
-        setQuestions(shuffled.slice(0, 10).map(shuffleQuestionOptions));
+        const allQuestions = EXAM_QUESTIONS.map(q => {
+            const num = parseInt(q.id.replace('q', ''), 10);
+            const difficulty: 'easy' | 'medium' | 'hard' = num > 20 ? 'hard' : num > 10 ? 'medium' : 'easy';
+            return { ...q, difficulty };
+        });
+        const easyQuestions = allQuestions.filter(q => q.difficulty === 'easy');
+        const firstQ = easyQuestions[Math.floor(Math.random() * easyQuestions.length)];
+        setQuestions([shuffleQuestionOptions(firstQ)]);
         setCurrentStep(0);
         setSelectedOption(null);
         setIsAnswered(false);
@@ -1057,11 +1122,11 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
                                 <div className="flex flex-col gap-2">
                                     <div className="flex justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                                        <span>Pregunta {currentStep + 1} de {questions.length}</span>
+                                        <span>Pregunta {currentStep + 1} de {EXAM_LENGTH}</span>
                                         <span>Puntaje: {score}</span>
                                     </div>
                                     <div className="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
-                                        <div className="h-full bg-[#FF6A00] transition-all duration-500 ease-out" style={{ width: `${(currentStep / questions.length) * 100}%` }} />
+                                        <div className="h-full bg-[#FF6A00] transition-all duration-500 ease-out" style={{ width: `${(currentStep / EXAM_LENGTH) * 100}%` }} />
                                     </div>
                                 </div>
 

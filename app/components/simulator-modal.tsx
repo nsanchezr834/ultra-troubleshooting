@@ -15,6 +15,7 @@ interface SimulationQuestion {
     instruction: string;
     expectedFaultTitle: string;
     category: string; // para el reporte PDF
+    difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 // ─── Banco completo: 25 escenarios ───────────────────────────────────────────
@@ -98,7 +99,7 @@ async function generateSimPDF(
     const RED = '#dc2626';
 
     const percent = Math.round((examScore / total) * 100);
-    const passed = percent >= 80;
+    const passed = percent >= 90;
     let y = 0;
 
     // ── Intenta cargar el logo de Ultra ──────────────────────────────────────
@@ -342,6 +343,48 @@ type Screen = 'main' | 'fault-category' | 'fault-bagger' | 'fault-order' | 'faul
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SimulatorModal({ onClose, isExamMode = false, applicantName = '', traineeIdentity = null }: SimulatorModalProps) {
+    const EXAM_LENGTH = 15;
+
+    const selectNextAdaptiveQuestion = (lastQuestion: SimulationQuestion, wasCorrect: boolean, currentQuestionsList: SimulationQuestion[]): SimulationQuestion => {
+        const usedIds = new Set(currentQuestionsList.map(q => q.id));
+        
+        const lastQuestionDiff = lastQuestion.difficulty || 'easy';
+        let targetDiff: 'easy' | 'medium' | 'hard' = lastQuestionDiff;
+        if (wasCorrect) {
+            if (lastQuestionDiff === 'easy') targetDiff = 'medium';
+            else if (lastQuestionDiff === 'medium') targetDiff = 'hard';
+        } else {
+            if (lastQuestionDiff === 'hard') targetDiff = 'medium';
+            else if (lastQuestionDiff === 'medium') targetDiff = 'easy';
+        }
+        
+        const enrichedQuestions = ALL_SIMULATION_QUESTIONS.map(q => {
+            const num = parseInt(q.id.replace('sq', ''), 10);
+            const difficulty: 'easy' | 'medium' | 'hard' = num > 16 ? 'hard' : num > 8 ? 'medium' : 'easy';
+            return { ...q, difficulty };
+        });
+        
+        let available = enrichedQuestions.filter(q => q.difficulty === targetDiff && !usedIds.has(q.id));
+        
+        if (available.length === 0) {
+            const fallbackOrder: Record<'easy' | 'medium' | 'hard', ('easy' | 'medium' | 'hard')[]> = {
+                easy: ['medium', 'hard'],
+                medium: ['hard', 'easy'],
+                hard: ['medium', 'easy']
+            };
+            for (const diff of fallbackOrder[targetDiff]) {
+                available = enrichedQuestions.filter(q => q.difficulty === diff && !usedIds.has(q.id));
+                if (available.length > 0) break;
+            }
+        }
+        
+        if (available.length === 0) {
+            available = enrichedQuestions.filter(q => !usedIds.has(q.id));
+        }
+        
+        return available[Math.floor(Math.random() * available.length)];
+    };
+
     const [showDashboard, setShowDashboard] = useState(false);
     const [currentScreen, setCurrentScreen] = useState<Screen>('main');
     const [showFaultDialog, setShowFaultDialog] = useState(false);
@@ -349,7 +392,15 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
     const [isMicOn, setIsMicOn] = useState(false);
 
     // Exam states
-    const [questions] = useState<SimulationQuestion[]>(() => pickRandom(ALL_SIMULATION_QUESTIONS, 10));
+    const [questions, setQuestions] = useState<SimulationQuestion[]>(() => {
+        const enrichedQuestions = ALL_SIMULATION_QUESTIONS.map(q => {
+            const num = parseInt(q.id.replace('sq', ''), 10);
+            const difficulty: 'easy' | 'medium' | 'hard' = num > 16 ? 'hard' : num > 8 ? 'medium' : 'easy';
+            return { ...q, difficulty };
+        });
+        const easyQuestions = enrichedQuestions.filter(q => q.difficulty === 'easy');
+        return [easyQuestions[Math.floor(Math.random() * easyQuestions.length)]];
+    });
     const [examQuestionIndex, setExamQuestionIndex] = useState(0);
     const [examScore, setExamScore] = useState(0);
     const [examFinished, setExamFinished] = useState(false);
@@ -432,6 +483,11 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
             } else {
                 setExamFeedback({ show: true, isCorrect: false, message: `Incorrecto. Reportaste "${data.title}", pero la falla correcta era "${currentQ.expectedFaultTitle}".` });
             }
+
+            if (questions.length < EXAM_LENGTH) {
+                const nextQ = selectNextAdaptiveQuestion(currentQ, isCorrect, questions);
+                setQuestions(prev => [...prev, nextQ]);
+            }
         } else {
             setInfoDialogState(data);
         }
@@ -455,8 +511,8 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
         if (traineeIdentity) {
             setSaveStatus('saving');
             const finalScore = examScore;
-            const finalPercent = Math.round((finalScore / questions.length) * 100);
-            const finalPassed = finalPercent >= 80;
+            const finalPercent = Math.round((finalScore / EXAM_LENGTH) * 100);
+            const finalPassed = finalPercent >= 90;
             const durationSec = examStartTime.current
                 ? Math.round((Date.now() - examStartTime.current) / 1000)
                 : null;
@@ -483,7 +539,7 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
                 sessionId: traineeIdentity.sessionId,
                 robotId: null,
                 score: finalScore,
-                maxScore: questions.length,
+                maxScore: EXAM_LENGTH,
                 passed: finalPassed,
                 answers: formattedAnswers,
                 durationSec: durationSec ?? undefined,
@@ -618,7 +674,7 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
                         <div className="bg-[#FF6A00]/10 border border-[#FF6A00]/50 rounded-xl p-5 mb-4 shadow-inner">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-[#FF6A00] font-black text-sm uppercase tracking-wider">
-                                    Escenario {examQuestionIndex + 1} de {questions.length}
+                                    Escenario {examQuestionIndex + 1} de {EXAM_LENGTH}
                                 </span>
                                 <span className="text-[#FF6A00] font-bold text-sm">Aciertos: {examScore}</span>
                             </div>
