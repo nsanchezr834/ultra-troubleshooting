@@ -370,21 +370,21 @@ export default function AdminClient() {
         <div className="min-h-screen bg-[#07080c] text-white flex flex-col font-sans select-none">
             {/* Header */}
             <header className="bg-[#0b0c13] border-b border-white/[0.04] px-8 py-4 flex items-center justify-between z-10 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center overflow-hidden p-1.5 relative">
+                <div className="flex items-center gap-4">
+                    <div className="h-9 w-36 relative flex items-center">
                         <Image
                             src="/logo_autoryx.svg"
                             alt="Autoryx Logo"
-                            width={28}
-                            height={28}
-                            className="object-contain"
+                            fill
+                            className="object-contain object-left"
+                            priority
                         />
                     </div>
-                    <div>
+                    <div className="border-l border-white/[0.08] pl-4 py-1">
                         <h1 className="text-lg font-bold tracking-wide flex items-center gap-2">
-                            Ultra Platform <span className="text-[10px] bg-[#00A8FC]/20 text-[#00A8FC] px-2 py-0.5 rounded-full border border-[#00A8FC]/30 uppercase font-semibold tracking-widest">Admin</span>
+                            <span className="text-[10px] bg-[#00A8FC]/20 text-[#00A8FC] px-2.5 py-0.5 rounded-full border border-[#00A8FC]/30 uppercase font-bold tracking-widest">Admin Dashboard</span>
                         </h1>
-                        <p className="text-[11px] text-gray-500">Métricas de Retorno de Inversión (ROI) y Curva de Aprendizaje</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Métricas de Retorno de Inversión (ROI) y Curva de Aprendizaje</p>
                     </div>
                 </div>
 
