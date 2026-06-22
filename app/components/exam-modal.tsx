@@ -362,15 +362,15 @@ const EXAM_QUESTIONS: Question[] = [
     },
     {
         id: 'q30',
-        question: 'Escenario: Ves que una persona del equipo on-site ingresa al perímetro del robot para acomodar la impresora que está mal colocada, pero no ha pausado el robot por completo. Y tú, ¿qué harías?',
+        question: 'Escenario: Ves que una persona del equipo de Warehouse o Laboratorio ingresa al área de operación sin la pausa adecuada del robot. Y tú, ¿qué harías?',
         options: [
             'Esperar a que la persona termine su ajuste y no reportar nada',
-            'Detener de inmediato todo movimiento del robot presionando el paro de emergencia o pausa y notificar al supervisor',
+            'Poner en pausa el robot de inmediato para priorizar la seguridad física y notificar al supervisor',
             'Mandar al robot a HOME para que no estorbe a la persona',
-            'Apagar únicamente la cámara de la cabeza para no ver el accidente'
+            'Apagar únicamente la cámara de la cabeza para no ver el incidente'
         ],
         correctIndex: 1,
-        explanation: 'La seguridad física del personal es la máxima prioridad. Se debe detener inmediatamente el robot si alguien ingresa al perímetro de trabajo sin el bloqueo correspondiente.'
+        explanation: 'La seguridad física de cualquier persona de Warehouse o Laboratorio es la máxima prioridad; se debe poner en pausa el robot de inmediato.'
     }
 ];
 
