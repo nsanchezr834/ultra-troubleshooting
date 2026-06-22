@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User, Lock, Loader2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { validateAndRegisterTrainee, saveExamResult, TraineeIdentity } from '../lib/training';
 
 interface Question {
     id: string;
@@ -295,15 +296,33 @@ function splitLines(doc: jsPDF, text: string, maxWidth: number): string[] {
     return doc.splitTextToSize(text, maxWidth) as string[];
 }
 
+// ─── Load image as base64 for jsPDF ────────────────────────────────────────────
+async function loadImageAsBase64(url: string): Promise<string | null> {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    } catch {
+        return null;
+    }
+}
+
 // ─── PDF generation (pure jsPDF, no html2canvas) ──────────────────────────────
-function generatePDF(
+async function generatePDF(
     applicantName: string,
+    sessionName: string,
+    trainerName: string,
     score: number,
     total: number,
     percent: number,
     passed: boolean,
     answersLog: UserAnswerLog[]
-): void {
+): Promise<void> {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const PAGE_W = 210;
@@ -319,24 +338,57 @@ function generatePDF(
 
     let y = 0;
 
-    // ── Orange header band ────────────────────────────────────────────────────
-    doc.setFillColor(ORANGE);
-    doc.rect(0, 0, PAGE_W, 42, 'F');
+    // ── Intenta cargar el logo de Ultra ──────────────────────────────────────
+    const logoBase64 = await loadImageAsBase64('/ultra_logo.png');
 
-    doc.setTextColor('#ffffff');
+    // ── Header con logo (banda naranja delgada + logo en blanco) ─────────────
+    // Banda naranja de acento superior
+    doc.setFillColor(ORANGE);
+    doc.rect(0, 0, PAGE_W, 6, 'F');
+
+    // Fondo blanco del header
+    doc.setFillColor('#ffffff');
+    doc.rect(0, 6, PAGE_W, 36, 'F');
+
+    // Logo Ultra (si cargó)
+    if (logoBase64) {
+        doc.addImage(logoBase64, 'PNG', MARGIN, 12, 40, 16);
+    } else {
+        // Fallback texto si el logo no cargó
+        doc.setTextColor(ORANGE);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('ULTRA', MARGIN, 24);
+    }
+
+    // Título del reporte a la derecha del logo
+    doc.setDrawColor('#e5e7eb');
+    doc.line(MARGIN + 48, 10, MARGIN + 48, 38); // línea divisoria
+
+    doc.setTextColor(DARK);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text('REPORTE DE EVALUACIÓN', MARGIN, 18);
+    doc.setFontSize(13);
+    doc.text('REPORTE DE EVALUACIÓN', MARGIN + 54, 22);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('AUTORYX STACK INTELLIGENT TRAINING', MARGIN, 25);
+    doc.setFontSize(7.5);
+    doc.setTextColor(GRAY);
+    doc.text('AUTORYX STACK — INTELLIGENT TRAINING SYSTEM', MARGIN + 54, 29);
 
-    // Date + exam ID top-right
+    // Fecha + ID en top-right
     doc.setFontSize(7);
     const dateStr = new Date().toLocaleDateString('es-MX');
-    doc.text(`ID: TX9X_TRAINING`, PAGE_W - MARGIN, 18, { align: 'right' });
-    doc.text(`EMISIÓN: ${dateStr}`, PAGE_W - MARGIN, 24, { align: 'right' });
+    doc.text(`EMISIÓN: ${dateStr}`, PAGE_W - MARGIN, 16, { align: 'right' });
+    doc.text(`ID: TX9X_TRAINING`, PAGE_W - MARGIN, 22, { align: 'right' });
+    if (sessionName) {
+        doc.setTextColor(ORANGE);
+        const dispSessionName = sessionName.length > 25 ? sessionName.substring(0, 22) + '...' : sessionName;
+        doc.text(`SESIÓN: ${dispSessionName}`, PAGE_W - MARGIN, 29, { align: 'right' });
+    }
+
+    // Línea separadora inferior del header
+    doc.setDrawColor('#e5e7eb');
+    doc.line(0, 42, PAGE_W, 42);
 
     y = 52;
 
@@ -351,8 +403,24 @@ function generatePDF(
 
     doc.setTextColor(DARK);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(applicantName || 'Sin Registro', MARGIN + 6, y + 18);
+    // Escalar dinámicamente el tamaño de letra si el nombre es muy largo para evitar overlap
+    const nameStr = applicantName || 'Sin Registro';
+    let nameFontSize = 14;
+    if (nameStr.length > 28) {
+        nameFontSize = 10;
+    } else if (nameStr.length > 20) {
+        nameFontSize = 12;
+    }
+    doc.setFontSize(nameFontSize);
+    doc.text(nameStr, MARGIN + 6, y + 18);
+
+    // Trainer info bajo el nombre
+    if (trainerName) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(GRAY);
+        doc.text(`Trainer: ${trainerName}`, MARGIN + 6, y + 25);
+    }
 
     // Status / percent / score — right side
     const statusColor = passed ? GREEN : RED;
@@ -406,43 +474,66 @@ function generatePDF(
 
     // ── Answer cards ──────────────────────────────────────────────────────────
     answersLog.forEach((log, index) => {
-        // Estimate height needed
-        const qLines = splitLines(doc, `${index + 1}. ${log.questionText}`, CONTENT_W - 30);
-        const selLines = splitLines(doc, `Seleccionado: ${log.selectedText}`, CONTENT_W - 12);
+        const LINE_H = 4.5;
+        const BADGE_ROW_H = 10; // fila exclusiva para el badge
+        const TEXT_W = CONTENT_W - 12; // ancho completo del texto (sin reservar espacio para badge)
+
+        // IMPORTANTE: Establecer el tamaño y tipo de letra del documento ANTES de llamar a splitLines
+        // para que jsPDF calcule las longitudes y saltos de línea con las dimensiones correctas.
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        const qLines = splitLines(doc, `${index + 1}. ${log.questionText}`, TEXT_W);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        const selLines = splitLines(doc, log.selectedText, TEXT_W - 20);
         const corrLines = !log.isCorrect
-            ? splitLines(doc, `Solución correcta: ${log.correctText}`, CONTENT_W - 12)
+            ? splitLines(doc, log.correctText, TEXT_W - 26)
             : [];
 
-        const LINE_H = 4.5;
-        const cardH = 10 + (qLines.length + selLines.length + corrLines.length) * LINE_H + 6;
+        const cardH =
+            BADGE_ROW_H +
+            qLines.length * LINE_H + 4 +
+            LINE_H + selLines.length * LINE_H + // "Seleccionado:"
+            (!log.isCorrect ? LINE_H + corrLines.length * LINE_H : 0) + // "Solución correcta:"
+            6;
 
-        // Page break if needed
+        // Salto de página si no cabe
         if (y + cardH > PAGE_H - 20) {
             doc.addPage();
             y = 20;
         }
 
-        // Card background
+        // Fondo de la tarjeta
         const bgColor = log.isCorrect ? '#f0fdf4' : '#fff7f7';
         doc.setFillColor(bgColor);
         doc.roundedRect(MARGIN, y, CONTENT_W, cardH, 2, 2, 'F');
 
-        // Left accent bar
+        // Barra de acento izquierda
         doc.setFillColor(log.isCorrect ? GREEN : RED);
         doc.rect(MARGIN, y, 3, cardH, 'F');
 
-        // Badge top-right
-        const badgeColor = log.isCorrect ? GREEN : RED;
+        // ── FILA 1: Número de pregunta (izquierda) + Badge (derecha) ──
         const badgeText = log.isCorrect ? 'CORRECTA' : 'INCORRECTA';
+        const badgeColor = log.isCorrect ? GREEN : RED;
+        const badgeW = log.isCorrect ? 20 : 24;
+
+        // Badge en esquina superior derecha de la fila del badge
         doc.setFillColor(badgeColor);
-        doc.roundedRect(PAGE_W - MARGIN - 24, y + 4, 22, 6, 1, 1, 'F');
+        doc.roundedRect(MARGIN + CONTENT_W - badgeW - 4, y + 3, badgeW, 5.5, 1, 1, 'F');
         doc.setTextColor('#ffffff');
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6);
-        doc.text(badgeText, PAGE_W - MARGIN - 13, y + 8.2, { align: 'center' });
+        doc.setFontSize(5.5);
+        doc.text(badgeText, MARGIN + CONTENT_W - (badgeW / 2) - 4, y + 7, { align: 'center' });
 
-        // Question text
-        let cy = y + 8;
+        // Número de pregunta en fila badge
+        doc.setTextColor(log.isCorrect ? GREEN : RED);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text(`Pregunta ${index + 1}`, MARGIN + 6, y + 7.5);
+
+        // ── FILA 2+: Texto de la pregunta ──
+        let cy = y + BADGE_ROW_H + 2;
         doc.setTextColor(DARK);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8.5);
@@ -451,41 +542,34 @@ function generatePDF(
             cy += LINE_H;
         });
 
-        cy += 2;
+        cy += 4;
 
-        // Selected answer
+        // Respuesta seleccionada
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.5);
+        doc.setFontSize(7);
         doc.setTextColor(GRAY);
-        doc.text('Seleccionado: ', MARGIN + 6, cy);
-        const labelW = doc.getTextWidth('Seleccionado: ');
-        doc.setTextColor(log.isCorrect ? GREEN : RED);
-        doc.setFont('helvetica', 'normal');
-        // First line inline, rest below
-        if (selLines.length > 0) {
-            doc.text(selLines[0].replace('Seleccionado: ', ''), MARGIN + 6 + labelW, cy);
-            selLines.slice(1).forEach((line: string) => {
-                cy += LINE_H;
-                doc.text(line, MARGIN + 6 + labelW, cy);
-            });
-        }
+        doc.text('Seleccionado:', MARGIN + 6, cy);
         cy += LINE_H;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(log.isCorrect ? GREEN : RED);
+        selLines.forEach((line: string) => {
+            doc.text(line, MARGIN + 10, cy);
+            cy += LINE_H;
+        });
 
-        // Correct answer (only if wrong)
+        // Respuesta correcta (solo si falló)
         if (!log.isCorrect && corrLines.length > 0) {
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7.5);
+            doc.setFontSize(7);
             doc.setTextColor(GRAY);
-            doc.text('Solución correcta: ', MARGIN + 6, cy);
-            const corrLabelW = doc.getTextWidth('Solución correcta: ');
-            doc.setTextColor(GREEN);
-            doc.setFont('helvetica', 'normal');
-            doc.text(corrLines[0].replace('Solución correcta: ', ''), MARGIN + 6 + corrLabelW, cy);
-            corrLines.slice(1).forEach((line: string) => {
-                cy += LINE_H;
-                doc.text(line, MARGIN + 6 + corrLabelW, cy);
-            });
+            doc.text('Solución correcta:', MARGIN + 6, cy);
             cy += LINE_H;
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(GREEN);
+            corrLines.forEach((line: string) => {
+                doc.text(line, MARGIN + 10, cy);
+                cy += LINE_H;
+            });
         }
 
         y += cardH + 4;
@@ -515,6 +599,10 @@ function generatePDF(
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
     const [step, setStep] = useState<'identity' | 'selection' | 'teorico'>('identity');
     const [applicantName, setApplicantName] = useState<string>('');
+    const [sessionPin, setSessionPin] = useState<string>('');
+    const [traineeIdentity, setTraineeIdentity] = useState<TraineeIdentity | null>(null);
+    const [isValidating, setIsValidating] = useState<boolean>(false);
+    const [validationError, setValidationError] = useState<string>('');
     const [questions, setQuestions] = useState<Question[]>(() => {
         const shuffled = [...EXAM_QUESTIONS].sort(() => 0.5 - Math.random());
         return shuffled.slice(0, 10);
@@ -527,14 +615,35 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
     const [answersLog, setAnswersLog] = useState<UserAnswerLog[]>([]);
 
+    // ── Fase 3: tracking de duración, intentos y estado de guardado ──
+    const examStartTime = React.useRef<number | null>(null);
+    const [attemptCount, setAttemptCount] = useState<number>(1);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
     const question = questions[currentStep];
     const percent = Math.round((score / questions.length) * 100);
     const passed = percent >= 80;
 
-    const handleStart = (e: React.FormEvent) => {
+    const handleStart = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!applicantName.trim()) return;
-        setStep('selection');
+        setValidationError('');
+        setIsValidating(true);
+
+        try {
+            // Si hay PIN, intentamos validarlo con Supabase
+            if (sessionPin.trim()) {
+                const identity = await validateAndRegisterTrainee(sessionPin, applicantName);
+                setTraineeIdentity(identity);
+            }
+            // Si no hay PIN, continuamos en modo sin persistencia (modo degradado)
+            setStep('selection');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Error desconocido.';
+            setValidationError(msg);
+        } finally {
+            setIsValidating(false);
+        }
     };
 
     const handleSelectOption = (idx: number) => {
@@ -563,7 +672,37 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             setSelectedOption(null);
             setIsAnswered(false);
         } else {
+            // Última pregunta — calcular resultados finales y persistir
             setIsFinished(true);
+
+            // Capturamos el score final directo del estado
+            const finalScore = score;
+            const finalPercent = Math.round((finalScore / questions.length) * 100);
+            const finalPassed = finalPercent >= 80;
+            const durationSec = examStartTime.current
+                ? Math.round((Date.now() - examStartTime.current) / 1000)
+                : null;
+
+            // Solo persistir si hay identidad vinculada (PIN válido)
+            if (traineeIdentity) {
+                setSaveStatus('saving');
+                saveExamResult({
+                    traineeId: traineeIdentity.traineeId,
+                    sessionId: traineeIdentity.sessionId,
+                    robotId: null,
+                    score: finalScore,
+                    maxScore: questions.length,
+                    passed: finalPassed,
+                    answers: answersLog,
+                    durationSec: durationSec ?? undefined,
+                    attemptNumber: attemptCount,
+                })
+                    .then(() => setSaveStatus('saved'))
+                    .catch((err) => {
+                        console.error('[Fase 3] Error guardando resultado:', err);
+                        setSaveStatus('error');
+                    });
+            }
         }
     };
 
@@ -576,12 +715,24 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setScore(0);
         setIsFinished(false);
         setAnswersLog([]);
+        setSaveStatus('idle');
+        setAttemptCount(prev => prev + 1);
+        examStartTime.current = Date.now(); // reiniciar cronómetro
     };
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
         setIsGeneratingPdf(true);
         try {
-            generatePDF(applicantName, score, questions.length, percent, passed, answersLog);
+            await generatePDF(
+                applicantName,
+                traineeIdentity?.sessionName ?? '',
+                traineeIdentity?.trainerName ?? '',
+                score,
+                questions.length,
+                percent,
+                passed,
+                answersLog
+            );
         } catch (error) {
             console.error('Error generando el PDF:', error);
             alert('Error al generar el PDF. Por favor intenta de nuevo.');
@@ -616,19 +767,70 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                             </div>
                             <h3 className="text-2xl font-black text-neutral-900 mb-2">Registro de Aplicante</h3>
                             <p className="text-neutral-500 mb-6 max-w-sm text-center text-sm">
-                                Por favor ingresa tu nombre completo para personalizar el examen y tu certificado.
+                                Ingresa tu nombre y el PIN de tu sesión de training para registrar tus resultados.
                             </p>
                             <div className="w-full max-w-md flex flex-col gap-4">
-                                <input
-                                    type="text"
-                                    required
-                                    value={applicantName}
-                                    onChange={(e) => setApplicantName(e.target.value)}
-                                    placeholder="Nombre y Apellidos"
-                                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-[#FF6A00] transition-all text-neutral-800"
-                                />
-                                <button type="submit" className="w-full bg-[#FF6A00] hover:bg-[#E65C00] text-white py-3 rounded-xl font-bold shadow-lg shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                                    Continuar a Selección
+                                {/* Campo Nombre */}
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                                    <input
+                                        type="text"
+                                        required
+                                        value={applicantName}
+                                        onChange={(e) => setApplicantName(e.target.value)}
+                                        placeholder="Nombre y Apellidos"
+                                        disabled={isValidating}
+                                        className="w-full pl-10 pr-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-[#FF6A00] transition-all text-neutral-800 disabled:opacity-50"
+                                    />
+                                </div>
+
+                                {/* Campo PIN */}
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={6}
+                                        value={sessionPin}
+                                        onChange={(e) => {
+                                            setSessionPin(e.target.value.replace(/\D/g, '').toUpperCase());
+                                            setValidationError('');
+                                        }}
+                                        placeholder="PIN de sesión (6 dígitos — opcional)"
+                                        disabled={isValidating}
+                                        className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all text-neutral-800 font-mono tracking-widest disabled:opacity-50 ${
+                                            validationError
+                                                ? 'border-red-400 focus:border-red-500 bg-red-50'
+                                                : 'border-neutral-200 focus:border-[#FF6A00]'
+                                        }`}
+                                    />
+                                </div>
+
+                                {/* Error de validación */}
+                                {validationError && (
+                                    <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm animate-in fade-in duration-200">
+                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                        <span>{validationError}</span>
+                                    </div>
+                                )}
+
+                                {/* Hint PIN */}
+                                {!validationError && (
+                                    <p className="text-xs text-neutral-400 text-center">
+                                        El PIN es proporcionado por tu Trainer. Sin PIN el examen funciona pero el resultado no se guardará en el sistema.
+                                    </p>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={isValidating || !applicantName.trim()}
+                                    className="w-full bg-[#FF6A00] hover:bg-[#E65C00] text-white py-3 rounded-xl font-bold shadow-lg shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isValidating ? (
+                                        <><Loader2 className="w-4 h-4 animate-spin" /> Validando...</>
+                                    ) : (
+                                        <><ChevronRight className="w-4 h-4" /> Continuar a Selección</>
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -642,7 +844,10 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 Hola <span className="font-bold text-neutral-800">{applicantName}</span>, elige si deseas realizar el examen teórico o el práctico.
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-lg">
-                                <button onClick={() => setStep('teorico')} className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group">
+                                <button onClick={() => {
+                                    examStartTime.current = Date.now();
+                                    setStep('teorico');
+                                }} className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group">
                                     <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <AlertCircle className="w-8 h-8" />
                                     </div>
@@ -738,6 +943,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     </>
                                 )}
 
+                            {/* Puntuación + estado de guardado */}
                                 <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 w-full max-w-sm mb-6">
                                     <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-1">Puntuación Final</div>
                                     <div className={`text-5xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>
@@ -746,6 +952,19 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     <div className="text-xs text-neutral-400 mt-2 font-medium">
                                         Aciertos: {score} de {questions.length} (Requerido: 80%)
                                     </div>
+
+                                    {/* Estado de guardado en Supabase */}
+                                    {traineeIdentity && (
+                                        <div className={`mt-3 pt-3 border-t border-neutral-200 flex items-center gap-2 text-xs font-semibold ${
+                                            saveStatus === 'saving' ? 'text-neutral-400' :
+                                            saveStatus === 'saved'  ? 'text-emerald-600' :
+                                            saveStatus === 'error'  ? 'text-red-500' : 'text-neutral-400'
+                                        }`}>
+                                            {saveStatus === 'saving' && <><Loader2 className="w-3 h-3 animate-spin" /> Guardando resultado...</>}
+                                            {saveStatus === 'saved'  && <><CheckCircle2 className="w-3 h-3" /> Resultado guardado en el sistema</>}
+                                            {saveStatus === 'error'  && <><AlertCircle className="w-3 h-3" /> No se pudo guardar — revisa conexión</>}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center items-center">

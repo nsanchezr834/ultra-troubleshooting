@@ -71,22 +71,22 @@ export default function WorkflowVisualizer({ node, depth = 0 }: WorkflowVisualiz
         <div className="flex flex-col w-full text-left">
             {/* Nodo Actual */}
             <div
-                className={`flex items-center justify-between p-3 my-1 rounded-xl border text-xs font-medium transition-all ${styles.bg}`}
+                className={`flex items-start justify-between p-3 my-1 rounded-xl border text-xs font-medium transition-all ${styles.bg}`}
                 style={{ marginLeft: `${depth * 1.5}rem` }}
             >
-                <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="flex items-start gap-2.5">
                     <span className="text-sm shrink-0">{styles.icon}</span>
-                    <div className="flex flex-col truncate">
-                        <span className="font-sans font-bold text-neutral-900 truncate">
+                    <div className="flex flex-col min-w-0">
+                        <span className="font-sans font-bold text-neutral-900 whitespace-normal break-words">
                             {node.node_name || node.node_type}
                         </span>
                         {node.text_explain && (
-                            <span className="text-[10px] font-mono text-neutral-500 truncate">
+                            <span className="text-[10px] font-mono text-neutral-500 whitespace-normal break-words">
                                 Condición: {node.text_explain}
                             </span>
                         )}
                         {node.action_id && (
-                            <span className="text-[10px] font-mono text-blue-600 truncate">
+                            <span className="text-[10px] font-mono text-blue-600 whitespace-normal break-words">
                                 ID Acción: {node.action_id}
                             </span>
                         )}

@@ -171,7 +171,22 @@ export default function StartingPage() {
               </div>
             )}
           </div>
+
         </div>
+      </div>
+
+      {/* Botón flotante superior derecho: Acceso Trainer (Opción 3) */}
+      <div className="absolute top-6 right-6 z-20">
+        <a
+          href="/trainer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#12131a]/80 hover:bg-[#161822] backdrop-blur-md border border-white/[0.08] hover:border-[#FF5A00]/40 rounded-full text-xs font-bold text-neutral-300 hover:text-white transition-all shadow-lg hover:shadow-[#FF5A00]/10 hover:scale-[1.03] active:scale-[0.97]"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5A00] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF5A00]"></span>
+          </span>
+          Portal Trainer
+        </a>
       </div>
     </main>
   );

@@ -51,6 +51,40 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
     const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
+    // MODO OPERATIVO (Capacitación / Operativo)
+    const [appMode, setAppMode] = useState<'capacitacion' | 'operativo'>('capacitacion');
+    const toggleMode = () => {
+        setAppMode(prev => {
+            const next = prev === 'capacitacion' ? 'operativo' : 'capacitacion';
+
+            if (next === 'operativo') {
+                // Modo Operativo: ir directo a Troubleshooting, sin menú
+                setActiveModule('troubleshooting');
+                setSelectedTroubleCategory(null);
+                // Resetear asistencia por si acaso
+                setIsNavigatedToDashboard(false);
+                setSelectedClientKey('');
+                setSelectedRobotId('');
+                // Modo Operativo = sin dark mode (pantalla de trabajo)
+                setIsDarkMode(false);
+            } else {
+                // Modo Capacitación: activar dark mode automáticamente
+                setActiveModule('menu');
+                setIsDarkMode(true);
+            }
+
+            return next;
+        });
+    };
+
+    // CERRAR SESIÓN
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (_) {}
+        window.location.reload();
+    };
+
     // Handlers para Asistencia
     const handleClientChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedClientKey(e.target.value);
@@ -111,13 +145,19 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
     const clientLogoSrc = getClientLogoSrc(selectedClientKey);
 
     return (
-        <div className={`min-h-screen text-neutral-900 flex flex-col justify-between font-sans antialiased p-4 sm:p-6 md:p-8 relative overflow-hidden transition-colors duration-500 ${
-            isDarkMode ? 'bg-neutral-950' : 'bg-slate-50'
+        <div className={`min-h-screen text-neutral-900 flex flex-col justify-between font-sans antialiased p-4 sm:p-6 md:p-8 relative overflow-hidden transition-all duration-500 ${
+            isDarkMode 
+                ? 'bg-[#090a0f]' 
+                : 'bg-slate-50 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,79,0,0.06),rgba(255,255,255,0))]'
         }`}>
 
             {/* CAPA DE DECORACIÓN LUMÍNICA */}
-            <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full bg-blue-500/5 blur-[100px] pointer-events-none" />
+            <div className={`absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full blur-[120px] pointer-events-none transition-all duration-500 ${
+                isDarkMode ? 'bg-[#ff4f00]/12' : 'bg-[#ff4f00]/8'
+            }`} />
+            <div className={`absolute bottom-[-10%] right-[-10%] w-[45vw] h-[45vw] rounded-full blur-[100px] pointer-events-none transition-all duration-500 ${
+                isDarkMode ? 'bg-blue-500/12' : 'bg-blue-500/8'
+            }`} />
 
             {/* HEADER */}
             <Header
@@ -129,6 +169,9 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                 onResetTroubleFlow={handleResetTroubleFlow}
                 isDarkMode={isDarkMode}
                 onToggleDarkMode={toggleDarkMode}
+                appMode={appMode}
+                onToggleMode={toggleMode}
+                onLogout={handleLogout}
             />
 
             {/* CONTENEDOR CENTRAL */}
@@ -159,46 +202,50 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                             </p>
                         </div>
 
-                        {/* Grid de 3 grandes módulos (Mobile-First) */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 w-full max-w-5xl mx-auto px-2 mt-2">
+                        {/* Grid de módulos — Capacitación: 3 tarjetas | Operativo: 2 tarjetas */}
+                        <div className={`grid grid-cols-1 gap-6 sm:gap-8 w-full max-w-5xl mx-auto px-2 mt-2 ${
+                            appMode === 'operativo' ? 'md:grid-cols-2' : 'md:grid-cols-3'
+                        }`}>
                             
-                            {/* 1. ASISTENCIA */}
-                            <div 
-                                onClick={() => setActiveModule('asistencia')}
-                                className={`border rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.4)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[280px] sm:min-h-[320px] ${
-                                    isDarkMode
-                                        ? 'bg-neutral-900 border-neutral-800 text-neutral-100'
-                                        : 'bg-white border-neutral-200 text-neutral-900'
-                                }`}
-                            >
-                                <div className="flex flex-col gap-5">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-[#ff4f00] transition-all duration-300 ${
-                                        isDarkMode ? 'bg-[#ff4f00]/20 text-[#ff4f00]' : 'bg-[#ff4f00]/10 text-[#ff4f00]'
-                                    }`}>
-                                        <Activity className="w-7 h-7" />
+                            {/* 1. ASISTENCIA — Solo en modo Capacitación */}
+                            {appMode === 'capacitacion' && (
+                                <div 
+                                    onClick={() => setActiveModule('asistencia')}
+                                    className={`border rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.35)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[280px] sm:min-h-[320px] ${
+                                        isDarkMode
+                                            ? 'bg-[#12131a]/65 backdrop-blur-[20px] border-white/[0.08] text-neutral-100'
+                                            : 'bg-white/65 backdrop-blur-[20px] border-white/[0.6] text-neutral-900 shadow-slate-200/50'
+                                    }`}
+                                >
+                                    <div className="flex flex-col gap-5">
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-[#ff4f00] transition-all duration-300 ${
+                                            isDarkMode ? 'bg-[#ff4f00]/20 text-[#ff4f00]' : 'bg-[#ff4f00]/10 text-[#ff4f00]'
+                                        }`}>
+                                            <Activity className="w-7 h-7" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-black font-sans tracking-tight mb-2 group-hover:text-white transition-colors duration-300">
+                                                ASISTENCIA
+                                            </h3>
+                                            <p className={`text-xs sm:text-[13px] font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300 ${
+                                                isDarkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                            }`}>
+                                                Consulta el Workflow Específico y visualiza los videos de la operación.
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-xl font-black font-sans tracking-tight mb-2 group-hover:text-white transition-colors duration-300">
-                                            ASISTENCIA
-                                        </h3>
-                                        <p className="text-xs sm:text-[13px] text-neutral-500 font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300">
-                                            Consulta el Workflow Específico y visualiza los videos de la operación.
-                                        </p>
+                                    <div className="flex items-center gap-2 text-xs font-bold text-neutral-400 group-hover:text-white transition-colors mt-6">
+                                        <span>Ingresar al módulo</span>
+                                        <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs font-bold text-neutral-400 group-hover:text-white transition-colors mt-6">
-                                    <span>Ingresar al módulo</span>
-                                    <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                                </div>
-                            </div>
-
-                            {/* 2. TROUBLESHOOTING */}
+                            )}
                             <div 
                                 onClick={() => setActiveModule('troubleshooting')}
-                                className={`border rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.4)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[280px] sm:min-h-[320px] ${
+                                className={`border rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.35)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[280px] sm:min-h-[320px] ${
                                     isDarkMode
-                                        ? 'bg-neutral-900 border-neutral-800 text-neutral-100'
-                                        : 'bg-white border-neutral-200 text-neutral-900'
+                                        ? 'bg-[#12131a]/65 backdrop-blur-[20px] border-white/[0.08] text-neutral-100'
+                                        : 'bg-white/65 backdrop-blur-[20px] border-white/[0.6] text-neutral-900 shadow-slate-200/50'
                                 }`}
                             >
                                 <div className="flex flex-col gap-5">
@@ -211,7 +258,9 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                                         <h3 className="text-xl font-black font-sans tracking-tight mb-2 group-hover:text-white transition-colors duration-300">
                                             TROUBLESHOOTING
                                         </h3>
-                                        <p className="text-xs sm:text-[13px] text-neutral-500 font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300">
+                                        <p className={`text-xs sm:text-[13px] font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300 ${
+                                            isDarkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                        }`}>
                                             Diagnostica y soluciona fallas mecánicas y de software. Sigue paso a paso las guías de auto-servicio y consulta los canales de escalación.
                                         </p>
                                     </div>
@@ -225,10 +274,10 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                             {/* 3. TEST */}
                             <div 
                                 onClick={() => setActiveModule('test')}
-                                className={`border rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.4)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[280px] sm:min-h-[320px] ${
+                                className={`border rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.35)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[280px] sm:min-h-[320px] ${
                                     isDarkMode
-                                        ? 'bg-neutral-900 border-neutral-800 text-neutral-100'
-                                        : 'bg-white border-neutral-200 text-neutral-900'
+                                        ? 'bg-[#12131a]/65 backdrop-blur-[20px] border-white/[0.08] text-neutral-100'
+                                        : 'bg-white/65 backdrop-blur-[20px] border-white/[0.6] text-neutral-900 shadow-slate-200/50'
                                 }`}
                             >
                                 <div className="flex flex-col gap-5">
@@ -260,19 +309,31 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                     <div className="w-full flex flex-col items-center gap-4 animate-fadeIn">
                         {!isNavigatedToDashboard ? (
                             <div className="flex flex-col items-center gap-2 w-full">
-                                <div className="text-center space-y-1 mb-2">
-                                    <span className="text-[10px] font-bold text-ultra-orange uppercase tracking-widest">Módulo Asistencia</span>
-                                    <h3 className="text-2xl font-black text-neutral-900">Selección de Unidad</h3>
-                                </div>
+                                {/* Intro heading — solo en modo Capacitación */}
+                                {appMode === 'capacitacion' && (
+                                    <div className="text-center space-y-1 mb-2">
+                                        <span className="text-[10px] font-bold text-ultra-orange uppercase tracking-widest">Módulo Asistencia</span>
+                                        <h3 className={`text-2xl font-black ${isDarkMode ? 'text-neutral-100' : 'text-neutral-900'}`}>Selección de Unidad</h3>
+                                    </div>
+                                )}
                                 <ClientSelector
                                     selectedClientKey={selectedClientKey}
                                     selectedRobotId={selectedRobotId}
                                     onClientChange={handleClientChange}
-                                    onRobotChange={setSelectedRobotId}
+                                    onRobotChange={(robotId: string) => {
+                                        setSelectedRobotId(robotId);
+                                        // Find the robot to check it's active before navigating
+                                        const robot = currentClient?.robots.find(r => r.id === robotId);
+                                        if (robot && robot.status === 'active') {
+                                            setIsNavigatedToDashboard(true);
+                                            setSelectedFault(null);
+                                        }
+                                    }}
                                     currentClient={currentClient}
                                     currentRobot={currentRobot}
                                     onAccessDashboard={handleAccessDashboard}
                                     mode="asistencia"
+                                    isDarkMode={isDarkMode}
                                     {...({ clientsDatabase } as any)}
                                 />
                             </div>
@@ -287,6 +348,8 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                                 setSelectedFault={setSelectedFault}
                                 workflowsDatabase={workflowsDatabase}
                                 onRobotChange={setSelectedRobotId}
+                                onBack={handleResetFlow}
+                                isDarkMode={isDarkMode}
                             />
                         )}
                     </div>
@@ -298,16 +361,18 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                             knowledgeBase={TROUBLESHOOTING_DATABASE}
                             selectedCategory={selectedTroubleCategory}
                             onCategorySelect={setSelectedTroubleCategory}
+                            isDarkMode={isDarkMode}
+                            appMode={appMode}
                         />
                     </div>
                 )}
 
-                {activeModule === 'test' && (
+                {activeModule === 'test' && appMode === 'capacitacion' && (
                     <div className="w-full flex flex-col items-center gap-6 animate-fadeIn">
                         <div className="text-center space-y-1 mb-2">
                             <span className="text-[10px] font-bold text-ultra-orange uppercase tracking-widest">Zona de Práctica</span>
-                            <h3 className="text-2xl font-black text-neutral-900">Certificación y Simulación</h3>
-                            <p className="text-xs text-neutral-500 max-w-sm mx-auto font-medium">
+                            <h3 className={`text-2xl font-black ${isDarkMode ? 'text-neutral-100' : 'text-neutral-900'}`}>Certificación y Simulación</h3>
+                            <p className={`text-xs max-w-sm mx-auto font-medium ${isDarkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
                                 Evalúa tus capacidades o inicia un entorno interactivo en 3D para practicar comandos robóticos.
                             </p>
                         </div>
@@ -317,17 +382,25 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                             {/* TARJETA DE EXAMEN */}
                             <div 
                                 onClick={() => setIsExamOpen(true)}
-                                className="bg-white border border-neutral-200 text-neutral-900 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.4)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[240px] sm:min-h-[260px]"
+                                className={`border transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.35)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[240px] sm:min-h-[260px] rounded-3xl p-6 sm:p-8 flex flex-col justify-between ${
+                                    isDarkMode
+                                        ? 'bg-[#12131a]/65 backdrop-blur-[20px] border-white/[0.08] text-neutral-100'
+                                        : 'bg-white/65 backdrop-blur-[20px] border-white/[0.6] text-neutral-900 shadow-slate-200/50'
+                                }`}
                             >
                                 <div className="flex flex-col gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-neutral-100 text-neutral-900 flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-[#ff4f00] transition-all duration-300">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-[#ff4f00] transition-all duration-300 ${
+                                        isDarkMode ? 'bg-[#ff4f00]/20 text-[#ff4f00]' : 'bg-neutral-100 text-neutral-900'
+                                    }`}>
                                         <BookOpenCheck className="w-6 h-6" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-black font-sans tracking-tight mb-2 group-hover:text-white transition-colors duration-300">
                                             EXAMEN TRAINING
                                         </h3>
-                                        <p className="text-xs sm:text-[13px] text-neutral-500 font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300">
+                                        <p className={`text-xs sm:text-[13px] font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300 ${
+                                            isDarkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                        }`}>
                                             Completa el test aleatorio de 10 preguntas basado en protocolos operativos reales. Requiere 80% para aprobar el entrenamiento.
                                         </p>
                                     </div>
@@ -344,17 +417,25 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                                     setSimulatorMode('free');
                                     setIsSimulatorOpen(true);
                                 }}
-                                className="bg-white border border-neutral-200 text-neutral-900 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.4)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[240px] sm:min-h-[260px]"
+                                className={`border transition-all duration-300 ease-out shadow-md hover:shadow-[0_20px_40px_rgba(255,79,0,0.35)] hover:bg-[#ff4f00] hover:border-[#ff4f00] hover:text-white hover:scale-105 hover:skew-x-2 hover:skew-y-1 hover:-rotate-1 cursor-pointer group min-h-[240px] sm:min-h-[260px] rounded-3xl p-6 sm:p-8 flex flex-col justify-between ${
+                                    isDarkMode
+                                        ? 'bg-[#12131a]/65 backdrop-blur-[20px] border-white/[0.08] text-neutral-100'
+                                        : 'bg-white/65 backdrop-blur-[20px] border-white/[0.6] text-neutral-900 shadow-slate-200/50'
+                                }`}
                             >
                                 <div className="flex flex-col gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-neutral-100 text-neutral-900 flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-[#ff4f00] transition-all duration-300">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white group-hover:text-[#ff4f00] transition-all duration-300 ${
+                                        isDarkMode ? 'bg-[#ff4f00]/20 text-[#ff4f00]' : 'bg-neutral-100 text-neutral-900'
+                                    }`}>
                                         <MonitorPlay className="w-6 h-6" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-black font-sans tracking-tight mb-2 group-hover:text-white transition-colors duration-300">
                                             SIMULADOR
                                         </h3>
-                                        <p className="text-xs sm:text-[13px] text-neutral-500 font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300">
+                                        <p className={`text-xs sm:text-[13px] font-medium leading-relaxed group-hover:text-white/90 transition-colors duration-300 ${
+                                            isDarkMode ? 'text-neutral-400' : 'text-neutral-500'
+                                        }`}>
                                             Inicia el simulador interactivo de visor headset para practicar el control de autonomía y comandos de fallas de la celda.
                                         </p>
                                     </div>
@@ -371,7 +452,7 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
             </div>
 
             {/* FOOTER */}
-            <Footer />
+            <Footer isDarkMode={isDarkMode} />
 
             {/* MODAL DE EXAMEN */}
             {isExamOpen && (

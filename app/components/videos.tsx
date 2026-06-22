@@ -160,7 +160,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 title: 'Proceso Completo',
                 description:
                     'Ciclo operativo estándar de Phil: escaneo de tote, colocación de artículos, sellado y finalización de pedido.',
-                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Proceso%20Completo%20_Phil.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Proceso_Completo%20_Phil.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
@@ -316,7 +316,7 @@ function VideoCard({ entry }: { entry: VideoEntry }) {
                 <video
                     ref={videoRef}
                     key={entry.src}
-                    src={entry.src}
+                    src={encodeURI(entry.src)}
                     controls={!activeInteraction} // Hide controls when interaction is active
                     playsInline
                     preload="metadata"
@@ -364,15 +364,6 @@ function VideoCard({ entry }: { entry: VideoEntry }) {
                 )}
             </div>
 
-            {/* Footer */}
-            <div className="px-4 py-2.5 bg-neutral-50 border-t border-neutral-100 flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-wider">
-                    Archivo:
-                </span>
-                <code className="text-[10px] font-mono text-neutral-600 bg-white border border-neutral-200 px-1.5 py-0.5 rounded-md truncate">
-                    {entry.src}
-                </code>
-            </div>
         </div>
     );
 }
@@ -449,7 +440,7 @@ function VideoCarousel({ videos }: { videos: VideoEntry[] }) {
                 <div className="aspect-video w-full bg-neutral-950">
                     <video
                         key={activeVideo.src}
-                        src={activeVideo.src}
+                        src={encodeURI(activeVideo.src)}
                         controls
                         playsInline
                         preload="metadata"
@@ -463,15 +454,6 @@ function VideoCarousel({ videos }: { videos: VideoEntry[] }) {
                     </video>
                 </div>
 
-                {/* Footer */}
-                <div className="px-6 py-3 bg-neutral-50 border-t border-neutral-100 flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-wider">
-                        Archivo:
-                    </span>
-                    <code className="text-[10px] font-mono text-neutral-600 bg-white border border-neutral-200 px-1.5 py-0.5 rounded-md">
-                        {activeVideo.src}
-                    </code>
-                </div>
             </div>
         </div>
     );

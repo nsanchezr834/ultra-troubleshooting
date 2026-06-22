@@ -14,19 +14,34 @@ interface TroubleshootingSearchProps {
   knowledgeBase: TroubleshootingKnowledge[];
   selectedCategory: string | null;
   onCategorySelect: (category: string | null) => void;
+  isDarkMode?: boolean;
+  appMode?: 'capacitacion' | 'operativo';
 }
 
 export default function TroubleshootingSearch({ 
   knowledgeBase, 
   selectedCategory, 
-  onCategorySelect 
+  onCategorySelect,
+  isDarkMode = false,
+  appMode = 'capacitacion',
 }: TroubleshootingSearchProps) {
+  const isExpert = appMode === 'operativo';
   const [searchTerm, setSearchTerm] = useState('');
   const [showAllFaults, setShowAllFaults] = useState(false);
   const [selectedItemForModal, setSelectedItemForModal] = useState<ExtendedTroubleshootingKnowledge | null>(null);
   
-  // Controlar si se muestran las categorías o la búsqueda rápida directo
-  const [searchMode, setSearchMode] = useState<'quick' | 'category'>('quick');
+  // En Modo Experto arrancamos directo en búsqueda rápida
+  const [searchMode, setSearchMode] = useState<'quick' | 'category'>(isExpert ? 'quick' : 'quick');
+
+  // Ref para autofocus en Modo Experto
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  // Autofocus inmediato en Modo Experto
+  React.useEffect(() => {
+    if (isExpert && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isExpert]);
 
   // Estados para panel de especificidad (ERR-MEC-014)
   const [isSpecificOpen, setIsSpecificOpen] = useState(false);
@@ -146,18 +161,22 @@ export default function TroubleshootingSearch({
   };
 
   return (
-    <div className="w-full bg-white border border-neutral-200 rounded-[2.5rem] overflow-hidden shadow-xl flex flex-col h-full font-sans max-h-[85vh] relative animate-fadeIn">
+    <div className={`w-full border rounded-[2.5rem] overflow-hidden shadow-xl flex flex-col h-full font-sans max-h-[85vh] relative animate-fadeIn transition-colors duration-300 ${
+      isDarkMode ? 'bg-[#0f1015] border-neutral-800' : 'bg-white border-neutral-200'
+    }`}>
       
-      {/* Cabecera Limpia (Tema Claro) */}
-      <div className="p-6 border-b border-neutral-100 bg-neutral-50/50">
+      {/* Cabecera */}
+      <div className={`p-6 border-b ${isDarkMode ? 'border-neutral-800 bg-[#1a1b24]/60' : 'border-neutral-100 bg-neutral-50/50'}`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <h3 className="text-xs font-black text-neutral-400 tracking-widest flex items-center gap-2 uppercase">
+          <h3 className={`text-xs font-black tracking-widest flex items-center gap-2 uppercase ${isDarkMode ? 'text-neutral-400' : 'text-neutral-400'}`}>
             <Search className="w-4 h-4 text-ultra-orange" />
             Buscador de Resolución
           </h3>
           
           {/* Selector de Modo de Búsqueda */}
-          <div className="flex bg-neutral-200/60 p-1 rounded-xl self-start sm:self-auto">
+          {/* Selector de Modo de Búsqueda — oculto en Modo Experto */}
+          {!isExpert && (
+          <div className={`flex p-1 rounded-xl self-start sm:self-auto ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200/60'}`}>
             <button
               onClick={() => {
                 setSearchMode('quick');
@@ -165,8 +184,8 @@ export default function TroubleshootingSearch({
               }}
               className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
                 searchMode === 'quick' 
-                  ? 'bg-white text-neutral-900 shadow-xs' 
-                  : 'text-neutral-500 hover:text-neutral-800'
+                  ? isDarkMode ? 'bg-neutral-700 text-neutral-100 shadow-sm' : 'bg-white text-neutral-900 shadow-xs'
+                  : isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-neutral-800'
               }`}
             >
               Búsqueda Rápida
@@ -178,24 +197,28 @@ export default function TroubleshootingSearch({
               }}
               className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
                 searchMode === 'category' 
-                  ? 'bg-white text-neutral-900 shadow-xs' 
-                  : 'text-neutral-500 hover:text-neutral-800'
+                  ? isDarkMode ? 'bg-neutral-700 text-neutral-100 shadow-sm' : 'bg-white text-neutral-900 shadow-xs'
+                  : isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-neutral-800'
               }`}
             >
               Buscar por Categorías
             </button>
           </div>
+          )}
         </div>
         
-        {/* Input de búsqueda estilo amigable */}
+        {/* Input de búsqueda */}
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
           <input 
+            ref={inputRef}
             type="text" 
             placeholder={
-              searchMode === 'quick' 
-                ? "Escribe la falla o consejo que buscas... (Ej: brazos, camara, etiquetas, tote)"
-                : "Filtrar fallas o consejos... (Ej: brazos, camara, etiquetas)"
+              isExpert
+                ? "Buscar falla rápido... (código ERR, robot, síntoma)"
+                : searchMode === 'quick' 
+                  ? "Escribe la falla o consejo que buscas... (Ej: brazos, camara, etiquetas, tote)"
+                  : "Filtrar fallas o consejos... (Ej: brazos, camara, etiquetas)"
             }
             value={searchTerm}
             onChange={(e) => {
@@ -204,15 +227,19 @@ export default function TroubleshootingSearch({
                 setShowAllFaults(false); 
               }
             }}
-            className="w-full bg-white border border-neutral-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-xs"
+            className={`w-full border rounded-2xl py-3.5 pl-12 pr-4 text-sm placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-xs ${
+              isDarkMode
+                ? 'bg-[#0f1015] border-neutral-700 text-neutral-100 placeholder-neutral-600'
+                : 'bg-white border-neutral-200 text-neutral-800'
+            }`}
           />
         </div>
       </div>
 
       {/* Contenedor de Resultados */}
-      <div className={`flex-1 overflow-y-auto p-6 bg-white flex flex-col justify-between transition-all duration-300 ${
+      <div className={`flex-1 overflow-y-auto p-6 flex flex-col justify-between transition-all duration-300 ${
         searchMode === 'quick' && searchTerm.trim() === '' ? 'min-h-[50px] p-0' : 'min-h-[300px]'
-      }`}>
+      } ${isDarkMode ? 'bg-[#0f1015]' : 'bg-white'}`}>
         
         {/* CASE A: Búsqueda Activa (Tiene texto el input) */}
         {searchTerm.trim() !== '' && (
@@ -297,20 +324,26 @@ export default function TroubleshootingSearch({
                   <div className="flex flex-col items-center gap-6 w-full py-4 my-auto animate-fadeIn">
                     <div className="text-center space-y-1">
                       <span className="text-[10px] font-bold text-ultra-orange uppercase tracking-widest">Diagnóstico por Módulo</span>
-                      <h3 className="text-xl font-black text-neutral-800">Seleccionar Categoría de Falla</h3>
+                      <h3 className={`text-xl font-black ${isDarkMode ? 'text-neutral-100' : 'text-neutral-800'}`}>Seleccionar Categoría de Falla</h3>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 w-full">
                       {/* Problemas con el robot */}
                       <div 
                         onClick={() => onCategorySelect('Problemas con el robot')}
-                        className="bg-neutral-50/50 border border-neutral-200 text-neutral-850 rounded-2xl p-5 flex flex-col items-center text-center transition-all duration-200 hover:border-ultra-orange hover:bg-white hover:scale-102 cursor-pointer group shadow-xs"
+                        className={`border rounded-2xl p-5 flex flex-col items-center text-center transition-all duration-200 hover:border-ultra-orange hover:scale-102 cursor-pointer group shadow-xs ${
+                          isDarkMode
+                            ? 'bg-[#1a1b24] border-neutral-700 hover:bg-[#1a1b24]/80'
+                            : 'bg-neutral-50/50 border-neutral-200 text-neutral-850 hover:bg-white'
+                        }`}
                       >
-                        <div className="w-12 h-12 rounded-xl bg-white text-neutral-500 border border-neutral-100 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-ultra-orange/5 group-hover:text-ultra-orange group-hover:border-ultra-orange/20 transition-all duration-200">
+                        <div className={`w-12 h-12 rounded-xl border flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-ultra-orange/5 group-hover:text-ultra-orange group-hover:border-ultra-orange/20 transition-all duration-200 ${
+                          isDarkMode ? 'bg-neutral-800 text-neutral-400 border-neutral-700' : 'bg-white text-neutral-500 border-neutral-100'
+                        }`}>
                           <Settings className="w-6 h-6" />
                         </div>
-                        <h4 className="text-xs font-black tracking-tight text-neutral-800 group-hover:text-ultra-orange">Problemas con el robot</h4>
-                        <p className="text-[11px] text-neutral-500 mt-1.5 leading-relaxed">Fallas a nivel de hardware que se relacionan con los movimientos del robot.</p>
+                        <h4 className={`text-xs font-black tracking-tight group-hover:text-ultra-orange ${isDarkMode ? 'text-neutral-200' : 'text-neutral-800'}`}>Problemas con el robot</h4>
+                        <p className={`text-[11px] mt-1.5 leading-relaxed ${isDarkMode ? 'text-neutral-500' : 'text-neutral-500'}`}>Fallas a nivel de hardware que se relacionan con los movimientos del robot.</p>
                       </div>
 
                       {/* Qué hacer en caso de... */}

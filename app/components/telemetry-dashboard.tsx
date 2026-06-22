@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ClientConfig, RobotConfig } from '../../config/robots-db';
 import { WorkflowConfig } from '../../config/workflows-db';
@@ -19,33 +19,25 @@ interface TelemetryDashboardProps {
     setSelectedFault?: (fault: string | null) => void;
     workflowsDatabase?: Record<string, WorkflowConfig>;
     onRobotChange?: (robotId: string) => void;
+    onBack?: () => void;
+    isDarkMode?: boolean;
 }
 
 /**
  * Resuelve qué workflow mostrar según el robot activo.
  * Mapeo explícito robot.id → workflow key en WORKFLOWS_DATABASE.
- *
- * Workflows activos:
- *   packie-2.0        → Packie 2.0 - Embolsado Estándar
- *   future-2.0        → Future 2.0 - Embolsado Avanzado
- *   fleetwood-pack    → Highline Commerce - Fleetwood Pack
- *   fleetwood         → Highline Commerce - Fleetwood Pack (alias)
  */
 const ROBOT_TO_WORKFLOW_MAP: Record<string, string> = {
     'packie-2.0': 'packie-2.0',
     'future-2.0': 'future-2.0',
     'fleetwood-pack': 'highline-fleetwood',
     'fleetwood': 'highline-fleetwood',
-    // Robots de Highline Commerce → Phil
     'phil': 'highline-phil',
     'highline-phil': 'highline-phil',
-    // Robots de Outerspace → Venus / Mercury
     'venus': 'outerspace-venus',
     'mercury': 'outerspace-mercury',
-    // Robots de Mountainy → Mabel / Monty
     'mabel': 'mountainy-mabel',
     'monty': 'mountainy-monty',
-    // Robots de Internal
     'box-fold':     'internal-box-fold',
     'pick-sort':    'internal-pick-sort',
     'tote':         'internal-tote',
@@ -60,26 +52,16 @@ export default function TelemetryDashboard({
     logoError,
     setLogoError,
     workflowsDatabase,
-    onRobotChange
+    onRobotChange,
+    onBack,
+    isDarkMode = false,
 }: TelemetryDashboardProps) {
-    const [activeTab, setActiveTab] = useState<TabType>('workflow');
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [activeTab, setActiveTab] = useState<TabType>('videos');
 
     // Robots con material de vídeo disponible
     const ROBOTS_WITH_VIDEOS = ['future-2.0', 'phil', 'fleetwood-pack', 'fleetwood', 'packie-2.0', 'monty', 'venus', 'bagger-label', 'box-fold', 'pick-sort', 'tower-stack-unstack'];
     const showVideoTab = !!(currentRobot?.id && ROBOTS_WITH_VIDEOS.includes(currentRobot.id));
     const showTipsTab = !!(currentRobot?.advises && currentRobot.advises.length > 0);
-
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     useEffect(() => {
         if (activeTab === 'videos' && !showVideoTab) {
@@ -102,102 +84,119 @@ export default function TelemetryDashboard({
     // Mostrar tabs solo si existe un workflow resuelto para este robot
     const showWorkflowTabs = !!activeWorkflow;
 
+    // Dark mode tokens
+    const barBg = isDarkMode
+        ? 'bg-[#1a1b24] border-neutral-800'
+        : 'bg-white border-neutral-200/80';
+    const dividerColor = isDarkMode ? 'bg-neutral-700' : 'bg-neutral-200';
+    const systemLabel = isDarkMode ? 'text-neutral-500' : 'text-neutral-600';
+    const robotNameText = isDarkMode ? 'text-neutral-100' : 'text-neutral-900';
+    const backBtnClass = isDarkMode
+        ? 'border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white'
+        : 'border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-600 hover:text-neutral-900';
+
+    const panelBg = isDarkMode
+        ? 'bg-[#1a1b24] border-neutral-800'
+        : 'bg-white border-neutral-200';
+    const panelHeaderBorder = isDarkMode ? 'border-neutral-800' : 'border-neutral-100';
+    const titleText = isDarkMode ? 'text-neutral-100' : 'text-neutral-900';
+    const subtitleText = isDarkMode ? 'text-neutral-400' : 'text-neutral-500';
+
     return (
         <div className="w-full flex flex-col items-center gap-6 max-w-5xl">
 
-            {/* BARRA SUPERIOR: Logo + Robot + Tabs + Estado */}
-            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4 px-5 py-3 rounded-2xl bg-white border border-neutral-200/80 shadow-sm">
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto justify-center sm:justify-start">
-                    <div className="flex items-center justify-center min-h-[24px]">
-                        {clientLogoSrc && !logoError ? (
-                            <div className="relative w-32 h-8">
-                                <Image
-                                    src={clientLogoSrc}
-                                    alt="Logo"
-                                    fill
-                                    className="object-contain"
-                                    onError={() => setLogoError(true)}
-                                />
-                            </div>
-                        ) : (
-                            <span className="text-xs font-mono font-black text-neutral-500 uppercase">
-                                {currentClient?.name}
-                            </span>
-                        )}
+            {/* BARRA SUPERIOR — Sticky mobile-first: back button en top-left en móvil */}
+            <div className={`w-full sticky top-0 z-20 rounded-2xl border shadow-sm transition-colors duration-300 ${barBg}`}>
+                {/* Mobile only: botón atrás en fila superior izquierda */}
+                {onBack && (
+                    <div className="flex sm:hidden items-center px-4 pt-3 pb-1">
+                        <button
+                            type="button"
+                            onClick={onBack}
+                            title="Volver a selección de clientes"
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold font-sans transition-all duration-150 active:scale-[0.97] ${backBtnClass}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" height="12" viewBox="0 -960 960 960" width="12" fill="currentColor">
+                                <path d="M360-240 120-480l240-240 56 56-144 144h568v80H272l144 144-56 56Z"/>
+                            </svg>
+                            <span>Selección</span>
+                        </button>
                     </div>
-                    <div className="hidden sm:block h-4 w-[1px] bg-neutral-200" />
-                    <span className="text-xs font-mono font-bold text-neutral-600 text-center sm:text-left">
-                        SISTEMA: <span className="text-neutral-900 font-sans font-bold">{currentRobot?.name}</span>
-                    </span>
+                )}
 
-                    {/* Botón Cambiar Robot */}
-                    {onRobotChange && currentClient && (
-                        <div className="relative ml-0 sm:ml-2" ref={dropdownRef}>
-                            <button
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="px-4 py-1.5 rounded-full text-white text-xs font-bold font-sans transition-transform hover:scale-105 shadow-sm flex items-center gap-2"
-                                style={{ backgroundColor: '#ff4f00' }}
-                            >
-                                Cambiar Robot
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                                </svg>
-                            </button>
-                            {isDropdownOpen && (
-                                <div className="absolute top-full mt-2 left-0 w-48 bg-black rounded-xl shadow-lg border border-neutral-800 z-50 overflow-hidden">
-                                    <div className="py-1">
-                                        {currentClient.robots.map(r => (
-                                            <button
-                                                key={r.id}
-                                                onClick={() => {
-                                                    onRobotChange(r.id);
-                                                    setIsDropdownOpen(false);
-                                                }}
-                                                className={`w-full text-left px-4 py-2.5 text-xs font-sans font-semibold transition-colors ${
-                                                    r.id === currentRobot?.id 
-                                                    ? 'bg-neutral-800 text-[#ff4f00]' 
-                                                    : 'text-white hover:bg-neutral-900 hover:text-neutral-200'
-                                                }`}
-                                            >
-                                                {r.name} {r.id === currentRobot?.id && '✓'}
-                                            </button>
-                                        ))}
-                                    </div>
+                {/* Fila principal: logo + robot | back (desktop) */}
+                <div className="flex flex-row items-center justify-between px-5 py-3 gap-4">
+                    {/* Izquierda: logo cliente + nombre robot */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center min-h-[24px]">
+                            {clientLogoSrc && !logoError ? (
+                                <div className="relative w-32 h-8">
+                                    <Image
+                                        src={clientLogoSrc}
+                                        alt="Logo"
+                                        fill
+                                        className={`object-contain ${isDarkMode ? 'brightness-0 invert opacity-80' : ''}`}
+                                        onError={() => setLogoError(true)}
+                                    />
                                 </div>
+                            ) : (
+                                <span className={`text-xs font-mono font-black uppercase ${isDarkMode ? 'text-neutral-300' : 'text-neutral-500'}`}>
+                                    {currentClient?.name}
+                                </span>
                             )}
                         </div>
+                        <div className={`hidden sm:block h-4 w-[1px] ${dividerColor}`} />
+                        <span className={`text-xs font-mono font-bold ${systemLabel}`}>
+                            Robot activo: <span className={`font-sans font-bold ${robotNameText}`}>{currentRobot?.name}</span>
+                        </span>
+                    </div>
+
+                    {/* Derecha: botón atrás (solo desktop) */}
+                    {onBack && (
+                        <button
+                            type="button"
+                            onClick={onBack}
+                            title="Volver a selección de clientes"
+                            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold font-sans transition-all duration-150 active:scale-[0.97] ${backBtnClass}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" height="14" viewBox="0 -960 960 960" width="14" fill="currentColor">
+                                <path d="M360-240 120-480l240-240 56 56-144 144h568v80H272l144 144-56 56Z"/>
+                            </svg>
+                            <span>Selección</span>
+                        </button>
                     )}
                 </div>
-
-                {/* TABS — solo si hay workflow resuelto */}
-                <WorkflowTabs
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    showWorkflowTabs={showWorkflowTabs}
-                    showVideoTab={showVideoTab}
-                    showTipsTab={showTipsTab}
-                />
             </div>
+
+            {/* SELECCIÓN DE PESTAÑAS */}
+            <WorkflowTabs
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                showWorkflowTabs={showWorkflowTabs}
+                showVideoTab={showVideoTab}
+                showTipsTab={showTipsTab}
+                isDarkMode={isDarkMode}
+            />
 
             {/* CONTENIDO PRINCIPAL */}
             {activeTab === 'videos' && showVideoTab ? (
-                /* VISTA VIDEOS: reproductor HTML5 */
+                /* VISTA VIDEOS */
                 <div className="w-full animate-fadeIn">
                     <VideoPlayer robotId={currentRobot?.id} />
                 </div>
             ) : activeTab === 'tips' && showTipsTab ? (
-                /* VISTA CONSEJOS: Consejos para el workflow del robot activo */
-                <div className="w-full bg-white rounded-3xl border border-neutral-200 p-6 shadow-md animate-fadeIn text-left">
-                    <div className="border-b border-neutral-100 pb-4 mb-6">
+                /* VISTA CONSEJOS */
+                <div className={`w-full rounded-3xl border p-6 shadow-md animate-fadeIn text-left ${panelBg}`}>
+                    <div className={`border-b pb-4 mb-6 ${panelHeaderBorder}`}>
                         <div className="flex items-center gap-2">
-                            <span className="p-2 bg-orange-50 text-[#ff4f00] rounded-lg">
+                            <span className={`p-2 rounded-lg ${isDarkMode ? 'bg-[#ff4f00]/10 text-[#ff4f00]' : 'bg-orange-50 text-[#ff4f00]'}`}>
                                 <Sparkles className="w-5 h-5 animate-pulse" />
                             </span>
                             <div>
-                                <h3 className="text-base font-sans font-extrabold text-neutral-900 tracking-tight">
+                                <h3 className={`text-base font-sans font-extrabold tracking-tight ${titleText}`}>
                                     Consejos de Operación — {currentRobot?.name}
                                 </h3>
-                                <p className="text-xs text-neutral-500 font-medium mt-0.5">
+                                <p className={`text-xs font-medium mt-0.5 ${subtitleText}`}>
                                     Sigue estas directrices clave durante el proceso del workflow para garantizar la máxima eficiencia y evitar fallas.
                                 </p>
                             </div>
@@ -212,28 +211,34 @@ export default function TelemetryDashboard({
                                     key={adv.id}
                                     className={`p-4 rounded-2xl border transition-all flex gap-3 ${
                                         isException
-                                            ? 'border-rose-200 bg-rose-50/40 hover:bg-rose-50/60 hover:border-rose-300 md:col-span-2'
-                                            : 'border-neutral-100 bg-neutral-50/50 hover:bg-neutral-50 hover:border-neutral-200'
+                                            ? isDarkMode
+                                                ? 'border-rose-800/50 bg-rose-900/20 hover:bg-rose-900/30 md:col-span-2'
+                                                : 'border-rose-200 bg-rose-50/40 hover:bg-rose-50/60 hover:border-rose-300 md:col-span-2'
+                                            : isDarkMode
+                                                ? 'border-neutral-700 bg-neutral-800/40 hover:bg-neutral-800/60 hover:border-neutral-600'
+                                                : 'border-neutral-100 bg-neutral-50/50 hover:bg-neutral-50 hover:border-neutral-200'
                                     }`}
                                 >
                                     <div
                                         className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
-                                            isException ? 'bg-rose-100 text-rose-600' : 'bg-orange-100 text-[#ff4f00]'
+                                            isException
+                                                ? isDarkMode ? 'bg-rose-900/50 text-rose-400' : 'bg-rose-100 text-rose-600'
+                                                : isDarkMode ? 'bg-[#ff4f00]/15 text-[#ff4f00]' : 'bg-orange-100 text-[#ff4f00]'
                                         }`}
                                     >
                                         {isException ? '⚠️' : adv.adviceNumber}
                                     </div>
                                     <div className="grow">
                                         {isException && (
-                                            <h4 className="text-xs font-bold uppercase tracking-wide text-rose-800 mb-1">
+                                            <h4 className={`text-xs font-bold uppercase tracking-wide mb-1 ${isDarkMode ? 'text-rose-400' : 'text-rose-800'}`}>
                                                 Problemas con la Orden / Excepciones
                                             </h4>
                                         )}
                                         <p
                                             className={`text-xs leading-relaxed ${
                                                 isException
-                                                    ? 'text-rose-700'
-                                                    : 'text-neutral-800 font-semibold'
+                                                    ? isDarkMode ? 'text-rose-300' : 'text-rose-700'
+                                                    : isDarkMode ? 'text-neutral-300 font-semibold' : 'text-neutral-800 font-semibold'
                                             }`}
                                             dangerouslySetInnerHTML={{
                                                 __html: adv.content
@@ -248,19 +253,19 @@ export default function TelemetryDashboard({
                     </div>
                 </div>
             ) : (
-                /* VISTA WORKFLOW: árbol jerárquico del flujo */
+                /* VISTA WORKFLOW */
                 activeWorkflow?.rootNode && (
-                    <div className="w-full bg-white rounded-3xl border border-neutral-200 p-6 shadow-md animate-fadeIn text-left">
-                        <div className="border-b border-neutral-100 pb-4 mb-4">
+                    <div className={`w-full rounded-3xl border p-6 shadow-md animate-fadeIn text-left ${panelBg}`}>
+                        <div className={`border-b pb-4 mb-4 ${panelHeaderBorder}`}>
                             <div className="flex items-center justify-between">
-                                <h3 className="text-base font-sans font-extrabold text-neutral-900 tracking-tight">
+                                <h3 className={`text-base font-sans font-extrabold tracking-tight ${titleText}`}>
                                     {activeWorkflow.name}
                                 </h3>
-                                <span className="text-[10px] font-mono bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md font-bold">
+                                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold ${isDarkMode ? 'bg-purple-900/50 text-purple-300' : 'bg-purple-100 text-purple-700'}`}>
                                     v{activeWorkflow.version}
                                 </span>
                             </div>
-                            <p className="text-xs text-neutral-500 font-medium mt-1">
+                            <p className={`text-xs font-medium mt-1 ${subtitleText}`}>
                                 {activeWorkflow.description}
                             </p>
                         </div>
