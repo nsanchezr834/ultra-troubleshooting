@@ -32,33 +32,33 @@ export default function SafetyCases({ isDarkMode = false }: SafetyCasesProps) {
             </div>
 
             {/* Selector de Casos */}
-            <div className={`flex p-1 rounded-2xl max-w-md mx-auto w-full border ${
+            <div className={`flex flex-col sm:flex-row p-1 rounded-2xl max-w-md mx-auto w-full border gap-1 sm:gap-0 ${
                 isDarkMode ? 'bg-neutral-950 border-neutral-800' : 'bg-neutral-100 border-neutral-200'
             }`}>
                 <button
                     onClick={() => setActiveCase(1)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-black tracking-wider uppercase transition-all duration-300 ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3.5 rounded-xl text-[11px] sm:text-xs font-black tracking-wider uppercase transition-all duration-300 ${
                         activeCase === 1
-                            ? 'bg-red-650 bg-red-600 text-white shadow-md shadow-red-600/20 scale-[1.02]'
+                            ? 'bg-red-600 text-white shadow-md shadow-red-600/20 scale-[1.02]'
                             : isDarkMode
                                 ? 'text-neutral-400 hover:text-neutral-200'
                                 : 'text-neutral-500 hover:text-neutral-800'
                     }`}
                 >
-                    <Film className="w-4 h-4" />
+                    <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Caso 1: Robot Atorado
                 </button>
                 <button
                     onClick={() => setActiveCase(2)}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-black tracking-wider uppercase transition-all duration-300 ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3.5 rounded-xl text-[11px] sm:text-xs font-black tracking-wider uppercase transition-all duration-300 ${
                         activeCase === 2
-                            ? 'bg-red-650 bg-red-600 text-white shadow-md shadow-red-600/20 scale-[1.02]'
+                            ? 'bg-red-600 text-white shadow-md shadow-red-600/20 scale-[1.02]'
                             : isDarkMode
                                 ? 'text-neutral-400 hover:text-neutral-200'
                                 : 'text-neutral-500 hover:text-neutral-800'
                     }`}
                 >
-                    <Film className="w-4 h-4" />
+                    <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     Caso 2: Caída de Impresora
                 </button>
             </div>

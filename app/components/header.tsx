@@ -34,11 +34,11 @@ export default function Header({
     const showBackButton = activeModule !== 'menu';
 
     return (
-        <header className={`w-full flex flex-row justify-between items-center border-b pb-4 mb-6 z-10 transition-colors duration-300 ${
+        <header className={`w-full flex flex-col sm:flex-row justify-between items-center gap-4 border-b pb-4 mb-6 z-10 transition-colors duration-300 ${
             isDarkMode ? 'border-neutral-800' : 'border-neutral-200/80'
         }`}>
             {/* Lado izquierdo — Toggle Modo Operativo */}
-            <div className="flex items-center">
+            <div className="flex items-center justify-center sm:justify-start w-full sm:w-auto">
                 {onToggleMode && (
                     <div className={`flex p-1 rounded-full border transition-all duration-300 shadow-inner ${
                         isDarkMode
@@ -78,13 +78,13 @@ export default function Header({
             </div>
 
             {/* Acciones a la derecha */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-2 sm:gap-3">
 
                 {/* Botón Volver al Menú */}
                 {showBackButton && (
                     <button
                         onClick={onBackToMenu}
-                        className="flex items-center gap-1.5 bg-[#ff4f00] hover:bg-[#ff4f00]/95 active:scale-[0.98] text-white transition-all font-sans font-extrabold text-[11px] uppercase px-4 py-2 rounded-full tracking-wider shadow-sm"
+                        className="flex items-center justify-center gap-1.5 bg-[#ff4f00] hover:bg-[#ff4f00]/95 active:scale-[0.98] text-white transition-all font-sans font-extrabold text-[11px] uppercase px-4 py-2.5 rounded-full tracking-wider shadow-sm grow sm:grow-0"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
                             <path fillRule="evenodd" d="M9.53 4.47a.75.75 0 0 1 0 1.06L4.81 10.25H20a.75.75 0 0 1 0 1.5H4.81l4.72 4.72a.75.75 0 1 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />

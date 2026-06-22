@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Ultra — Training Tool",
   description: "Training Tool",
   icons: {
-    icon: "/ultra.ico",
+    icon: "/favicon.ico",
   },
 };
 

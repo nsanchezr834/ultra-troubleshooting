@@ -124,7 +124,7 @@ export default function ClientSelector({
                                                 key={client.id}
                                                 type="button"
                                                 onClick={() => handleClientSelect(client.id)}
-                                                className={`relative flex flex-col items-center justify-center gap-2.5 p-4 rounded-2xl border-2 transition-all duration-200 text-left
+                                                className={`relative flex flex-col items-center justify-center gap-2.5 p-3 sm:p-4 rounded-2xl border-2 transition-all duration-200 text-left
                                                     ${isSelected ? clientBtnActive : clientBtnInactive}`}
                                             >
                                                 {isSelected && (
