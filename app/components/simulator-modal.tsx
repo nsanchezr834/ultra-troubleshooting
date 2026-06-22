@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { HelpCircle, Mic, MicOff, Settings, LogOut, Pause, Bell, X, Check, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { HelpCircle, Mic, MicOff, Settings, LogOut, Pause, Bell, X, Check, Download, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { saveExamResult, TraineeIdentity } from '../lib/training';
 
 interface SimulatorModalProps {
     onClose: () => void;
     isExamMode?: boolean;
     applicantName?: string;
+    traineeIdentity?: TraineeIdentity | null;
 }
 
 interface SimulationQuestion {
@@ -59,12 +61,30 @@ interface AnswerRecord {
     isCorrect: boolean;
 }
 
-function generateSimPDF(
+// ─── Load image as base64 for jsPDF ────────────────────────────────────────────
+async function loadImageAsBase64(url: string): Promise<string | null> {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    } catch {
+        return null;
+    }
+}
+
+async function generateSimPDF(
     applicantName: string,
+    sessionName: string,
+    trainerName: string,
     examScore: number,
     total: number,
     answers: AnswerRecord[]
-): void {
+): Promise<void> {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
     const PAGE_W = 210;
@@ -82,22 +102,56 @@ function generateSimPDF(
     const passed = percent >= 80;
     let y = 0;
 
-    // ── Header ────────────────────────────────────────────────────────────────
-    doc.setFillColor(ORANGE);
-    doc.rect(0, 0, PAGE_W, 42, 'F');
+    // ── Intenta cargar el logo de Ultra ──────────────────────────────────────
+    const logoBase64 = await loadImageAsBase64('/ultra_logo.png');
 
-    doc.setTextColor('#ffffff');
+    // Banda naranja de acento superior
+    doc.setFillColor(ORANGE);
+    doc.rect(0, 0, PAGE_W, 6, 'F');
+
+    // Fondo blanco del header
+    doc.setFillColor('#ffffff');
+    doc.rect(0, 6, PAGE_W, 36, 'F');
+
+    // Logo Ultra (si cargó)
+    if (logoBase64) {
+        doc.addImage(logoBase64, 'PNG', MARGIN, 12, 40, 16);
+    } else {
+        // Fallback texto si el logo no cargó
+        doc.setTextColor(ORANGE);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('ULTRA', MARGIN, 24);
+    }
+
+    // Título del reporte a la derecha del logo
+    doc.setDrawColor('#e5e7eb');
+    doc.line(MARGIN + 48, 10, MARGIN + 48, 38); // línea divisoria
+
+    doc.setTextColor(DARK);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text('REPORTE DE EVALUACIÓN — SIMULADOR', MARGIN, 18);
+    doc.setFontSize(13);
+    doc.text('REPORTE DE EVALUACIÓN — SIMULACIÓN', MARGIN + 54, 22);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('AUTORYX STACK INTELLIGENT TRAINING · MODO SIMULACIÓN', MARGIN, 25);
+    doc.setFontSize(7.5);
+    doc.setTextColor(GRAY);
+    doc.text('AUTORYX STACK — INTELLINENT TRAINING SYSTEM', MARGIN + 54, 29);
 
+    // Fecha + ID en top-right
     doc.setFontSize(7);
-    doc.text(`ID: TX9X_SIM`, PAGE_W - MARGIN, 18, { align: 'right' });
-    doc.text(`EMISIÓN: ${new Date().toLocaleDateString('es-MX')}`, PAGE_W - MARGIN, 24, { align: 'right' });
+    const dateStr = new Date().toLocaleDateString('es-MX');
+    doc.text(`EMISIÓN: ${dateStr}`, PAGE_W - MARGIN, 16, { align: 'right' });
+    doc.text(`ID: TX9X_SIM`, PAGE_W - MARGIN, 22, { align: 'right' });
+    if (sessionName) {
+        doc.setTextColor(ORANGE);
+        const dispSessionName = sessionName.length > 25 ? sessionName.substring(0, 22) + '...' : sessionName;
+        doc.text(`SESIÓN: ${dispSessionName}`, PAGE_W - MARGIN, 29, { align: 'right' });
+    }
+
+    // Línea separadora inferior del header
+    doc.setDrawColor('#e5e7eb');
+    doc.line(0, 42, PAGE_W, 42);
 
     y = 52;
 
@@ -112,23 +166,43 @@ function generateSimPDF(
 
     doc.setTextColor(DARK);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(applicantName || 'Sin Registro', MARGIN + 6, y + 18);
+    // Escalar dinámicamente el tamaño de letra si el nombre es muy largo para evitar overlap
+    const nameStr = applicantName || 'Sin Registro';
+    let nameFontSize = 14;
+    if (nameStr.length > 28) {
+        nameFontSize = 10;
+    } else if (nameStr.length > 20) {
+        nameFontSize = 12;
+    }
+    doc.setFontSize(nameFontSize);
+    doc.text(nameStr, MARGIN + 6, y + 18);
 
-    // Status / percent / score
+    // Trainer info bajo el nombre
+    if (trainerName) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(GRAY);
+        doc.text(`Trainer: ${trainerName}`, MARGIN + 6, y + 25);
+    }
+
+    // Status / percent / score — right side
     const statusColor = passed ? GREEN : RED;
+    const statusText = passed ? 'APROBADO' : 'RECHAZADO';
 
+    // Status
     doc.setTextColor(GRAY);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.text('ESTADO', PAGE_W - MARGIN - 80, y + 8);
     doc.setTextColor(statusColor);
     doc.setFontSize(11);
-    doc.text(passed ? 'APROBADO' : 'RECHAZADO', PAGE_W - MARGIN - 80, y + 18);
+    doc.text(statusText, PAGE_W - MARGIN - 80, y + 18);
 
+    // Separator
     doc.setDrawColor('#d1d5db');
     doc.line(PAGE_W - MARGIN - 54, y + 6, PAGE_W - MARGIN - 54, y + 24);
 
+    // Percent
     doc.setTextColor(GRAY);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
@@ -137,8 +211,10 @@ function generateSimPDF(
     doc.setFontSize(11);
     doc.text(`${percent}%`, PAGE_W - MARGIN - 48, y + 18);
 
+    // Separator
     doc.line(PAGE_W - MARGIN - 22, y + 6, PAGE_W - MARGIN - 22, y + 24);
 
+    // Score
     doc.setTextColor(GRAY);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
@@ -266,7 +342,7 @@ function generateSimPDF(
 type Screen = 'main' | 'fault-category' | 'fault-bagger' | 'fault-order' | 'fault-product' | 'fault-robot' | 'fault-software' | 'fault-other';
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function SimulatorModal({ onClose, isExamMode = false, applicantName = '' }: SimulatorModalProps) {
+export default function SimulatorModal({ onClose, isExamMode = false, applicantName = '', traineeIdentity = null }: SimulatorModalProps) {
     const [showDashboard, setShowDashboard] = useState(false);
     const [currentScreen, setCurrentScreen] = useState<Screen>('main');
     const [showFaultDialog, setShowFaultDialog] = useState(false);
@@ -281,6 +357,9 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
     const [examFeedback, setExamFeedback] = useState<{ show: boolean, isCorrect: boolean, message: string } | null>(null);
     const [answersLog, setAnswersLog] = useState<AnswerRecord[]>([]);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+    const examStartTime = useRef<number | null>(null);
 
     const setInfoDialog = (data: { show: boolean, title: string, message: string } | null) => {
         if (!data) { setInfoDialogState(null); return; }
@@ -315,13 +394,55 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
             setCurrentScreen('main');
         } else {
             setExamFinished(true);
+
+            if (traineeIdentity) {
+                setSaveStatus('saving');
+                const finalScore = examScore;
+                const finalPercent = Math.round((finalScore / questions.length) * 100);
+                const finalPassed = finalPercent >= 80;
+                const durationSec = examStartTime.current
+                    ? Math.round((Date.now() - examStartTime.current) / 1000)
+                    : null;
+
+                const formattedAnswers = answersLog.map(rec => ({
+                    questionId: rec.question.id,
+                    questionText: rec.question.instruction,
+                    selectedText: rec.reportedFault,
+                    isCorrect: rec.isCorrect,
+                    correctText: rec.question.expectedFaultTitle
+                }));
+
+                saveExamResult({
+                    traineeId: traineeIdentity.traineeId,
+                    sessionId: traineeIdentity.sessionId,
+                    robotId: null,
+                    score: finalScore,
+                    maxScore: questions.length,
+                    passed: finalPassed,
+                    answers: formattedAnswers,
+                    durationSec: durationSec ?? undefined,
+                    attemptNumber: 1,
+                })
+                    .then(() => setSaveStatus('saved'))
+                    .catch((err) => {
+                        console.error('[Simulador] Error guardando resultado:', err);
+                        setSaveStatus('error');
+                    });
+            }
         }
     };
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
         setIsGeneratingPdf(true);
         try {
-            generateSimPDF(applicantName, examScore, questions.length, answersLog);
+            await generateSimPDF(
+                applicantName,
+                traineeIdentity?.sessionName ?? '',
+                traineeIdentity?.trainerName ?? '',
+                examScore,
+                questions.length,
+                answersLog
+            );
         } catch (err) {
             console.error('Error generando PDF:', err);
             alert('Error al generar el PDF. Por favor intenta de nuevo.');
@@ -334,6 +455,12 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
         const timer = setTimeout(() => setShowDashboard(true), 3000);
         return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        if (isExamMode) {
+            examStartTime.current = Date.now();
+        }
+    }, [isExamMode]);
 
     const handleElegirFault = () => setShowFaultDialog(true);
     const handleDialogAccept = () => { setShowFaultDialog(false); setCurrentScreen('fault-category'); };
@@ -723,6 +850,19 @@ export default function SimulatorModal({ onClose, isExamMode = false, applicantN
                                                 <div className="text-gray-400 mt-2 font-medium">
                                                     Identificaste correctamente {examScore} de {questions.length} fallas.
                                                 </div>
+
+                                                {/* Estado de guardado en Supabase */}
+                                                {traineeIdentity && (
+                                                    <div className={`mt-4 pt-4 border-t border-neutral-850 flex items-center justify-center gap-2 text-xs font-semibold ${
+                                                        saveStatus === 'saving' ? 'text-gray-400' :
+                                                        saveStatus === 'saved'  ? 'text-emerald-400' :
+                                                        saveStatus === 'error'  ? 'text-red-400' : 'text-gray-450'
+                                                    }`}>
+                                                        {saveStatus === 'saving' && <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Guardando resultado...</>}
+                                                        {saveStatus === 'saved'  && <><CheckCircle2 className="w-3.5 h-3.5" /> Resultado guardado en el sistema</>}
+                                                        {saveStatus === 'error'  && <><AlertCircle className="w-3.5 h-3.5" /> No se pudo guardar — revisa conexión</>}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-col gap-3">

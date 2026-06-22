@@ -16,6 +16,7 @@ import TelemetryDashboard from './telemetry-dashboard';
 import TroubleshootingSearch from './troubleshooting-search';
 import ExamModal from './exam-modal';
 import SimulatorModal from './simulator-modal';
+import { TraineeIdentity } from '../lib/training';
 
 import { ClientConfig, RobotConfig } from '@/config/robots-db';
 import { WorkflowConfig } from '@/config/workflows-db';
@@ -46,6 +47,8 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
     const [isExamOpen, setIsExamOpen] = useState<boolean>(false);
     const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(false);
     const [simulatorMode, setSimulatorMode] = useState<'free' | 'exam'>('free');
+    const [simApplicantName, setSimApplicantName] = useState<string>('');
+    const [simTraineeIdentity, setSimTraineeIdentity] = useState<TraineeIdentity | null>(null);
 
     // MODO OSCURO
     const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
@@ -458,9 +461,11 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
             {isExamOpen && (
                 <ExamModal 
                     onClose={() => setIsExamOpen(false)} 
-                    onLaunchSimulatorExam={() => {
+                    onLaunchSimulatorExam={(name, identity) => {
                         setIsExamOpen(false);
                         setSimulatorMode('exam');
+                        setSimApplicantName(name);
+                        setSimTraineeIdentity(identity);
                         setIsSimulatorOpen(true);
                     }}
                 />
@@ -469,8 +474,14 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
             {/* MODAL DEL SIMULADOR */}
             {isSimulatorOpen && (
                 <SimulatorModal 
-                    onClose={() => setIsSimulatorOpen(false)} 
+                    onClose={() => {
+                        setIsSimulatorOpen(false);
+                        setSimApplicantName('');
+                        setSimTraineeIdentity(null);
+                    }} 
                     isExamMode={simulatorMode === 'exam'}
+                    applicantName={simApplicantName}
+                    traineeIdentity={simTraineeIdentity}
                 />
             )}
         </div>

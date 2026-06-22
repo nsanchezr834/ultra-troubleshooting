@@ -280,7 +280,7 @@ const EXAM_QUESTIONS: Question[] = [
 
 interface ExamModalProps {
     onClose: () => void;
-    onLaunchSimulatorExam?: (applicantName: string) => void;
+    onLaunchSimulatorExam?: (applicantName: string, traineeIdentity: TraineeIdentity | null) => void;
 }
 
 interface UserAnswerLog {
@@ -856,7 +856,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                         <p className="text-xs text-neutral-500 mt-2">Evaluación integral con reportes de fallas automatizados.</p>
                                     </div>
                                 </button>
-                                <button onClick={() => onLaunchSimulatorExam && onLaunchSimulatorExam(applicantName)} className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group">
+                                <button onClick={() => onLaunchSimulatorExam && onLaunchSimulatorExam(applicantName, traineeIdentity)} className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group">
                                     <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <CheckCircle2 className="w-8 h-8" />
                                     </div>
