@@ -166,6 +166,32 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
             },
         ],
     },
+    'captain-pack-sparrow': {
+        layout: 'carousel',
+        videos: [
+            {
+                title: 'Proceso Completo — Captain Pack Sparrow',
+                description:
+                    'Recorrido operativo completo del ciclo de trabajo del robot Captain Pack Sparrow.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Captian%20Packsparrow%20Completo(1)(1).mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
+    'packasaurus': {
+        layout: 'carousel',
+        videos: [
+            {
+                title: 'Proceso Completo — Packasaurus',
+                description:
+                    'Recorrido operativo completo del ciclo de trabajo del robot Packasaurus.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Packasauros_completo.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
     'phil': {
         layout: 'grid',
         videos: [

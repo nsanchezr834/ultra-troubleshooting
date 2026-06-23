@@ -137,8 +137,33 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     }
                 ]
             },
-            { id: 'captain-pack-sparrow', name: 'Captain Pack Sparrow', status: 'offline', faults: [] },
-            { id: 'packasaurus', name: 'Packasaurus', status: 'offline', faults: [] },
+            { id: 'captain-pack-sparrow', name: 'Captain Pack Sparrow', status: 'active', faults: [] },
+            { 
+                id: 'packasaurus', 
+                name: 'Packasaurus', 
+                status: 'active', 
+                faults: [],
+                advises: [
+                    {
+                        id: 'packasaurus__1',
+                        adviceNumber: 1,
+                        content: 'se necesita agarrar la etiqueta con el brazo donde se encuentre la etiquetadora',
+                        isException: false
+                    },
+                    {
+                        id: 'packasaurus__2',
+                        adviceNumber: 2,
+                        content: 'Mientras va cerrando la bolsa se le pega la etiqueta, la bagger tardara unos 10 segundos aproximadamente para terminar de cerrar la bolsa',
+                        isException: false
+                    },
+                    {
+                        id: 'packasaurus__3',
+                        adviceNumber: 3,
+                        content: 'Mucho cuidado al finalizar el cerrado inmediatamente sale la otra bolsa de la bagger hay que ser rapidos y precisos en estos movimientos',
+                        isException: false
+                    }
+                ]
+            },
             { id: 'packemon', name: 'Packemon', status: 'offline', faults: [] },
             { id: 'packula', name: 'Packula', status: 'offline', faults: [] },
         ]
