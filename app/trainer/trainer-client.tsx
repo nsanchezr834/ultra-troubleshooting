@@ -211,6 +211,13 @@ export default function TrainerClient() {
     const [showNewSession, setShowNewSession] = useState(false);
     const [closingSession, setClosingSession] = useState(false);
     const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
+    const [selectedFaultDetail, setSelectedFaultDetail] = useState<{
+        questionText: string;
+        correctText: string;
+        isSim: boolean;
+        count: number;
+        wrongSelections: { text: string; count: number }[];
+    } | null>(null);
 
     // Filtros de búsqueda
     const [searchQuery, setSearchQuery] = useState('');
@@ -370,7 +377,7 @@ export default function TrainerClient() {
 
     // Calcular errores más comunes (Puntos de Refuerzo)
     const getCommonFaults = () => {
-        const errorCounts: Record<string, { count: number; correctText: string; isSim: boolean }> = {};
+        const errorCounts: Record<string, { count: number; correctText: string; isSim: boolean; wrongSelections: Record<string, number> }> = {};
         
         filteredResults.forEach(r => {
             if (r.answers && Array.isArray(r.answers)) {
@@ -382,20 +389,32 @@ export default function TrainerClient() {
                             errorCounts[key] = {
                                 count: 0,
                                 correctText: ans.correctText || 'N/A',
-                                isSim: isSimulation
+                                isSim: isSimulation,
+                                wrongSelections: {}
                             };
                         }
                         errorCounts[key].count += 1;
+                        if (ans.selectedText) {
+                            errorCounts[key].wrongSelections[ans.selectedText] = (errorCounts[key].wrongSelections[ans.selectedText] || 0) + 1;
+                        }
                     }
                 });
             }
         });
 
         return Object.entries(errorCounts)
-            .map(([questionText, data]) => ({
-                questionText,
-                ...data
-            }))
+            .map(([questionText, data]) => {
+                const wrongSelectionsArray = Object.entries(data.wrongSelections)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([text, count]) => ({ text, count }));
+                return {
+                    questionText,
+                    count: data.count,
+                    correctText: data.correctText,
+                    isSim: data.isSim,
+                    wrongSelections: wrongSelectionsArray
+                };
+            })
             .sort((a, b) => b.count - a.count)
             .slice(0, 3);
     };
@@ -898,7 +917,7 @@ export default function TrainerClient() {
                                     Puntos de Refuerzo
                                 </h3>
                                 <p className="text-xs text-neutral-500 mb-4 leading-relaxed font-medium">
-                                    Preguntas y escenarios prácticos que más confunden al grupo actual de estudio.
+                                    Preguntas y escenarios prácticos que más confunden al grupo actual de estudio (haz clic para ver detalles).
                                 </p>
                                 
                                 {commonFaults.length === 0 ? (
@@ -908,7 +927,11 @@ export default function TrainerClient() {
                                 ) : (
                                     <div className="flex flex-col gap-3.5">
                                         {commonFaults.map((item, index) => (
-                                            <div key={index} className="bg-neutral-950 border border-neutral-800/40 rounded-xl p-3 flex flex-col gap-1.5">
+                                            <div
+                                                key={index}
+                                                onClick={() => setSelectedFaultDetail(item)}
+                                                className="bg-neutral-950 border border-neutral-800/40 hover:border-[#ff4f00]/30 hover:bg-neutral-900/40 rounded-xl p-3 flex flex-col gap-1.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                            >
                                                 <div className="flex justify-between items-start gap-2">
                                                     <span className="text-[10px] font-bold text-neutral-600 uppercase">
                                                         Top #{index + 1} • {item.isSim ? 'Simulación' : 'Teórico'}
@@ -932,6 +955,76 @@ export default function TrainerClient() {
                     </div>
                 )}
             </main>
+
+            {/* Modal de Detalle de Punto de Refuerzo */}
+            {selectedFaultDetail && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-[#161820] border border-neutral-800 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 shrink-0">
+                            <h2 className="font-black text-white text-base flex items-center gap-2">
+                                <span className="text-[10px] uppercase font-bold bg-[#ff4f00]/10 border border-[#ff4f00]/25 text-[#ff4f00] px-2 py-0.5 rounded">
+                                    Detalle del Punto de Refuerzo
+                                </span>
+                            </h2>
+                            <button onClick={() => setSelectedFaultDetail(null)} className="text-neutral-500 hover:text-white transition-colors p-1 rounded-full hover:bg-neutral-800">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        {/* Content */}
+                        <div className="p-6 flex flex-col gap-5 overflow-y-auto">
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">Pregunta / Escenario</h4>
+                                <p className="text-sm font-bold text-white leading-relaxed">
+                                    {selectedFaultDetail.questionText}
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">Respuesta Correcta</h4>
+                                <div className="bg-emerald-500/5 border border-emerald-500/25 rounded-xl p-3.5 flex items-center gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400 shrink-0 font-bold">✓</div>
+                                    <p className="text-xs font-bold text-emerald-400">{selectedFaultDetail.correctText}</p>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Respuestas Incorrectas Frecuentes</h4>
+                                {selectedFaultDetail.wrongSelections.length === 0 ? (
+                                    <p className="text-xs text-neutral-500 italic">No hay registros de selecciones incorrectas.</p>
+                                ) : (
+                                    <div className="flex flex-col gap-2.5">
+                                        {selectedFaultDetail.wrongSelections.map((sel, idx) => {
+                                            const totalErrors = selectedFaultDetail.count;
+                                            const percentage = Math.round((sel.count / totalErrors) * 100);
+                                            return (
+                                                <div key={idx} className="flex flex-col gap-1.5">
+                                                    <div className="flex justify-between text-xs font-semibold">
+                                                        <span className="text-neutral-300 pr-4">{sel.text}</span>
+                                                        <span className="text-neutral-500 shrink-0">{sel.count} {sel.count === 1 ? 'fallo' : 'fallos'} ({percentage}% del total de errores)</span>
+                                                    </div>
+                                                    <div className="w-full bg-neutral-950 h-2 rounded-full overflow-hidden border border-neutral-800">
+                                                        <div className="h-full bg-red-500/60 rounded-full" style={{ width: `${percentage}%` }} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        {/* Footer */}
+                        <div className="px-6 py-4 border-t border-neutral-800 flex justify-end shrink-0">
+                            <button
+                                onClick={() => setSelectedFaultDetail(null)}
+                                className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold px-5 py-2 rounded-xl transition-all text-xs"
+                            >
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

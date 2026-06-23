@@ -1199,7 +1199,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                         {percent}%
                                     </div>
                                     <div className="text-xs text-neutral-400 mt-2 font-medium">
-                                        Aciertos: {score} de {questions.length} (Requerido: 80%)
+                                        Aciertos: {score} de {questions.length} (Requerido: 90%)
                                     </div>
 
                                     {/* Estado de guardado en Supabase */}
