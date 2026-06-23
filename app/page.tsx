@@ -9,6 +9,8 @@ import { getClientsDatabase, getWorkflowsDatabase } from './lib/queries/ultra';
 import HomeClient from './components/home-client';
 import StartingPage from './components/starting';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomeTroubleshooting() {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get('session_id')?.value;

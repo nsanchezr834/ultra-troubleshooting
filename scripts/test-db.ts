@@ -10,7 +10,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 async function test() {
-    const { data: robots, error: robotsError } = await supabase.from('robots').select('*').limit(1);
+    const { data: robots, error: robotsError } = await supabase.from('robots').select('*').in('id', ['packasaurus', 'captain-pack-sparrow']);
     console.log('robots:', { robots, robotsError });
 }
 
