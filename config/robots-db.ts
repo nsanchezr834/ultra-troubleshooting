@@ -395,8 +395,58 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
         id: 'mountainy',
         name: 'Mountainy',
         robots: [
-            { id: 'mabel', name: 'Mabel', status: 'active', faults: [] },
-            { id: 'monty', name: 'Monty', status: 'active', faults: [] },
+            {
+                id: 'mabel',
+                name: 'Mabel',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'mabel__1',
+                        adviceNumber: 1,
+                        content: 'Presiona el botón verde de la máquina que se encuentra en la esquina inferior derecha para proceder con el cerrado de la bolsa.',
+                        isException: false
+                    },
+                    {
+                        id: 'mabel__2',
+                        adviceNumber: 2,
+                        content: 'Ingresa el producto por la parte más delgada para evitar forzar la bolsa.',
+                        isException: false
+                    },
+                    {
+                        id: 'mabel__3',
+                        adviceNumber: 3,
+                        content: 'Verifica en más de una ocasión cuál es la cantidad de productos a ingresar.',
+                        isException: false
+                    }
+                ]
+            },
+            {
+                id: 'monty',
+                name: 'Monty',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'monty__1',
+                        adviceNumber: 1,
+                        content: 'Presiona el botón verde de la máquina que se encuentra en la esquina inferior derecha para proceder con el cerrado de la bolsa.',
+                        isException: false
+                    },
+                    {
+                        id: 'monty__2',
+                        adviceNumber: 2,
+                        content: 'Ingresa el producto por la parte más delgada para evitar forzar la bolsa.',
+                        isException: false
+                    },
+                    {
+                        id: 'monty__3',
+                        adviceNumber: 3,
+                        content: 'Verifica en más de una ocasión cuál es la cantidad de productos a ingresar.',
+                        isException: false
+                    }
+                ]
+            },
         ]
     },
     'internal': {
