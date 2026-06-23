@@ -84,6 +84,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         adviceNumber: 5,
                         content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
+                    },
+                    {
+                        id: 'packie-2.0__6',
+                        adviceNumber: 6,
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        isException: false
                     }
                 ]
             },
@@ -121,6 +127,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'future-2.0__5',
                         adviceNumber: 5,
                         content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        isException: false
+                    },
+                    {
+                        id: 'future-2.0__6',
+                        adviceNumber: 6,
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
                         isException: false
                     }
                 ]
@@ -193,6 +205,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'fleetwood-pack__5',
                         adviceNumber: 5,
                         content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        isException: false
+                    },
+                    {
+                        id: 'fleetwood-pack__6',
+                        adviceNumber: 6,
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
                         isException: false
                     }
                 ]
@@ -389,7 +407,20 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
             { id: 'tower-stack-unstack',name: 'Tower Stack/Unstack', status: 'active', faults: [] },
             { id: 'pick-sort',          name: 'Pick Sort',          status: 'active', faults: [] },
             { id: 'tote',               name: 'Tote',               status: 'active', faults: [] },
-            { id: 'bagger-label',       name: 'Bagger Label',       status: 'active', faults: [] },
+            {
+                id: 'bagger-label',
+                name: 'Bagger Label',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'bagger-label__1',
+                        adviceNumber: 1,
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        isException: false
+                    }
+                ]
+            },
         ]
     }
 };
