@@ -806,6 +806,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             if (sessionPin.trim()) {
                 const identity = await validateAndRegisterTrainee(sessionPin, applicantName);
                 setTraineeIdentity(identity);
+                setAttemptCount(identity.existingAttemptsCount + 1);
             }
             // Si no hay PIN, continuamos en modo sin persistencia (modo degradado)
             setStep('selection');

@@ -32,6 +32,7 @@ export interface TraineeIdentity {
     sessionId: string;
     sessionName: string;
     trainerName: string;
+    existingAttemptsCount: number;
 }
 
 // ─── Validar PIN y registrar trainee ─────────────────────────────────────────
@@ -63,14 +64,18 @@ export async function validateAndRegisterTrainee(
     }
 
     // 2. Intentar buscar trainee existente para evitar conflictos de upsert (insensible a mayúsculas/minúsculas)
-    const { data: existingTrainee } = await supabase
+    const { data: existingTrainees, error: selectError } = await supabase
         .from('trainees')
         .select('id, full_name')
         .eq('session_id', session.id)
-        .ilike('full_name', normalizedName)
-        .maybeSingle();
+        .ilike('full_name', normalizedName);
 
-    let trainee = existingTrainee;
+    if (selectError) {
+        console.error('[training] Error al buscar trainee existente:', selectError);
+    }
+
+    // Intentar buscar coincidencia exacta (sensible a mayúsculas/minúsculas), o tomar el primero si no hay coincidencia exacta
+    let trainee = existingTrainees?.find(t => t.full_name === normalizedName) || existingTrainees?.[0];
     let traineeError = null;
 
     if (!trainee) {
@@ -84,7 +89,21 @@ export async function validateAndRegisterTrainee(
     }
 
     if (traineeError || !trainee) {
+        if (traineeError) {
+            console.error('[training] Error insertando trainee:', traineeError);
+        }
         throw new Error('Error al registrar el participante. Intenta de nuevo.');
+    }
+
+    // 3. Contar intentos existentes para inicializar el contador de intentos del lado del cliente
+    const { count, error: countError } = await supabase
+        .from('exam_results')
+        .select('*', { count: 'exact', head: true })
+        .eq('trainee_id', trainee.id)
+        .eq('session_id', session.id);
+
+    if (countError) {
+        console.error('[training] Error al contar intentos existentes:', countError);
     }
 
     return {
@@ -93,6 +112,7 @@ export async function validateAndRegisterTrainee(
         sessionId: session.id,
         sessionName: session.name,
         trainerName: session.trainer,
+        existingAttemptsCount: count || 0,
     };
 }
 
