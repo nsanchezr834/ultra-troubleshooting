@@ -124,6 +124,19 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
             },
         ],
     },
+    'mabel': {
+        layout: 'carousel',
+        videos: [
+            {
+                title: 'Proceso Completo — Mabel',
+                description:
+                    'Recorrido operativo completo del ciclo de trabajo del robot Mabel.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/mabel_proceso_completo.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
     'packie-2.0': {
         layout: 'grid',
         videos: [
