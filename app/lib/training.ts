@@ -75,7 +75,7 @@ export async function validateAndRegisterTrainee(
     }
 
     // Intentar buscar coincidencia exacta (sensible a mayúsculas/minúsculas), o tomar el primero si no hay coincidencia exacta
-    let trainee = existingTrainees?.find(t => t.full_name === normalizedName) || existingTrainees?.[0];
+    let trainee: { id: string; full_name: string } | null | undefined = existingTrainees?.find(t => t.full_name === normalizedName) || existingTrainees?.[0];
     let traineeError = null;
 
     if (!trainee) {
