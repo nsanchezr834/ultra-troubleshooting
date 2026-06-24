@@ -339,6 +339,22 @@ export default function TrainerClient() {
         }
     }, [activeTab, fetchQuestions]);
 
+    const handleDeleteTrainee = async (traineeId: string, traineeName: string) => {
+        const confirm = window.confirm(`¡ATENCIÓN! ¿Seguro que deseas eliminar al alumno "${traineeName}"?\n\nEsta acción es IRREVERSIBLE y eliminará permanentemente al participante junto con todos sus intentos, respuestas y reportes asociados.`);
+        if (!confirm) return;
+
+        try {
+            await supabase.from('exam_results').delete().eq('trainee_id', traineeId);
+            const { error } = await supabase.from('trainees').delete().eq('id', traineeId);
+            if (error) throw error;
+
+            alert(`El alumno "${traineeName}" ha sido eliminado del sistema.`);
+            setResults(prev => prev.filter(r => r.trainee_id !== traineeId));
+        } catch (err: any) {
+            alert(`Error al eliminar alumno: ${err.message}`);
+        }
+    };
+
     const handleSessionCreated = (session: TrainingSession) => {
         setSessions(prev => [session, ...prev]);
         setSelectedSessionId(session.id);
@@ -1045,17 +1061,21 @@ export default function TrainerClient() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0d0e12] text-white flex flex-col font-sans select-none antialiased">
+        <div className="min-h-screen bg-[#07080c] text-white flex flex-col font-sans select-none antialiased relative">
+            {/* Mesh Gradients behind Glass Overlay */}
+            <div className="fixed inset-0 bg-[#07080c] -z-10 overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-[#ff4f00]/8 blur-[130px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/8 blur-[140px]" />
+                <div className="absolute top-[35%] right-[15%] w-[40%] h-[40%] rounded-full bg-purple-500/5 blur-[110px]" />
+            </div>
+
             {/* Header */}
-            <header className="bg-[#161820] border-b border-neutral-800 px-6 py-4 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-neutral-700 bg-neutral-900 flex items-center justify-center">
-                        <span className="text-[#ff4f00] font-black text-lg">U</span>
-                    </div>
-                    <div>
-                        <h1 className="text-sm font-black tracking-wider uppercase">Trainer Dashboard</h1>
-                        <p className="text-[10px] text-[#ff4f00] font-bold">Ultra Troubleshooting Capacitación</p>
-                    </div>
+            <header className="bg-white/[0.02] backdrop-blur-lg border-b border-white/[0.05] px-6 py-4 flex items-center justify-between shrink-0">
+                <div>
+                    <h1 className="text-base tracking-widest text-white" style={{ fontFamily: 'var(--font-orbitron), sans-serif', fontWeight: 900 }}>
+                        Trainner DashBoard
+                    </h1>
+                    <p className="text-[9px] text-[#ff4f00] font-black tracking-wider uppercase mt-0.5">Ultra Troubleshooting Capacitación</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -1070,7 +1090,7 @@ export default function TrainerClient() {
             </header>
 
             {/* Pestañas de Navegación del Trainer */}
-            <div className="bg-[#161820]/50 border-b border-neutral-800 px-6 flex items-center justify-start gap-4">
+            <div className="bg-white/[0.01] backdrop-blur-md border-b border-white/[0.04] px-6 flex items-center justify-start gap-4">
                 <button
                     onClick={() => setActiveTab('results')}
                     className={`py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all px-2 ${
@@ -1109,7 +1129,7 @@ export default function TrainerClient() {
                         </div>
 
                         {/* Barra de Filtros del Banco de Preguntas */}
-                        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.05] rounded-2xl p-5 flex flex-col md:flex-row md:items-center gap-4 shadow-xl">
                             {/* Buscar por Enunciado */}
                             <div className="flex-1 flex flex-col gap-1.5">
                                 <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Buscar por Pregunta</label>
@@ -1156,7 +1176,7 @@ export default function TrainerClient() {
 
                             if (filtered.length === 0) {
                                 return (
-                                    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-12 text-center text-neutral-500">
+                                    <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.05] rounded-2xl p-12 text-center text-neutral-500 shadow-xl">
                                         <ShieldOff className="w-10 h-10 mx-auto mb-3 text-neutral-700" />
                                         <p className="font-bold text-sm">No se encontraron preguntas coincidentes</p>
                                         <p className="text-xs text-neutral-600 mt-1">Ajusta los filtros o escribe otros términos de búsqueda.</p>
@@ -1167,7 +1187,7 @@ export default function TrainerClient() {
                             return (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {filtered.map((q) => (
-                                    <div key={q.id} className={`bg-neutral-900 border rounded-2xl p-5 flex flex-col gap-3.5 transition-all ${q.is_active ? 'border-neutral-800' : 'border-neutral-800/30 opacity-50'}`}>
+                                    <div key={q.id} className={`bg-white/[0.02] backdrop-blur-sm border rounded-2xl p-5 flex flex-col gap-3.5 transition-all shadow-md ${q.is_active ? 'border-white/[0.05]' : 'border-white/[0.02] opacity-40'}`}>
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="flex items-center gap-2">
                                                 <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase bg-neutral-800 border-neutral-700 text-neutral-350`}>
