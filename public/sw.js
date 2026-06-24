@@ -1,39 +1,37 @@
 self.addEventListener('push', function(event) {
-    if (!event.data) {
-        console.warn('[Service Worker] Push event received but no data payload.');
-        return;
-    }
+    let title = 'Nueva Notificación 🛡️';
+    let options = {
+        body: 'Tienes una nueva alerta en el portal de Ultra.',
+        icon: '/manifest_logo.png',
+        badge: '/favicon.ico',
+        data: {
+            url: '/'
+        }
+    };
 
-    try {
-        const data = event.data.json();
-        const title = data.title || 'Nueva Notificación';
-        const options = {
-            body: data.body || 'Tienes un nuevo mensaje.',
-            icon: '/manifest_logo.png', // Icono de la app
-            badge: '/favicon.ico',      // Badge pequeño
-            data: {
-                url: data.url || '/'
+    if (event.data) {
+        try {
+            const data = event.data.json();
+            title = data.title || title;
+            options.body = data.body || options.body;
+            if (options.data && data.url) {
+                options.data.url = data.url;
             }
-        };
-
-        event.waitUntil(
-            self.registration.showNotification(title, options)
-        );
-    } catch (err) {
-        console.error('[Service Worker] Error parsing push data:', err);
-        
-        // Caída de respaldo si no es JSON válido
-        const text = event.data.text();
-        event.waitUntil(
-            self.registration.showNotification('Nueva Notificación', {
-                body: text,
-                icon: '/manifest_logo.png',
-                data: {
-                    url: '/'
-                }
-            })
-        );
+        } catch (err) {
+            console.error('[Service Worker] Error parsing JSON payload:', err);
+            try {
+                options.body = event.data.text() || options.body;
+            } catch (textErr) {
+                console.error('[Service Worker] Error reading text payload:', textErr);
+            }
+        }
+    } else {
+        console.warn('[Service Worker] Push event received but data is null (possibly decryption failed due to VAPID key mismatch).');
     }
+
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+    );
 });
 
 self.addEventListener('notificationclick', function(event) {
