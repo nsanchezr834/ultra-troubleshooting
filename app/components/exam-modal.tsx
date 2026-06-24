@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User, Lock, Loader2, Star, Award } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { validateAndRegisterTrainee, saveExamResult, TraineeIdentity, cleanAndFormatName, getApprovedLevelsByName } from '../lib/training';
+import { supabase } from '../lib/supabase';
 
 interface Question {
     id: string;
@@ -640,7 +641,7 @@ const CUSTOMER_QUESTIONS: Question[] = [
 ];
 
 // --- CONCATENACIÓN JERÁRQUICA DE PREGUNTAS ---
-const EXAM_QUESTIONS: Question[] = [
+export const EXAM_QUESTIONS: Question[] = [
     ...TRAINING_1_QUESTIONS,
     ...TRAINING_2_QUESTIONS,
     ...TRAINING_3_QUESTIONS,
@@ -985,17 +986,18 @@ async function generatePDF(
     doc.save(`Reporte_Evaluacion_${applicantName.replace(/\s+/g, '_')}.pdf`);
 }
 
-const getQuestionsForLevel = (level: string): Question[] => {
+const getQuestionsForLevel = (level: string, customPool?: Question[]): Question[] => {
+    const activePool = (customPool && customPool.length > 0) ? customPool : EXAM_QUESTIONS;
     const pool: Question[] = [];
-    pool.push(...TRAINING_1_QUESTIONS);
+    pool.push(...activePool.filter(q => q.category === 'Training 1'));
     if (level === 'Training 1') return pool;
-    pool.push(...TRAINING_2_QUESTIONS);
+    pool.push(...activePool.filter(q => q.category === 'Training 2'));
     if (level === 'Training 2') return pool;
-    pool.push(...TRAINING_3_QUESTIONS);
+    pool.push(...activePool.filter(q => q.category === 'Training 3'));
     if (level === 'Training 3') return pool;
-    pool.push(...DC_QUESTIONS);
+    pool.push(...activePool.filter(q => q.category === 'DC'));
     if (level.startsWith('DC')) return pool;
-    pool.push(...CUSTOMER_QUESTIONS);
+    pool.push(...activePool.filter(q => q.category === 'Customer'));
     return pool;
 };
 
@@ -1003,6 +1005,37 @@ const getQuestionsForLevel = (level: string): Question[] => {
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
     const EXAM_LENGTH = 15;
     const [eligiblePool, setEligiblePool] = useState<Question[]>([]);
+    const [dbQuestions, setDbQuestions] = useState<Question[]>([]);
+    const [loadingDb, setLoadingDb] = useState(true);
+
+    useEffect(() => {
+        const fetchQuestions = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('exam_questions')
+                    .select('*')
+                    .eq('active', true);
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    const formatted: Question[] = data.map((q: any) => ({
+                        id: q.id,
+                        question: q.question,
+                        options: Array.isArray(q.options) ? q.options : JSON.parse(q.options),
+                        correctIndex: q.correct_index,
+                        explanation: q.explanation,
+                        difficulty: q.difficulty,
+                        category: q.category
+                    }));
+                    setDbQuestions(formatted);
+                }
+            } catch (err) {
+                console.error('[ExamModal] Error loading questions from db, using fallback:', err);
+            } finally {
+                setLoadingDb(false);
+            }
+        };
+        fetchQuestions();
+    }, []);
 
     const selectNextAdaptiveQuestion = (lastQuestion: Question, wasCorrect: boolean, currentQuestionsList: Question[]): Question => {
         const usedIds = new Set(currentQuestionsList.map(q => q.id));
@@ -1019,7 +1052,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         }
 
         // Get all questions with difficulty from eligible pool
-        const poolToUse = eligiblePool.length > 0 ? eligiblePool : EXAM_QUESTIONS;
+        const poolToUse = eligiblePool.length > 0 ? eligiblePool : (dbQuestions.length > 0 ? dbQuestions : EXAM_QUESTIONS);
         const allQuestions = poolToUse.map(q => ({
             ...q,
             difficulty: q.difficulty || 'easy'
@@ -1224,7 +1257,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     };
 
     const startTeoricoExam = () => {
-        const pool = getQuestionsForLevel(examLevel);
+        const pool = getQuestionsForLevel(examLevel, dbQuestions);
         setEligiblePool(pool);
 
         const easyQuestions = pool.filter(q => q.difficulty === 'easy');
@@ -1246,7 +1279,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     };
 
     const handleRetry = () => {
-        const pool = getQuestionsForLevel(examLevel);
+        const pool = getQuestionsForLevel(examLevel, dbQuestions);
         setEligiblePool(pool);
 
         const easyQuestions = pool.filter(q => q.difficulty === 'easy');
