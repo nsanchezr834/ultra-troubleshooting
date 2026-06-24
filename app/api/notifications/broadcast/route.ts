@@ -10,20 +10,25 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:support@autoryx.com';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'SUPER_SECRET_WEBHOOK_TOKEN';
 
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-    webpush.setVapidDetails(
-        VAPID_EMAIL,
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
-    );
-}
-
 // Cliente Supabase con Service Role key para eliminar registros inactivos
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(req: NextRequest) {
+    // Configurar llaves VAPID en tiempo de ejecución
+    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+        try {
+            webpush.setVapidDetails(
+                VAPID_EMAIL,
+                VAPID_PUBLIC_KEY,
+                VAPID_PRIVATE_KEY
+            );
+        } catch (err: any) {
+            console.error('Error setting VAPID details:', err.message);
+        }
+    }
+
     try {
         // 1. Validar autenticación del Webhook
         const authHeader = req.headers.get('Authorization');
