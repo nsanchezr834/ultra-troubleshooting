@@ -76,6 +76,11 @@ create policy "Permitir lectura para operaciones del sistema"
     on public.push_subscriptions for select
     using (true);
 
+drop policy if exists "Permitir eliminación pública de suscripciones" on public.push_subscriptions;
+create policy "Permitir eliminación pública de suscripciones"
+    on public.push_subscriptions for delete
+    using (true);
+
 drop policy if exists "Permitir lectura pública de casos de estudio" on public.casos_estudio;
 create policy "Permitir lectura pública de casos de estudio"
     on public.casos_estudio for select
@@ -96,7 +101,7 @@ create or replace function public.fn_on_new_record_broadcast()
 returns trigger as $$
 declare
     payload jsonb;
-    next_api_url text := 'https://your-domain.com/api/notifications/broadcast'; -- Reemplazar con el dominio de producción
+    next_api_url text := 'https://ultra-troubleshooting.vercel.app/api/notifications/broadcast';
     webhook_secret text := 'SUPER_SECRET_WEBHOOK_TOKEN'; -- Token de autenticación del webhook
 begin
     -- Construir payload con base en el origen del trigger
