@@ -1,5 +1,5 @@
 /**
- * SEED SCRIPT — Questions database (Fixed to use existing Supabase structure)
+ * SEED SCRIPT — Questions database (Fixed to use existing Supabase structure and difficulty constraint)
  * --------------------------------
  * Migra las preguntas del examen (EXAM_QUESTIONS) de exam-modal.tsx a Supabase.
  *
@@ -25,32 +25,36 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// Función auxiliar para convertir el string id en un UUID válido basado en hash si no lo es, 
-// o simplemente generar un uuid v4 dummy/consistente para la siembra de preguntas hardcoded.
 function getDeterministicUUID(idStr: string): string {
-    // Si ya tiene formato uuid, retornarlo
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(idStr)) {
         return idStr;
     }
-    // Generar un UUID determinista simple basado en el texto del id string.
-    // Usaremos un mapeo básico o un UUID base relleno para que sea único pero repetible si corremos de nuevo el seed.
     let hash = 0;
     for (let i = 0; i < idStr.length; i++) {
         const char = idStr.charCodeAt(i);
         hash = (hash << 5) - hash + char;
-        hash = hash & hash; // Convertir a entero de 32 bits
+        hash = hash & hash;
     }
     const hex = Math.abs(hash).toString(16).padStart(8, '0');
-    // Retornamos un UUID válido concatenando el hex
     return `00000000-0000-4000-a000-${hex.padEnd(12, '0')}`;
+}
+
+// Mapear dificultades inglesas a las aceptadas por la base de datos de producción ('facil', 'media', 'dificil')
+function mapDifficulty(diff?: string): 'facil' | 'media' | 'dificil' {
+    if (!diff) return 'media';
+    const d = diff.toLowerCase();
+    if (d === 'easy') return 'facil';
+    if (d === 'hard') return 'dificil';
+    if (d === 'medium') return 'media';
+    if (d === 'facil' || d === 'media' || d === 'dificil') return d as any;
+    return 'media';
 }
 
 async function seedQuestions() {
     console.log('🚀  Ultra Platform — Seed Questions Database (Adaptado a Producción)\n');
     console.log(`📡  URL: ${SUPABASE_URL}`);
     
-    // Importación dinámica para asegurar que dotenv cargó el env antes de iniciar supabase en exam-modal.tsx
     const { EXAM_QUESTIONS } = await import('../app/components/exam-modal');
     console.log(`📝  Preguntas a migrar: ${EXAM_QUESTIONS.length}\n`);
 
@@ -60,8 +64,7 @@ async function seedQuestions() {
         options: q.options,
         correct_index: q.correctIndex,
         explanation: q.explanation,
-        difficulty: q.difficulty || 'medium', // 'media' o 'easy'
-        // Mapear campos de la base de datos real
+        difficulty: mapDifficulty(q.difficulty),
         is_active: true
     }));
 
@@ -73,7 +76,7 @@ async function seedQuestions() {
         throw new Error(`[exam_questions] Error during upsert: ${error.message}`);
     }
 
-    console.log('✅  Exito: exam_questions insertadas correctamente utilizando columnas de producción.');
+    console.log('✅  Exito: exam_questions insertadas correctamente utilizando columnas y restricciones de producción.');
 }
 
 seedQuestions().catch(err => {

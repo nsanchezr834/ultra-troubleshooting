@@ -1014,18 +1014,26 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 const { data, error } = await supabase
                     .from('exam_questions')
                     .select('*')
-                    .eq('active', true);
+                    .eq('is_active', true);
                 if (error) throw error;
                 if (data && data.length > 0) {
-                    const formatted: Question[] = data.map((q: any) => ({
-                        id: q.id,
-                        question: q.question,
-                        options: Array.isArray(q.options) ? q.options : JSON.parse(q.options),
-                        correctIndex: q.correct_index,
-                        explanation: q.explanation,
-                        difficulty: q.difficulty,
-                        category: q.category
-                    }));
+                    const formatted: Question[] = data.map((q: any) => {
+                        // Mapear dificultades de base de datos a las usadas por la lógica adaptativa
+                        let mappedDiff: 'easy' | 'medium' | 'hard' = 'easy';
+                        if (q.difficulty === 'facil') mappedDiff = 'easy';
+                        else if (q.difficulty === 'media') mappedDiff = 'medium';
+                        else if (q.difficulty === 'dificil') mappedDiff = 'hard';
+
+                        return {
+                            id: q.id,
+                            question: q.question,
+                            options: Array.isArray(q.options) ? q.options : JSON.parse(q.options),
+                            correctIndex: q.correct_index,
+                            explanation: q.explanation || '',
+                            difficulty: mappedDiff,
+                            category: q.category || 'Training 1'
+                        };
+                    });
                     setDbQuestions(formatted);
                 }
             } catch (err) {
