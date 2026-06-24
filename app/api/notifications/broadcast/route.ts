@@ -39,12 +39,28 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized Webhook request' }, { status: 401 });
         }
 
-        // 2. Extraer Payload enviado por el Trigger de Postgres
+        // 2. Extraer Payload y adaptarlo si es Webhook nativo de Supabase o trigger personalizado
         const payload = await req.json();
-        const { title, body, url } = payload;
+        let title = payload.title;
+        let body = payload.body;
+        let url = payload.url;
+
+        // Si viene del Webhook nativo de Supabase
+        if (payload.record) {
+            const record = payload.record;
+            if (payload.table === 'casos_estudio') {
+                title = 'Nuevo Caso de Seguridad 🛡️';
+                body = record.titulo || record.label_corto || 'Un nuevo caso de estudio ha sido publicado.';
+                url = `/cases/${record.id}`;
+            } else if (payload.table === 'troubleshooting_knowledge') {
+                title = 'Nueva Falla Registrada ⚠️';
+                body = record.symptom || 'Se ha registrado una nueva falla en el sistema.';
+                url = `/troubleshooting?search=${record.id}`;
+            }
+        }
 
         if (!title || !body || !url) {
-            return NextResponse.json({ error: 'Missing notification payload fields' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing notification payload fields (title, body, url)' }, { status: 400 });
         }
 
         // 3. Obtener todas las suscripciones de la base de datos
