@@ -257,12 +257,15 @@ export default function TrainerClient() {
     const [editingQuestion, setEditingQuestion] = useState<Partial<DBQuestion> | null>(null);
     const [questionError, setQuestionError] = useState('');
     const [savingQuestion, setSavingQuestion] = useState(false);
+    const [questionCategoryFilter, setQuestionCategoryFilter] = useState<string>('all');
+    const [questionSearchQuery, setQuestionSearchQuery] = useState<string>('');
 
     // Filtros de búsqueda para resultados
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed'>('all');
     const [examTypeFilter, setExamTypeFilter] = useState<'all' | 'theory' | 'simulation'>('all');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'Training 1' | 'Training 2' | 'Training 3' | 'DC' | 'Customer'>('all');
 
     const formatDurationMinutes = (sec: number | null): string => {
         if (!sec) return '—';
@@ -392,6 +395,11 @@ export default function TrainerClient() {
             const isSimulation = r.answers && Array.isArray(r.answers) && r.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
             if (examTypeFilter === 'theory' && isSimulation) return false;
             if (examTypeFilter === 'simulation' && !isSimulation) return false;
+        }
+
+        if (categoryFilter !== 'all') {
+            const level = getExamLevel(r);
+            if (level !== categoryFilter) return false;
         }
 
         return true;
@@ -1100,17 +1108,65 @@ export default function TrainerClient() {
                             </button>
                         </div>
 
+                        {/* Barra de Filtros del Banco de Preguntas */}
+                        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center gap-4">
+                            {/* Buscar por Enunciado */}
+                            <div className="flex-1 flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Buscar por Pregunta</label>
+                                <input
+                                    type="text"
+                                    value={questionSearchQuery}
+                                    onChange={e => setQuestionSearchQuery(e.target.value)}
+                                    placeholder="Escribe palabras clave..."
+                                    className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#ff4f00] transition-all"
+                                />
+                            </div>
+
+                            {/* Filtrar por Nivel / Categoría */}
+                            <div className="w-full md:w-64 flex flex-col gap-1.5">
+                                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Filtrar por Nivel</label>
+                                <select
+                                    value={questionCategoryFilter}
+                                    onChange={e => setQuestionCategoryFilter(e.target.value)}
+                                    className="bg-neutral-950 border border-neutral-800 text-sm text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#ff4f00] transition-all cursor-pointer font-bold"
+                                >
+                                    <option value="all">Todos los niveles reunidos</option>
+                                    <option value="Training 1">Training 1</option>
+                                    <option value="Training 2">Training 2</option>
+                                    <option value="Training 3">Training 3</option>
+                                    <option value="DC">DC</option>
+                                    <option value="Customer">Customer</option>
+                                </select>
+                            </div>
+                        </div>
+
                         {loadingQuestions ? (
                             <div className="text-center py-12 text-neutral-500">Cargando preguntas de Supabase...</div>
-                        ) : dbQuestions.length === 0 ? (
-                            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-12 text-center text-neutral-500">
-                                <ShieldOff className="w-10 h-10 mx-auto mb-3 text-neutral-700" />
-                                <p className="font-bold text-sm">No hay preguntas registradas en el banco</p>
-                                <p className="text-xs text-neutral-600 mt-1">Haz clic en "Agregar Pregunta" para crear la primera.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {dbQuestions.map((q) => (
+                        ) : (() => {
+                            // Filtrar preguntas locales en memoria
+                            const filtered = dbQuestions.filter(q => {
+                                if (questionCategoryFilter !== 'all' && q.difficulty !== questionCategoryFilter) {
+                                    return false;
+                                }
+                                if (questionSearchQuery && !q.question.toLowerCase().includes(questionSearchQuery.toLowerCase())) {
+                                    return false;
+                                }
+                                return true;
+                            });
+
+                            if (filtered.length === 0) {
+                                return (
+                                    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-12 text-center text-neutral-500">
+                                        <ShieldOff className="w-10 h-10 mx-auto mb-3 text-neutral-700" />
+                                        <p className="font-bold text-sm">No se encontraron preguntas coincidentes</p>
+                                        <p className="text-xs text-neutral-600 mt-1">Ajusta los filtros o escribe otros términos de búsqueda.</p>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {filtered.map((q) => (
                                     <div key={q.id} className={`bg-neutral-900 border rounded-2xl p-5 flex flex-col gap-3.5 transition-all ${q.is_active ? 'border-neutral-800' : 'border-neutral-800/30 opacity-50'}`}>
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="flex items-center gap-2">
@@ -1172,9 +1228,10 @@ export default function TrainerClient() {
                                             </div>
                                         )}
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            );
+                        })()}
 
                         {/* Modal para crear o editar preguntas */}
                         {editingQuestion && (
@@ -1460,6 +1517,22 @@ export default function TrainerClient() {
                                         <option value="simulation">Simulación Práctica</option>
                                     </select>
                                 </div>
+
+                                <div className="w-full md:w-48 flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Categoría / Nivel</label>
+                                    <select
+                                        value={categoryFilter}
+                                        onChange={e => setCategoryFilter(e.target.value as any)}
+                                        className="bg-neutral-950 border border-neutral-800 text-sm text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#ff4f00] transition-all cursor-pointer font-bold"
+                                    >
+                                        <option value="all">Todas las categorías</option>
+                                        <option value="Training 1">Training 1</option>
+                                        <option value="Training 2">Training 2</option>
+                                        <option value="Training 3">Training 3</option>
+                                        <option value="DC">DC</option>
+                                        <option value="Customer">Customer</option>
+                                    </select>
+                                </div>
                             </div>
                         )}
 
@@ -1500,6 +1573,8 @@ export default function TrainerClient() {
                                         setSearchQuery('');
                                         setDateFilter('all');
                                         setStatusFilter('all');
+                                        setExamTypeFilter('all');
+                                        setCategoryFilter('all');
                                     }}
                                     className="mt-2 text-xs font-bold text-[#ff4f00] hover:text-[#e04500] underline animate-pulse"
                                 >

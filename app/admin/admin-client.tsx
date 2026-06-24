@@ -52,6 +52,14 @@ function formatDate(iso: string): string {
     });
 }
 
+function getExamLevel(r: ExamResult): string {
+    if (r.answers && Array.isArray(r.answers)) {
+        const levelObj = r.answers.find((ans: any) => ans.questionId === 'exam_level');
+        if (levelObj) return levelObj.selectedText;
+    }
+    return 'Training'; // Fallback
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function AdminClient() {
@@ -67,6 +75,7 @@ export default function AdminClient() {
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed'>('all');
     const [examTypeFilter, setExamTypeFilter] = useState<'all' | 'theory' | 'simulation'>('all');
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'Training 1' | 'Training 2' | 'Training 3' | 'DC' | 'Customer'>('all');
 
     const fetchSessions = useCallback(async () => {
         const { data, error } = await supabase
@@ -133,6 +142,11 @@ export default function AdminClient() {
             const isSimulation = r.answers && Array.isArray(r.answers) && r.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
             if (examTypeFilter === 'theory' && isSimulation) return false;
             if (examTypeFilter === 'simulation' && !isSimulation) return false;
+        }
+
+        if (categoryFilter !== 'all') {
+            const level = getExamLevel(r);
+            if (level !== categoryFilter) return false;
         }
 
         return true;
@@ -429,6 +443,23 @@ export default function AdminClient() {
                                 <option value="all">Todos</option>
                                 <option value="theory">Teórico</option>
                                 <option value="simulation">Simulador</option>
+                            </select>
+                        </div>
+
+                        {/* Filtro Categoría */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400">Categoría:</span>
+                            <select
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value as any)}
+                                className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative font-semibold"
+                            >
+                                <option value="all">Todas</option>
+                                <option value="Training 1">Training 1</option>
+                                <option value="Training 2">Training 2</option>
+                                <option value="Training 3">Training 3</option>
+                                <option value="DC">DC</option>
+                                <option value="Customer">Customer</option>
                             </select>
                         </div>
 
