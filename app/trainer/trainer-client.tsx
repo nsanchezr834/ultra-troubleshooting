@@ -752,6 +752,16 @@ export default function TrainerClient() {
                             const last = attempts[attempts.length - 1];
                             const passed = attempts.some(a => a.passed);
                             const needsAttention = attempts.length >= 3 && !passed;
+
+                            // Calcular índices categorizados por tipo de examen
+                            let simCount = 0;
+                            let theoryCount = 0;
+                            const attemptsWithCategorizedIndexes = attempts.map(a => {
+                                const isSim = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                                const index = isSim ? ++simCount : ++theoryCount;
+                                return { ...a, categorizedIndex: index, isSim };
+                            });
+
                             return (
                                 <div key={traineeId} className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
                                     <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
@@ -804,14 +814,14 @@ export default function TrainerClient() {
                                     <div className="px-5 py-4">
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-600 mb-3">Progresión de intentos</p>
                                         <div className="flex items-end gap-2 h-16">
-                                            {attempts.map((a, idx) => (
-                                                <div key={a.id} className="flex flex-col items-center gap-1 flex-1 min-w-0 group cursor-default" title={`Intento ${idx + 1}: ${a.percentage}% — ${formatDate(a.taken_at)}`}>
+                                            {attemptsWithCategorizedIndexes.map((a) => (
+                                                <div key={a.id} className="flex flex-col items-center gap-1 flex-1 min-w-0 group cursor-default" title={`Intento ${a.isSim ? 'Práctico' : 'Teórico'} #${a.categorizedIndex}: ${a.percentage}% — ${formatDate(a.taken_at)}`}>
                                                     <span className="text-[9px] text-neutral-500 font-bold group-hover:text-white transition-colors">{a.percentage}%</span>
                                                     <div
                                                         className={`w-full rounded-t transition-all group-hover:opacity-80 ${a.passed ? 'bg-emerald-500' : a.percentage >= 60 ? 'bg-amber-500' : 'bg-[#ff4f00]'}`}
                                                         style={{ height: `${Math.max(4, (a.percentage / 100) * 40)}px` }}
                                                     />
-                                                    <span className="text-[9px] text-neutral-700">#{idx + 1}</span>
+                                                    <span className="text-[9px] text-neutral-700">#{a.categorizedIndex}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -843,7 +853,7 @@ export default function TrainerClient() {
                                     <div className="px-5 py-3 border-t border-neutral-800/50 bg-neutral-950/20">
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">Respuestas por intento</p>
                                         <div className="flex flex-col gap-2">
-                                            {attempts.map((a, idx) => {
+                                            {attemptsWithCategorizedIndexes.map((a) => {
                                                 const isExpanded = expandedAttemptId === a.id;
                                                 return (
                                                     <div key={a.id} className="border border-neutral-800 rounded-xl overflow-hidden bg-neutral-900/40">
@@ -852,7 +862,7 @@ export default function TrainerClient() {
                                                             className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-neutral-800/40 transition-colors text-left"
                                                         >
                                                             <div className="flex items-center gap-3.5">
-                                                                <span className="text-xs font-bold text-neutral-400">Intento #{idx + 1}</span>
+                                                                <span className="text-xs font-bold text-neutral-400">Intento #{a.categorizedIndex}</span>
                                                                 <span className={`text-xs font-black px-2 py-0.5 rounded ${
                                                                     a.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
                                                                 }`}>
