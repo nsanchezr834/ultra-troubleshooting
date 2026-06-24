@@ -644,9 +644,13 @@ export default function TrainerClient() {
                 doc.setFontSize(8.5);
                 
                 // Truncar textos largos para que quepan
-                const cleanText = wq.text.length > 95 ? wq.text.substring(0, 92) + '...' : wq.text;
-                const cleanCorrect = wq.correctText.length > 90 ? wq.correctText.substring(0, 87) + '...' : wq.correctText;
-                const cleanSelected = wq.selectedText.length > 90 ? wq.selectedText.substring(0, 87) + '...' : wq.selectedText;
+                const textStr = wq.text || '';
+                const correctStr = wq.correctText || '';
+                const selectedStr = wq.selectedText || '';
+                
+                const cleanText = textStr.length > 95 ? textStr.substring(0, 92) + '...' : textStr;
+                const cleanCorrect = correctStr.length > 90 ? correctStr.substring(0, 87) + '...' : correctStr;
+                const cleanSelected = selectedStr.length > 90 ? selectedStr.substring(0, 87) + '...' : selectedStr;
                 
                 doc.text(`Pregunta: ${cleanText}`, 18, yPos + 12);
                 doc.text(`Respuesta Correcta: ${cleanCorrect}`, 18, yPos + 18);
@@ -868,8 +872,22 @@ export default function TrainerClient() {
                                 <p className="text-[11px] text-neutral-500 mt-0.5">Genera un PDF con las debilidades del participante y recomendaciones de videos.</p>
                             </div>
                             <button
-                                onClick={() => handleGenerateFeedbackPDF(name, attempts)}
-                                className="bg-[#ff4f00] hover:bg-[#e04500] text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+                                onClick={async (e) => {
+                                    const btn = e.currentTarget;
+                                    const originalText = btn.innerHTML;
+                                    btn.disabled = true;
+                                    btn.innerHTML = 'Generando reporte...';
+                                    try {
+                                        await handleGenerateFeedbackPDF(name, attempts);
+                                    } catch (err: any) {
+                                        console.error('Error generando PDF:', err);
+                                        alert('Error al generar el PDF: ' + err.message);
+                                    } finally {
+                                        btn.disabled = false;
+                                        btn.innerHTML = originalText;
+                                    }
+                                }}
+                                className="bg-[#ff4f00] hover:bg-[#e04500] text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
                             >
                                 <Download className="w-3.5 h-3.5" />
                                 Generar reporte de retroalimentación para áreas de refuerzo
