@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User, Lock, Loader2, Star } from 'lucide-react';
+import { X, ChevronRight, CheckCircle2, AlertCircle, Download, User, Lock, Loader2, Star, Award } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { validateAndRegisterTrainee, saveExamResult, TraineeIdentity } from '../lib/training';
+import { validateAndRegisterTrainee, saveExamResult, TraineeIdentity, cleanAndFormatName, getApprovedLevelsByName } from '../lib/training';
 
 interface Question {
     id: string;
@@ -10,276 +10,50 @@ interface Question {
     correctIndex: number;
     explanation: string;
     difficulty?: 'easy' | 'medium' | 'hard';
+    category?: 'Training 1' | 'Training 2' | 'Training 3' | 'DC' | 'Customer';
 }
 
-const EXAM_QUESTIONS: Question[] = [
+// ==========================================
+// 📘 BANCO DE PREGUNTAS (ESTRUCTURADO JERÁRQUICAMENTE)
+// ==========================================
+
+// --- CATEGORÍA 1: TRAINING 1 ---
+const TRAINING_1_QUESTIONS: Question[] = [
     {
-        id: 'q1',
-        question: 'Observas que el brazo del robot se detiene a la mitad del recorrido (Arm Frozen). ¿Cuál es el primer paso a realizar en los headsets?',
+        id: 'q_t1_1',
+        question: 'Al iniciar la operación en el simulador o robot real, ¿cuál es la postura física que debe tomar el operador para evitar desalineaciones en el tracking?',
         options: [
-            'Mandar el comando Home inmediatamente',
-            'Enviar el comando Fault (arm frozen)',
-            'Apagar la estación desde el botón de emergencia',
-            'Esperar 5 minutos a que se reinicie solo'
-        ],
-        correctIndex: 1,
-        explanation: 'Siempre se debe registrar la falla con el comando Fault antes de intentar mover el robot, para que quede registro y se evalúe si es seguro moverlo.'
-    },
-    {
-        id: 'q2',
-        question: 'En la Bagger, una bolsa queda fuera de posición. ¿Qué deberias de hacer?',
-        options: [
-            'Retirar la bolsa, colocarla en la bin que esta en la parte superior y mandar el reprint label para que genere una nueva reimpresion de el pedido en ese momento no terminado',
-            'Cancelar el pedido y esperar instrucciones',
-            'Detener el proceso en donde este, mandar el robot a posicion de HOME',
-            'Nada, continuar con el pedido'
-        ],
-        correctIndex: 0,
-        explanation: 'Se debe de retirar la bolsa y colocar en la bin superior, mandar el reprint label que es el boton amarillo en la UI y continuar con el pedido, esto es por que si esta fuera de posicion, no va a cerrar bien la bolsa.'
-    },
-    {
-        id: 'q3',
-        question: 'Durante un ciclo en Tote, recibes el error de "Producto no escaneado". ¿Qué debes hacer con el producto?',
-        options: [
-            'Tirarlo a la basura',
-            'Empacarlo de todos modos',
-            'Apartar el producto y regresarlo al rack para revisión del cliente',
-            'Forzar el escáner y continuar'
+            'Trabajar con los brazos totalmente estirados hacia el frente.',
+            'Operar con las manos muy pegadas al pecho y los codos flexionados.',
+            'Mantener una postura erguida y centrar el torso alineado con la posición física de HOME para un correcto tracking',
+            'Agacharse y mirar hacia el suelo para calibrar los sensores.'
         ],
         correctIndex: 2,
-        explanation: 'El producto debe apartarse para revisión posterior; el operador no debe tomar la decisión final.'
+        explanation: 'Para asegurar que el tracking de los brazos y el torso funcione correctamente sin descalibrar el robot, el operador debe tomar una posición erguida y centrar su torso alineado con la posición de HOME.',
+        difficulty: 'easy',
+        category: 'Training 1'
     },
     {
-        id: 'q4',
-        question: 'Estás operando el robot Phil y ves que la orden actual en el lote (tote) tiene 7 productos acumulados. Al prepararte para el empaque, ¿qué decisión de empaque debes tomar?',
+        id: 'q_t1_2',
+        question: 'Durante la operación, si notas que el hombro del robot comienza a visualizarse constantemente en la pantalla operativa, ¿qué significa esto y qué riesgo representa?',
         options: [
-            'Colocarlos todos en una bolsa pequeña para ahorrar espacio',
-            'Elegir la bolsa de mayor tamaño disponible para el tote',
-            'Dividir el pedido en 2 bolsas pequeñas diferentes',
-            'Reportar Out of Product y esperar asistencia'
+            'Significa que el robot necesita una actualización de software y se apagará en 5 minutos.',
+            'Significa que estás operando muy cerca del pecho, lo cual fuerza las articulaciones y puede provocar movimientos erráticos en los brazos',
+            'Es una señal normal que indica que el robot está operando a máxima velocidad de empaque.',
+            'Significa que la cámara de la cabeza perdió conexión con la red principal.'
         ],
         correctIndex: 1,
-        explanation: 'De acuerdo con el consejo de operación del robot Phil, si el tote contiene 6 productos o más se ocupa la bolsa de mayor tamaño, y si tiene 5 productos o menos se ocupa la bolsa pequeña (medida estándar).'
-    },
+        explanation: 'Visualizar el hombro del robot de forma persistente en la pantalla operativa indica que el operador está trabajando con las manos muy cerca de su pecho, forzando los límites articulares del robot, lo cual puede generar movimientos erráticos y pérdida de alineación.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    }
+];
+
+// --- CATEGORÍA 2: TRAINING 2 (Nivel Easy) ---
+const TRAINING_2_QUESTIONS: Question[] = [
     {
-        id: 'q5',
-        question: 'Si tienes un problem con la orden en el robot Phil (por ejemplo, no se imprime la etiqueta y continúa solicitando otro producto), ¿cuál es el procedimiento correcto?',
-        options: [
-            'Dejar el tote abajo en el rack y esperar a que el robot se autocorrige',
-            'Ingresar todo al mismo tote, dejarlo arriba en el rack, levantar un pick fault, seleccionar order package y presionar "FAIL JOB"',
-            'Retirar los productos del tote y colocarlos de nuevo en el rack principal',
-            'Apagar la estación inmediatamente para detener el flujo'
-        ],
-        correctIndex: 1,
-        explanation: 'Ante problemas con la orden en el robot Phil, se debe ingresar todo al mismo tote y dejarlo en la parte de hasta arriba del rack. Luego, se levanta un pick fault, seleccionas order package y después presionas "FAIL JOB".'
-    },
-    {
-        id: 'q6',
-        question: 'Estás operando Packie y notas que el robot intenta colocar el producto pero la bolsa arrojada por la Bagger está completamente cerrada debido a falta de aire, con los grippers ya cerrados. ¿Qué debes hacer físicamente?',
-        options: [
-            'Volver a reiniciar la estación robótica',
-            'Realizar un movimiento vertical de arriba a abajo con la bolsa para forzar que entre el aire en la posición correcta',
-            'Soplar manualmente dentro del área de la Bagger',
-            'Marcar la bolsa como defectuosa en el sistema y desecharla'
-        ],
-        correctIndex: 1,
-        explanation: 'De acuerdo con las pautas de operación, realizar un movimiento vertical de arriba a abajo obliga a que entre el aire en la posición correcta para que la bolsa se abra y continúe el ciclo.'
-    },
-    {
-        id: 'q7',
-        question: 'Te asignan empacar una caja de herramientas pesada y voluminosa en la estación Future. Para evitar que el peso venza la bolsa y asegurar que la máquina logre sellarla correctamente, ¿cómo debes posicionar la pinza de soporte?',
-        options: [
-            'Colocar la pinza a un costado del empaque',
-            'No utilizar la pinza y empujar el paquete manualmente',
-            'Colocar la pinza debajo de la bolsa para ayudar a sostener el peso',
-            'Colocar la pinza en la parte superior para suspender la bolsa'
-        ],
-        correctIndex: 2,
-        explanation: 'Para objetos de gran tamaño y pesados, colocar la pinza debajo de la bolsa ayuda con el peso del paquete y facilita que la máquina realice el cierre/sello correctamente.'
-    },
-    {
-        id: 'q8',
-        question: '¿Qué debes hacer si el robot se detiene porque la Bagger se quedó sin bolsas (Out of Bags)?',
-        options: [
-            'Apagar la máquina y reportar mantenimiento de inmediato',
-            'Detener el robot, mandar la fault de out of bags para que un Fiel Agent pueda resolver el problema.',
-            'Forzar el reinicio del brazo robótico sin cambiar nada',
-            'Cambiar a operación manual y empacar sin bolsas'
-        ],
-        correctIndex: 1,
-        explanation: 'La opción "Out of Bags" indica que el rollo de bolsas se ha terminado y se requiere reemplazarlo por uno nuevo para que el ciclo continúe.'
-    },
-    {
-        id: 'q9',
-        question: 'Estás monitoreando la Bagger y notas que el robot colocó el paquete pero la impresora térmica está pitando y la etiqueta sale en blanco o no sale. ¿Qué acción debes reportar en la interfaz de control?',
-        options: [
-            'Reportar Out of Labels para alertar sobre el rollo vacío o falla de impresión',
-            'Reiniciar el robot inmediatamente',
-            'Reportar Bag Jam',
-            'Reportar Product Dropped'
-        ],
-        correctIndex: 0,
-        explanation: '"Out of Labels" se utiliza cuando el rollo de etiquetas está vacío o la impresora presenta fallas para imprimir la guía de envío.'
-    },
-    {
-        id: 'q10',
-        question: 'Durante la operación, escuchas un ruido en la Bagger y ves que una bolsa plástica se dobló y quedó atrapada entre las mordazas de sellado impidiendo que bajen. ¿Qué reporte debes levantar de inmediato en tu interfaz?',
-        options: [
-            'Out of Bags',
-            'Bad Seal',
-            'Bag Jam',
-            'Other Robot Issue'
-        ],
-        correctIndex: 2,
-        explanation: '"Bag Jam" es la opción específica para cuando una bolsa queda atascada en cualquier parte del mecanismo de la Bagger.'
-    },
-    {
-        id: 'q11',
-        question: 'Si detectas que la bolsa de un paquete quedó arrugada, quemada o mal cerrada en los extremos (aplica a Packie, Future, Fleetwood o Bagger Label), ¿qué fallo reportarías?',
-        options: [
-            'Bad Seal',
-            'Bag Jam',
-            'Out of Bags',
-            'Product Dropped'
-        ],
-        correctIndex: 0,
-        explanation: '"Bad Seal" es el fallo que indica que el sellado de la bolsa quedó abierto, quemado, arrugado o defectuoso de alguna forma.'
-    },
-    {
-        id: 'q12',
-        question: 'El robot coloca el paquete terminado en un contenedor (bin) que no corresponde a la ruta de envío. ¿Qué reporte se debe seleccionar?',
-        options: [
-            'Product Dropped',
-            'Package Dropped on Floor',
-            'Package Dropped in Wrong Bin',
-            'Bin Location Adjustment Needed'
-        ],
-        correctIndex: 2,
-        explanation: '"Package Dropped in Wrong Bin" se selecciona cuando el brazo robótico deposita el paquete final en un contenedor equivocado.'
-    },
-    {
-        id: 'q13',
-        question: 'Estás supervisando la celda de empaque y notas que la banda transportadora lleva 10 minutos detenida porque el área de Warehouse no ha enviado más cajas de producto, y la interfaz indica que no hay lotes de trabajo activos. ¿Qué fallo global reportarías?',
-        options: [
-            'Hospital Bin Full',
-            'Out of Product (Falla Global) para alertar al sistema y suspender ciclo',
-            'Bin Location Adjustment Needed',
-            'Head Cam Out'
-        ],
-        correctIndex: 1,
-        explanation: '"Out of Product" se reporta de forma global para todos los robots cuando se agota el producto en la zona o cuando no hay batch cargada en el sistema para continuar el trabajo.'
-    },
-    {
-        id: 'q14',
-        question: 'Si el contenedor de paquetes terminados listos para envío se llena por completo, ¿qué debes hacer?',
-        options: [
-            'Seleccionar "Package Bin Full", vaciar el contenedor y continuar',
-            'Seleccionar "Hospital Bin Full" y cambiar de estación',
-            'Detener la celda con botón de emergencia y llamar a mantenimiento',
-            'Continuar colocando paquetes encima hasta que se caigan'
-        ],
-        correctIndex: 0,
-        explanation: '"Package Bin Full" es para reportar que el contenedor de salida está a su máxima capacidad y requiere vaciado físico.'
-    },
-    {
-        id: 'q15',
-        question: 'Estás empacando y el robot rechaza un producto dañado. Al intentar colocarlo en la bin de rechazo (hospital bin), el producto rebota y cae porque la bin está desbordada de artículos acumulados. ¿Qué reporte debes levantar?',
-        options: [
-            'Package Bin Full',
-            'Hospital Bin Full',
-            'Product Dropped',
-            'Other'
-        ],
-        correctIndex: 1,
-        explanation: '"Hospital Bin Full" indica que el contenedor donde se colocan artículos defectuosos o con problemas está lleno.'
-    },
-    {
-        id: 'q16',
-        question: 'El robot intenta depositar el paquete final, pero notas que estira el brazo al máximo y roza la estructura porque el contenedor físico de depósito fue movido accidentalmente fuera de su rango de alcance. ¿Qué reporte debes seleccionar?',
-        options: [
-            'Bin Location Adjustment Needed',
-            'Package Dropped in Wrong Bin',
-            'App Not Working',
-            'Left Arm Frozen'
-        ],
-        correctIndex: 0,
-        explanation: 'Se reporta "Bin Location Adjustment Needed" cuando no hay bin de depósito, el robot no lo alcanza, o el contenedor de Customer no es del color solicitado.'
-    },
-    {
-        id: 'q17',
-        question: 'Si en tu visor de control dejas de recibir la transmisión de video de la muñeca del brazo izquierdo, ¿cuál es el reporte adecuado?',
-        options: [
-            'Head Cam Out',
-            'Left Wrist Cam Out',
-            'Left Arm Frozen',
-            'App Not Working'
-        ],
-        correctIndex: 1,
-        explanation: '"Left Wrist Cam Out" se selecciona cuando la cámara montada en la muñeca izquierda pierde la conexión o deja de dar imagen.'
-    },
-    {
-        id: 'q18',
-        question: 'El robot intenta sujetar un artículo pero los dedos de la pinza derecha no cierran ni aplican fuerza. ¿Qué debes reportar?',
-        options: [
-            'Right Arm Frozen',
-            'Right Gripper Not Working',
-            'Left Gripper Not Working',
-            'Other Robot Issue'
-        ],
-        correctIndex: 1,
-        explanation: '"Right Gripper Not Working" se selecciona específicamente cuando la pinza o griper del brazo derecho presenta problemas de apertura, cierre o fuerza.'
-    },
-    {
-        id: 'q19',
-        question: 'Estás operando la celda y observas que el robot se queda totalmente estático en medio de la trayectoria. No hay luces rojas, no hay fallas mecánicas en las pinzas, pero la IA del robot no envía ningún comando ni reacciona para continuar. ¿Qué reporte debes levantar?',
-        options: [
-            'App Not Working',
-            'Autonomy Not Working',
-            'Left Arm Frozen',
-            'Other Headset Issue'
-        ],
-        correctIndex: 1,
-        explanation: '"Autonomy Not Working" se reporta cuando el software de autonomía del robot falla, impidiendo que tome decisiones o ejecute trayectorias de forma autónoma.'
-    },
-    {
-        id: 'q20',
-        question: 'Durante tu turno, ocurre una falla extraña: el sistema de enfriamiento de la celda empieza a emitir un zumbido inusual y la interfaz del visor muestra caracteres corruptos no vistos en la capacitación. ¿Qué reporte debes levantar al no existir una categoría específica?',
-        options: [
-            'Reiniciar el robot automáticamente',
-            'Levantar reporte bajo la opción Other para documentar la falla imprevista',
-            'Apagar las cámaras',
-            'Pausar el simulador'
-        ],
-        correctIndex: 1,
-        explanation: '"Other" se reserva para fallas y problemas imprevistos que no coinciden con ninguna de las opciones específicas provistas en el menú.'
-    },
-    {
-        id: 'q21',
-        question: 'Te asignan a operar la estación Phil. Al revisar el flujo de trabajo en tu headset, te das cuenta de que no hay ninguna máquina Bagger instalada. ¿Qué contenedor o elemento debes preparar para que el robot deposite los productos?',
-        options: [
-            'Bolsas plásticas de rollo',
-            'Cajas de cartón corrugado',
-            'Contenedores de plástico (Totes)',
-            'Sobres acolchados'
-        ],
-        correctIndex: 2,
-        explanation: 'El robot Phil opera con el flujo de trabajo de Totes (contenedores), mientras que robots como Packie, Future y Bagger Label utilizan embolsadoras (Baggers).'
-    },
-    {
-        id: 'q22',
-        question: 'Estás operando la celda y de repente pierdes la vista general de la estación de empaque en tu headset (pantalla en negro en la cámara superior), aunque sigues viendo el video de las cámaras de las muñecas. ¿Qué reporte debes levantar?',
-        options: [
-            'Left Wrist Cam Out',
-            'Right Wrist Cam Out',
-            'Head Cam Out',
-            'App Not Working'
-        ],
-        correctIndex: 2,
-        explanation: '"Head Cam Out" se selecciona cuando la cámara principal ubicada en la cabeza del robot pierde señal o deja de transmitir video.'
-    },
-    {
-        id: 'q23',
-        question: 'Si observas un atoramiento físico debajo de la mesa de operación y el brazo del robot está mal posicionado haciendo fuerza, ¿cuál es la acción correcta?',
+        id: 'q_t2_1',
+        question: 'Si observas un atoramiento físico, y los brazos del robot se encuentran debajo de la mesa de operación o están mal posicionados haciendo fuerza, ¿cuál es la acción correcta?',
         options: [
             'Presionar el botón HOME para forzar la autorecuperación',
             'Escalar e informar de inmediato al supervisor en turno para evitar daños mayores y forzado de motores',
@@ -287,11 +61,13 @@ const EXAM_QUESTIONS: Question[] = [
             'Pausar la celda y esperar a que el robot se desatore solo'
         ],
         correctIndex: 1,
-        explanation: 'Cuando el robot está en una posición comprometida o atorado debajo de la estructura, intentar hacer HOME puede jalar la mesa y forzar los motores. Se debe avisar inmediatamente al supervisor.'
+        explanation: 'Cuando el robot está en una posición comprometida o atorado debajo de la estructura, intentar hacer HOME puede jalar la mesa y forzar los motores. Se debe avisar inmediatamente al supervisor.',
+        difficulty: 'easy',
+        category: 'Training 2'
     },
     {
-        id: 'q24',
-        question: 'En el Caso de Estudio 2 de seguridad, ¿cuál es el peligro principal asociado con la caída o desprendimiento de una impresora térmica de su posición?',
+        id: 'q_t2_2',
+        question: 'En el Caso de Estudio 2 de seguridad, ¿cuál es el peligro principal asociado con la caída o desprendimiento de una impresora de etiquetas, de su posición?',
         options: [
             'Pérdida de la conexión a internet en toda la nave',
             'Provocar daños materiales al equipo y un alto riesgo de lesiones físicas al personal circundante si cae o proyecta algún objeto',
@@ -299,10 +75,12 @@ const EXAM_QUESTIONS: Question[] = [
             'Ninguno, las impresoras están diseñadas para soportar caídas repetidas'
         ],
         correctIndex: 1,
-        explanation: 'La caída de una impresora térmica no solo daña el equipo, sino que representa un grave peligro de golpe o proyección para el personal de DC, Customer o Training alrededor.'
+        explanation: 'La caída de una impresora de etiquetas, no solo daña el equipo, sino que representa un grave peligro de golpe o proyección para el personal en el sitio.',
+        difficulty: 'easy',
+        category: 'Training 2'
     },
     {
-        id: 'q25',
+        id: 'q_t2_3',
         question: 'Si el robot está en una posición incorrecta o comprometida, ¿por qué es imperativo contactar al supervisor antes de enviar cualquier comando de Home?',
         options: [
             'Porque el supervisor es el único que puede autorizar la impresión de etiquetas',
@@ -311,22 +89,26 @@ const EXAM_QUESTIONS: Question[] = [
             'No es imperativo; el operador siempre debe tratar de solucionarlo solo primero'
         ],
         correctIndex: 1,
-        explanation: 'Mandar comandos de movimiento cuando el robot está mecánicamente trabado o comprometido daña los actuadores y fuerza los servomotores.'
+        explanation: 'Mandar comandos de movimiento cuando el robot está mecánicamente trabado o comprometido daña los actuadores y fuerza los servomotores.',
+        difficulty: 'easy',
+        category: 'Training 2'
     },
     {
-        id: 'q26',
-        question: '¿Quién tiene la capacidad y autorización total de intervenir directamente para resolver atoramientos mecánicos graves sin forzar el sistema?',
+        id: 'q_t2_4',
+        question: '¿Quién tiene la capacidad y autorización total de intervenir directamente para resolver estas situaciones?',
         options: [
             'El operador en entrenamiento (Trainee) por su cuenta',
-            'El supervisor en turno, quien cuenta con la capacidad para resolver y prevenir escalaciones',
-            'Cualquier persona que pase cerca de la celda de empaque',
+            'El supervisor en turno, quien cuenta con la capacidad para resolver para prevenir escalaciones',
+            'Cualquiera que pase cerca de la celda de empaque',
             'Nadie, se debe esperar a que el robot se apague por software'
         ],
         correctIndex: 1,
-        explanation: 'El supervisor en turno está capacitado para actuar de forma segura ante situaciones de riesgo y evitar daños mecánicos costosos en la celda.'
+        explanation: 'El supervisor en turno está capacitado para actuar de forma segura ante situaciones de riesgo y evitar daños mecánicos costosos a la infraestructura.',
+        difficulty: 'easy',
+        category: 'Training 2'
     },
     {
-        id: 'q27',
+        id: 'q_t2_5',
         question: 'Escenario: Estás operando y el robot se atora debajo de la mesa. La mesa comienza a vibrar y a moverse ligeramente. El software te da la opción de mandar a HOME. Y tú, ¿qué harías?',
         options: [
             'Presionar HOME rápidamente para ganarle al tiempo del ciclo',
@@ -335,10 +117,12 @@ const EXAM_QUESTIONS: Question[] = [
             'Mover el torso del robot manualmente usando el joystick'
         ],
         correctIndex: 2,
-        explanation: 'Ante cualquier vibración o atoramiento físico, no se debe intentar mover el robot sin antes avisar al supervisor en turno.'
+        explanation: 'Ante cualquier vibración o atoramiento físico, no se debe intentar mover el robot sin antes avisar al supervisor en turno.',
+        difficulty: 'easy',
+        category: 'Training 2'
     },
     {
-        id: 'q28',
+        id: 'q_t2_6',
         question: 'Escenario: Durante tus movimientos con el torso, golpeas accidentalmente la base de la impresora de etiquetas y ves que se inclina peligrosamente fuera de su base. Y tú, ¿qué harías?',
         options: [
             'Continuar la operación asumiendo que no se va a caer',
@@ -347,10 +131,12 @@ const EXAM_QUESTIONS: Question[] = [
             'Empujar el robot para que la detenga con el brazo'
         ],
         correctIndex: 1,
-        explanation: 'Cualquier situación de riesgo o peligro de caída de periféricos pesados debe ser reportada de forma imperativa al supervisor de inmediato.'
+        explanation: 'Cualquier situación de riesgo o peligro de caída de periféricos pesados debe ser reportada de forma imperativa al supervisor de inmediato.',
+        difficulty: 'easy',
+        category: 'Training 2'
     },
     {
-        id: 'q29',
+        id: 'q_t2_7',
         question: 'Escenario: El robot está fuera de su posición normal y notas que una de las pinzas (grippers) está presionando con fuerza la mesa metálica. El sistema te pide enviar un comando de reinicio de motores. Y tú, ¿qué harías?',
         options: [
             'Reincorporar los motores desde el headset sin revisar la posición',
@@ -359,11 +145,13 @@ const EXAM_QUESTIONS: Question[] = [
             'Apagar la luz de la torreta y continuar operando'
         ],
         correctIndex: 1,
-        explanation: 'Si el gripper está ejerciendo fuerza constante sobre una superficie rígida, reiniciar motores o mandar Home forzará las articulaciones del brazo.'
+        explanation: 'Si el gripper está ejerciendo fuerza constante sobre una superficie rígida, reiniciar motores o mandar Home forzará las articulaciones del brazo.',
+        difficulty: 'easy',
+        category: 'Training 2'
     },
     {
-        id: 'q30',
-        question: 'Escenario: Ves que una persona del equipo de Warehouse o Laboratorio ingresa al área de operación sin la pausa adecuada del robot. Y tú, ¿qué harías?',
+        id: 'q_t2_8',
+        question: 'Escenario: Observas que una persona del equipo de Warehouse o Laboratorio ingresa al área de operación o se acerca al robot. ¿Qué acción debes de tomar?',
         options: [
             'Esperar a que la persona termine su ajuste y no reportar nada',
             'Poner en pausa el robot de inmediato para priorizar la seguridad física y notificar al supervisor',
@@ -371,8 +159,339 @@ const EXAM_QUESTIONS: Question[] = [
             'Apagar únicamente la cámara de la cabeza para no ver el incidente'
         ],
         correctIndex: 1,
-        explanation: 'La seguridad física de cualquier persona de Warehouse o Laboratorio es la máxima prioridad; se debe poner en pausa el robot de inmediato.'
+        explanation: 'La seguridad física de cualquier persona de Warehouse o Laboratorio es la máxima prioridad; se debe poner en pausa el robot de inmediato.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_9',
+        question: 'Observas que el brazo del robot se detiene a la mitad del recorrido. ¿Cuál es el primer paso a realizar en los headsets?',
+        options: [
+            'Mandar el comando Home inmediatamente',
+            'Enviar el comando Fault (arm frozen)',
+            'Apagar la estación desde el botón de emergencia',
+            'Esperar 5 minutos a que se reinicie solo'
+        ],
+        correctIndex: 1,
+        explanation: 'Siempre se debe registrar la falla con el comando Fault antes de intentar mover el robot, para que quede registro y se evalúe si es seguro moverlo.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_10',
+        question: 'Estás en un workflow de Bagger y notas que la etiqueta sale en blanco o no sale. ¿Qué acción debes reportar en la interfaz de control?',
+        options: [
+            'Reportar Out of Labels para alertar sobre el rollo vacío o falla de impresión',
+            'Reiniciar el robot inmediatamente',
+            'Reportar Bag Jam',
+            'Reportar Product Dropped'
+        ],
+        correctIndex: 0,
+        explanation: '"Out of Labels" se utiliza cuando el rollo de etiquetas está vacío o la impresora presenta fallas para imprimir la guía de envío.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_11',
+        question: 'El robot coloca el paquete terminado en un contenedor (bin) que no corresponde a la ruta de envío. ¿Qué reporte se debe seleccionar?',
+        options: [
+            'Product Dropped',
+            'Package Dropped on Floor',
+            'Package Dropped in Wrong Bin',
+            'Bin Location Adjustment Needed'
+        ],
+        correctIndex: 2,
+        explanation: '"Package Dropped in Wrong Bin" se selecciona cuando el brazo robótico deposita el paquete final en un contenedor equivocado.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_12',
+        question: 'Si el contenedor de paquetes terminados listos para envío se llena por completo, ¿qué debes hacer?',
+        options: [
+            'Seleccionar "Package Bin Full", vaciar el contenedor y continuar',
+            'Seleccionar "Hospital Bin Full" y cambiar de estación',
+            'Detener la celda con botón de emergencia y llamar a mantenimiento',
+            'Continuar colocando paquetes encima hasta que se caigan'
+        ],
+        correctIndex: 0,
+        explanation: '"Package Bin Full" es para reportar que el contenedor de salida está a su máxima capacidad y requiere vaciado físico.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_13',
+        question: 'Estás empacando y al intentar colocar un producto en la bin de rechazo (hospital bin), el producto rebota y cae porque la bin está desbordada de artículos acumulados. ¿Qué reporte debes levantar?',
+        options: [
+            'Package Bin Full',
+            'Hospital Bin Full',
+            'Product Dropped',
+            'Other'
+        ],
+        correctIndex: 1,
+        explanation: '"Hospital Bin Full" indica que el contenedor donde se colocan artículos defectuosos o con problemas está lleno.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_14',
+        question: 'El robot intenta depositar el paquete final, pero notas que no hay bin disponible o fue movida accidentalmente fuera de tu alcance. ¿Qué reporte debes seleccionar?',
+        options: [
+            'Bin Location Adjustment Needed',
+            'Package Dropped in Wrong Bin',
+            'App Not Working',
+            'Left Arm Frozen'
+        ],
+        correctIndex: 0,
+        explanation: 'Se reporta "Bin Location Adjustment Needed" cuando no hay bin de depósito, el robot no lo alcanza, o el contenedor de Customer no es del color solicitado.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_15',
+        question: 'Si en tu visor de control dejas de recibir la transmisión de video de la muñeca del brazo izquierdo, ¿cuál es el reporte adecuado?',
+        options: [
+            'Head Cam Out',
+            'Left Wrist Cam Out',
+            'Left Arm Frozen',
+            'App Not Working'
+        ],
+        correctIndex: 1,
+        explanation: '"Left Wrist Cam Out" se selecciona cuando la cámara montada en la muñeca izquierda pierde la conexión o deja de dar imagen.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_16',
+        question: 'El robot intenta sujetar un artículo pero la pinza derecha no cierran ni aplican fuerza. ¿Qué debes reportar?',
+        options: [
+            'Right Arm Frozen',
+            'Right Gripper Not Working',
+            'Left Gripper Not Working',
+            'Other Robot Issue'
+        ],
+        correctIndex: 1,
+        explanation: '"Right Gripper Not Working" se selecciona específicamente cuando la pinza o griper del brazo derecho presenta problemas de apertura, cierre o fuerza.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_17',
+        question: 'Estás operando en modo auto y observas que el robot se queda totalmente estático. No no hay fallas mecánicas en las pinzas, ni reacciona para continuar. ¿Qué reporte debes levantar?',
+        options: [
+            'App Not Working',
+            'Autonomy Not Working',
+            'Left Arm Frozen',
+            'Other Headset Issue'
+        ],
+        correctIndex: 1,
+        explanation: '"Autonomy Not Working" se reporta cuando el software de autonomía del robot falla, impidiendo que tome decisiones o ejecute trayectorias de forma autónoma y proceder a documentar en el slack para verificar la continuidad del workflow o detenerse.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_18',
+        question: 'Estás operando al robot y de repente pierdes la vista general (pantalla en negro en la cámara principal), aunque sigues viendo el video de las cámaras de las muñecas. ¿Qué reporte debes levantar?',
+        options: [
+            'Left Wrist Cam Out',
+            'Right Wrist Cam Out',
+            'Head Cam Out',
+            'App Not Working'
+        ],
+        correctIndex: 2,
+        explanation: '"Head Cam Out" se selecciona cuando la cámara principal ubicada en la cabeza del robot pierde señal o deja de transmitir video.',
+        difficulty: 'easy',
+        category: 'Training 2'
     }
+];
+
+// --- CATEGORÍA 3: TRAINING 3 (Nivel Medium) ---
+const TRAINING_3_QUESTIONS: Question[] = [
+    {
+        id: 'q_t3_1',
+        question: 'Te asignan empacar una caja pesada y voluminosa en el Workflow Bagger. Para evitar que el peso venza la bolsa y asegurar que la máquina logre sellar correctamente, ¿cómo debes posicionar la pinza de soporte?',
+        options: [
+            'Colocar la pinza a un costado del empaque',
+            'No utilizar la pinza y empujar el paquete manualmente',
+            'Colocar la pinza debajo de la bolsa para ayudar a sostener el peso',
+            'Colocar la pinza en la parte superior para suspender la bolsa'
+        ],
+        correctIndex: 2,
+        explanation: 'Para objetos de gran tamaño y pesados, colocar la pinza debajo de la bolsa ayuda con el peso del paquete y facilita que la máquina realice el cierre/sello correctamente.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_2',
+        question: '¿Qué workflow se opera en el robot Phil?',
+        options: [
+            'Bolsas plásticas de rollo',
+            'Cajas de cartón corrugado',
+            'Contenedores de plástico (Totes)',
+            'Sobres acolchados'
+        ],
+        correctIndex: 2,
+        explanation: 'El robot Phil opera con el flujo de trabajo de Totes (contenedores), mientras que robots como Packie, Future y Bagger Label utilizan el workflow de Bagger.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_3',
+        question: '¿Qué debes hacer si el robot se detiene porque la Bagger se quedó sin bolsas (Out of Bags)?',
+        options: [
+            'Apagar la máquina y reportar mantenimiento de inmediato',
+            'Detener el robot, mandar la fault de out of bags para que un Field Agent pueda resolver el problema',
+            'Forzar el reinicio del brazo robótico sin cambiar nada',
+            'Cambiar a operación manual y empacar sin bolsas'
+        ],
+        correctIndex: 1,
+        explanation: 'La opción "Out of Bags" indica que el rollo de bolsas se ha terminado y se requiere reemplazarlo por uno nuevo para que el ciclo continúe.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_4',
+        question: 'Si detectas que la bolsa de un paquete quedó arrugada, quemada o mal cerrada en los extremos (aplica a Packie, Future, Fleetwood o Bagger), ¿qué falla reportamos?',
+        options: [
+            'Bad Seal',
+            'Bag Jam',
+            'Out of Bags',
+            'Product Dropped'
+        ],
+        correctIndex: 0,
+        explanation: 'Anteriormente "Bad Seal" es el fallo que indica que el sellado de la bolsa quedó abierto, quemado, arrugado o defectuoso de alguna forma.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_5',
+        question: 'Observas que la interfaz indica jobs no available. ¿Qué fault reportarías?',
+        options: [
+            'Hospital Bin Full',
+            'Out of Product',
+            'Bin Location Adjustment Needed',
+            'Head Cam Out'
+        ],
+        correctIndex: 1,
+        explanation: '"Out of Product" se reporta de forma global para todos los robots cuando se agota el producto en la zona o cuando no hay batch cargada en el sistema para continuar el trabajo.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_6',
+        question: 'Durante tu turno, ocurre una falla extraña: y la interfaz del visor muestra cosas no vistas en la capacitación. ¿Qué reporte debes levantar al no existir una categoría específica?',
+        options: [
+            'Reiniciar el robot automáticamente',
+            'Escalar la información con el supervisor en turno para validar si se levanta reporte bajo la opción Other para documentar la falla imprevista.',
+            'Apagar las cámaras',
+            'Pausar el simulador'
+        ],
+        correctIndex: 1,
+        explanation: '"Other" se reserva para fallas y problemas imprevistos que no coinciden con ninguna de las opciones específicas provistas en el menú.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    }
+];
+
+// --- CATEGORÍA 4: DC (Nivel Hard) ---
+const DC_QUESTIONS: Question[] = [
+    {
+        id: 'q_dc_1',
+        question: 'Te encuentras operando en el robot Phil, recibes el error de "Producto no escaneado". ¿Qué debes hacer con el producto?',
+        options: [
+            'Tirarlo a la basura',
+            'Empacarlo de todos modos',
+            'Apartar el producto y regresarlo al rack para revisión del cliente',
+            'Forzar el escáner y continuar'
+        ],
+        correctIndex: 2,
+        explanation: 'El producto debe apartarse para revisión posterior; el operador no debe tomar la decisión final.',
+        difficulty: 'hard',
+        category: 'DC'
+    },
+    {
+        id: 'q_dc_2',
+        question: 'Estás operando el robot Phil y ves que el tote tiene 7 productos. Al prepararte para el empaque, ¿qué decisión de sobrebolsas debes tomar?',
+        options: [
+            'Colocarlos todos en una bolsa pequeña para ahorrar espacio',
+            'Elegir la bolsa de mayor tamaño disponible para el tote',
+            'Dividir el pedido en 2 bolsas pequeñas diferentes',
+            'Reportar Out of Product y esperar asistencia'
+        ],
+        correctIndex: 1,
+        explanation: 'De acuerdo con el consejo de operación del robot Phil, si el tote contiene 6 productos o más se ocupa la bolsa de mayor tamaño, y si tiene 5 productos o menos se ocupa la bolsa pequeña (medida estándar).',
+        difficulty: 'hard',
+        category: 'DC'
+    },
+    {
+        id: 'q_dc_3',
+        question: 'Si tienes un problema con la orden en el robot Phil, no se imprime la etiqueta y continúa solicitando otro producto), ¿cuál es el procedimiento correcto?',
+        options: [
+            'Dejar el tote abajo en el rack y esperar a que el robot se autocorrige',
+            'Ingresar todo al mismo tote, dejarlo arriba en el rack, levantar un pick fault, seleccionar order package y presionar "FAIL JOB"',
+            'Retirar los productos del tote y colocarlos de nuevo en el rack principal',
+            'Apagar la estación inmediatamente para detener el flujo'
+        ],
+        correctIndex: 1,
+        explanation: 'Ante problemas con la orden en el robot Phil, se debe ingresar todo al mismo tote y dejarlo en la parte de hasta arriba del rack. Luego, se levanta un pick fault, seleccionas order package y después presionas "FAIL JOB".',
+        difficulty: 'hard',
+        category: 'DC'
+    },
+    {
+        id: 'q_dc_4',
+        question: 'En la Bagger, una bolsa queda fuera de posición. ¿Qué deberías de hacer?',
+        options: [
+            'Retirar la bolsa, colocarla en la hospital bin (cambia según el workflow de posición), mandar el reprint label para que genere una nueva reimpresión del pedido en ese momento no terminado',
+            'Cancelar el pedido y esperar instrucciones',
+            'Detener el proceso en donde esté, mandar el robot a posición de HOME',
+            'Nada, continuar con el pedido'
+        ],
+        correctIndex: 0,
+        explanation: 'Se debe de retirar la bolsa y colocar en la hospital bin, mandar el reprint label que es el botón amarillo en la UI y continuar con el pedido, esto es por que si está fuera de posición, no va a cerrar la bolsa.',
+        difficulty: 'hard',
+        category: 'DC'
+    },
+    {
+        id: 'q_dc_5',
+        question: 'Estás operando Packie y notas que el robot intenta colocar el producto pero la bolsa arrojada por la Bagger está completamente cerrada debido a falta de aire. ¿Qué debes hacer físicamente?',
+        options: [
+            'Volver a reiniciar la estación robótica',
+            'Realizar un movimiento vertical de arriba a abajo con la bolsa para forzar que entre el aire en la posición correcta',
+            'Soplar manualmente dentro del área de la Bagger',
+            'Marcar la bolsa como defectuosa en el sistema y desecharla'
+        ],
+        correctIndex: 1,
+        explanation: 'De acuerdo con las pautas de operación, realizar un movimiento vertical de arriba a abajo obliga a que entre el aire en la posición correcta para que la bolsa se abra y proceder a ingresar la batch correspondiente.',
+        difficulty: 'hard',
+        category: 'DC'
+    }
+];
+
+// --- CATEGORÍA 5: CUSTOMER (Nivel Hard) ---
+const CUSTOMER_QUESTIONS: Question[] = [
+    {
+        id: 'q_cust_1',
+        question: 'Durante la operación, y ves que una bolsa plástica se dobló y quedó atrapada en la barra de sellado impidiendo que salga o corte. ¿Qué reporte debes hacer?',
+        options: [
+            'Arrancar la bolsa y darle reimprimir.',
+            'Bad Seal. Ya que no se puede continuar operando.',
+            'Intentar recuperar la falla haciendo el procedimiento de el display de la bagger. En caso de que siga sin salir reportar Bag Jam',
+            'Other Robot Issue'
+        ],
+        correctIndex: 2,
+        explanation: 'Primero debes de verificar el display de la bagger, dar clic en el error para que se borre y proceder a arrancar la bolsa, mandar el reprint label (boton color amarillo) y validar si ya salen las bolsas correctamente. "Bag Jam" es la opción específica para cuando una bolsa queda atascada en cualquier parte del mecanismo de la Bagger. En caso de que siga sin salir deberías de reportar Bag Jam.',
+        difficulty: 'hard',
+        category: 'Customer'
+    }
+];
+
+// --- CONCATENACIÓN JERÁRQUICA DE PREGUNTAS ---
+const EXAM_QUESTIONS: Question[] = [
+    ...TRAINING_1_QUESTIONS,
+    ...TRAINING_2_QUESTIONS,
+    ...TRAINING_3_QUESTIONS,
+    ...DC_QUESTIONS,
+    ...CUSTOMER_QUESTIONS
 ];
 
 // ─── Helper: shuffle options and adjust correctIndex ──────────────────────────
@@ -436,7 +555,8 @@ async function generatePDF(
     total: number,
     percent: number,
     passed: boolean,
-    answersLog: UserAnswerLog[]
+    answersLog: UserAnswerLog[],
+    examLevel: string
 ): Promise<void> {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
@@ -529,13 +649,13 @@ async function generatePDF(
     doc.setFontSize(nameFontSize);
     doc.text(nameStr, MARGIN + 6, y + 18);
 
-    // Trainer info bajo el nombre
-    if (trainerName) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(GRAY);
-        doc.text(`Trainer: ${trainerName}`, MARGIN + 6, y + 25);
-    }
+    // Trainer info + Nivel bajo el nombre
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(GRAY);
+    const levelText = `Nivel: ${examLevel}`;
+    const trainerText = trainerName ? `Trainer: ${trainerName}` : '';
+    doc.text(`${levelText}${trainerText ? `  |  ${trainerText}` : ''}`, MARGIN + 6, y + 25);
 
     // Status / percent / score — right side
     const statusColor = passed ? GREEN : RED;
@@ -710,9 +830,24 @@ async function generatePDF(
     doc.save(`Reporte_Evaluacion_${applicantName.replace(/\s+/g, '_')}.pdf`);
 }
 
+const getQuestionsForLevel = (level: string): Question[] => {
+    const pool: Question[] = [];
+    pool.push(...TRAINING_1_QUESTIONS);
+    if (level === 'Training 1') return pool;
+    pool.push(...TRAINING_2_QUESTIONS);
+    if (level === 'Training 2') return pool;
+    pool.push(...TRAINING_3_QUESTIONS);
+    if (level === 'Training 3') return pool;
+    pool.push(...DC_QUESTIONS);
+    if (level.startsWith('DC')) return pool;
+    pool.push(...CUSTOMER_QUESTIONS);
+    return pool;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalProps) {
     const EXAM_LENGTH = 15;
+    const [eligiblePool, setEligiblePool] = useState<Question[]>([]);
 
     const selectNextAdaptiveQuestion = (lastQuestion: Question, wasCorrect: boolean, currentQuestionsList: Question[]): Question => {
         const usedIds = new Set(currentQuestionsList.map(q => q.id));
@@ -728,12 +863,12 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             else if (lastQuestionDiff === 'medium') targetDiff = 'easy';
         }
         
-        // Get all questions with difficulty
-        const allQuestions = EXAM_QUESTIONS.map(q => {
-            const num = parseInt(q.id.replace('q', ''), 10);
-            const difficulty: 'easy' | 'medium' | 'hard' = num > 20 ? 'hard' : num > 10 ? 'medium' : 'easy';
-            return { ...q, difficulty };
-        });
+        // Get all questions with difficulty from eligible pool
+        const poolToUse = eligiblePool.length > 0 ? eligiblePool : EXAM_QUESTIONS;
+        const allQuestions = poolToUse.map(q => ({
+            ...q,
+            difficulty: q.difficulty || 'easy'
+        }));
         
         // Try target difficulty first
         let available = allQuestions.filter(q => q.difficulty === targetDiff && !usedIds.has(q.id));
@@ -761,20 +896,12 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
     const [step, setStep] = useState<'identity' | 'selection' | 'teorico'>('identity');
     const [applicantName, setApplicantName] = useState<string>('');
+    const [examLevel, setExamLevel] = useState<string>('Training 1');
     const [sessionPin, setSessionPin] = useState<string>('');
     const [traineeIdentity, setTraineeIdentity] = useState<TraineeIdentity | null>(null);
     const [isValidating, setIsValidating] = useState<boolean>(false);
     const [validationError, setValidationError] = useState<string>('');
-    const [questions, setQuestions] = useState<Question[]>(() => {
-        const allQuestions = EXAM_QUESTIONS.map(q => {
-            const num = parseInt(q.id.replace('q', ''), 10);
-            const difficulty: 'easy' | 'medium' | 'hard' = num > 20 ? 'hard' : num > 10 ? 'medium' : 'easy';
-            return { ...q, difficulty };
-        });
-        const easyQuestions = allQuestions.filter(q => q.difficulty === 'easy');
-        const firstQ = easyQuestions[Math.floor(Math.random() * easyQuestions.length)];
-        return [shuffleQuestionOptions(firstQ)];
-    });
+    const [questions, setQuestions] = useState<Question[]>([]);
     const [currentStep, setCurrentStep] = useState<number>(0);
     const [selectedOption, setSelectedOption] = useState<number | null>(null);
     const [isAnswered, setIsAnswered] = useState<boolean>(false);
@@ -782,6 +909,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const [isFinished, setIsFinished] = useState<boolean>(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
     const [answersLog, setAnswersLog] = useState<UserAnswerLog[]>([]);
+    const [explanationScrolled, setExplanationScrolled] = useState<boolean>(false);
 
     // ── Fase 3: tracking de duración, intentos y estado de guardado ──
     const examStartTime = React.useRef<number | null>(null);
@@ -797,18 +925,43 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
     const handleStart = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!applicantName.trim()) return;
+        const cleanedName = cleanAndFormatName(applicantName);
+        if (!cleanedName) return;
+        setApplicantName(cleanedName); // Normalize displayed name
         setValidationError('');
         setIsValidating(true);
 
         try {
+            let approvedLevels: string[] = [];
+            
             // Si hay PIN, intentamos validarlo con Supabase
             if (sessionPin.trim()) {
-                const identity = await validateAndRegisterTrainee(sessionPin, applicantName);
+                const identity = await validateAndRegisterTrainee(sessionPin, cleanedName);
                 setTraineeIdentity(identity);
                 setAttemptCount(identity.existingAttemptsCount + 1);
+                approvedLevels = identity.approvedLevels;
+            } else {
+                // Si no hay PIN, buscamos sus aprobados por nombre para validar progresión
+                approvedLevels = await getApprovedLevelsByName(cleanedName);
             }
-            // Si no hay PIN, continuamos en modo sin persistencia (modo degradado)
+
+            // Validar progresión:
+            // 1. DC requiere haber aprobado algún nivel de Training
+            if (examLevel.startsWith('DC')) {
+                const hasTraining = approvedLevels.some(l => l.startsWith('Training'));
+                if (!hasTraining) {
+                    throw new Error('Bloqueado: Debes aprobar al menos un nivel de Training antes de poder realizar exámenes de nivel DC.');
+                }
+            }
+            // 2. Customer requiere haber aprobado algún nivel de DC
+            if (examLevel.startsWith('Customer')) {
+                const hasDC = approvedLevels.some(l => l.startsWith('DC'));
+                if (!hasDC) {
+                    throw new Error('Bloqueado: Debes aprobar al menos un nivel de DC antes de poder realizar exámenes de nivel Customer.');
+                }
+            }
+
+            // Continuamos a la pantalla de selección si pasa las validaciones
             setStep('selection');
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Error desconocido.';
@@ -822,6 +975,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         if (isAnswered || !question) return;
         setSelectedOption(idx);
         setIsAnswered(true);
+        setExplanationScrolled(false); // Reset when answering
 
         const isCorrect = idx === question.correctIndex;
         if (isCorrect) setScore(prev => prev + 1);
@@ -848,6 +1002,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             setCurrentStep(prev => prev + 1);
             setSelectedOption(null);
             setIsAnswered(false);
+            setExplanationScrolled(false); // Reset when going to next question
         } else {
             // Mostrar encuesta de confianza antes de finalizar
             setShowRatingSurvey(true);
@@ -868,6 +1023,13 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         // Clonar y agregar la valoración de confianza al log de respuestas
         const finalAnswers = [
             ...answersLog,
+            {
+                questionId: 'exam_level',
+                questionText: 'Nivel del Examen',
+                isCorrect: true,
+                selectedText: examLevel,
+                correctText: ''
+            },
             {
                 questionId: 'feedback_rating',
                 questionText: '¿Qué tan seguro te sientes para resolver esta falla en el robot real ahora que usaste el simulador?',
@@ -899,14 +1061,34 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         }
     };
 
+    const startTeoricoExam = () => {
+        const pool = getQuestionsForLevel(examLevel);
+        setEligiblePool(pool);
+        
+        const easyQuestions = pool.filter(q => q.difficulty === 'easy');
+        const startPool = easyQuestions.length > 0 ? easyQuestions : pool;
+        const firstQ = startPool[Math.floor(Math.random() * startPool.length)];
+        
+        setQuestions([shuffleQuestionOptions(firstQ)]);
+        setCurrentStep(0);
+        setSelectedOption(null);
+        setIsAnswered(false);
+        setScore(0);
+        setIsFinished(false);
+        setAnswersLog([]);
+        setExplanationScrolled(false);
+        
+        examStartTime.current = Date.now();
+        setStep('teorico');
+    };
+
     const handleRetry = () => {
-        const allQuestions = EXAM_QUESTIONS.map(q => {
-            const num = parseInt(q.id.replace('q', ''), 10);
-            const difficulty: 'easy' | 'medium' | 'hard' = num > 20 ? 'hard' : num > 10 ? 'medium' : 'easy';
-            return { ...q, difficulty };
-        });
-        const easyQuestions = allQuestions.filter(q => q.difficulty === 'easy');
-        const firstQ = easyQuestions[Math.floor(Math.random() * easyQuestions.length)];
+        const pool = getQuestionsForLevel(examLevel);
+        setEligiblePool(pool);
+        
+        const easyQuestions = pool.filter(q => q.difficulty === 'easy');
+        const startPool = easyQuestions.length > 0 ? easyQuestions : pool;
+        const firstQ = startPool[Math.floor(Math.random() * startPool.length)];
         setQuestions([shuffleQuestionOptions(firstQ)]);
         setCurrentStep(0);
         setSelectedOption(null);
@@ -916,6 +1098,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setAnswersLog([]);
         setSaveStatus('idle');
         setAttemptCount(prev => prev + 1);
+        setExplanationScrolled(false);
         examStartTime.current = Date.now(); // reiniciar cronómetro
     };
 
@@ -930,7 +1113,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 questions.length,
                 percent,
                 passed,
-                answersLog
+                answersLog,
+                examLevel
             );
         } catch (error) {
             console.error('Error generando el PDF:', error);
@@ -1005,6 +1189,37 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     />
                                 </div>
 
+                                {/* Selector de Nivel */}
+                                <div className="relative">
+                                    <Award className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                                    <select
+                                        required
+                                        value={examLevel}
+                                        onChange={(e) => setExamLevel(e.target.value)}
+                                        disabled={isValidating}
+                                        className="w-full pl-10 pr-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-[#FF6A00] transition-all text-neutral-800 bg-white disabled:opacity-50 appearance-none font-medium"
+                                    >
+                                        <optgroup label="Training">
+                                            <option value="Training 1">Training 1</option>
+                                            <option value="Training 2">Training 2</option>
+                                            <option value="Training 3">Training 3</option>
+                                        </optgroup>
+                                        <optgroup label="DC">
+                                            <option value="DC 1">DC 1</option>
+                                            <option value="DC 2">DC 2</option>
+                                        </optgroup>
+                                        <optgroup label="Customer">
+                                            <option value="Customer 1">Customer 1</option>
+                                            <option value="Customer 2">Customer 2</option>
+                                        </optgroup>
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
+                                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+
                                 {/* Error de validación */}
                                 {validationError && (
                                     <div className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm animate-in fade-in duration-200">
@@ -1044,8 +1259,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-lg">
                                 <button onClick={() => {
-                                    examStartTime.current = Date.now();
-                                    setStep('teorico');
+                                    startTeoricoExam();
                                 }} className="bg-white border-2 border-neutral-200 hover:border-[#FF6A00] p-6 rounded-2xl flex flex-col items-center gap-4 transition-all hover:scale-105 group">
                                     <div className="bg-orange-50 text-[#FF6A00] w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <AlertCircle className="w-8 h-8" />
@@ -1161,9 +1375,31 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 </div>
 
                                 {isAnswered && (
-                                    <div className="mt-2 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-sm flex flex-col gap-1 animate-in fade-in duration-200">
+                                    <div 
+                                        ref={(el) => {
+                                            if (el) {
+                                                // Wait 150ms to ensure layout has rendered and clientHeight is non-zero
+                                                setTimeout(() => {
+                                                    if (el && el.clientHeight > 0) {
+                                                        if (el.scrollHeight <= el.clientHeight) {
+                                                            setExplanationScrolled(true);
+                                                        }
+                                                    }
+                                                }, 150);
+                                            }
+                                        }}
+                                        onScroll={(e) => {
+                                            const target = e.currentTarget;
+                                            // 10px tolerance for Zoom and subpixel rounding
+                                            const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 10;
+                                            if (isAtBottom) {
+                                                setExplanationScrolled(true);
+                                            }
+                                        }}
+                                        className="mt-2 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-sm flex flex-col gap-1 animate-in fade-in duration-200 max-h-24 overflow-y-auto scrollbar-thin"
+                                    >
                                         <span className="font-bold uppercase tracking-wider text-xs text-blue-600 mb-1">Explicación</span>
-                                        {question.explanation}
+                                        <p className="whitespace-pre-line leading-relaxed">{question.explanation}</p>
                                     </div>
                                 )}
                             </div>
@@ -1243,9 +1479,24 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
                 {/* Footer Controls */}
                 {step === 'teorico' && !isFinished && (
-                    <div className="bg-neutral-50 p-4 border-t border-neutral-200 shrink-0 flex justify-end">
-                        <button onClick={handleNext} disabled={!isAnswered}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${isAnswered ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'}`}>
+                    <div className="bg-neutral-50 p-4 border-t border-neutral-200 shrink-0 flex items-center justify-between gap-4">
+                        {isAnswered && !explanationScrolled ? (
+                            <span className="text-xs font-semibold text-orange-600 animate-pulse flex items-center gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                Por favor, lee la explicación completa desplazándote hacia abajo para continuar.
+                            </span>
+                        ) : (
+                            <div />
+                        )}
+                        <button 
+                            onClick={handleNext} 
+                            disabled={!isAnswered || !explanationScrolled}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shrink-0 ${
+                                isAnswered && explanationScrolled 
+                                    ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105' 
+                                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                            }`}
+                        >
                             {currentStep === questions.length - 1 ? 'Finalizar' : 'Siguiente Pregunta'}
                             <ChevronRight className="w-4 h-4" />
                         </button>

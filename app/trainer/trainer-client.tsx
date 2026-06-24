@@ -53,6 +53,14 @@ function formatDate(iso: string): string {
     });
 }
 
+function getExamLevel(r: ExamResult): string {
+    if (r.answers && Array.isArray(r.answers)) {
+        const levelObj = r.answers.find((ans: any) => ans.questionId === 'exam_level');
+        if (levelObj) return levelObj.selectedText;
+    }
+    return 'Training'; // Fallback
+}
+
 // ─── Modal Nueva Sesión ───────────────────────────────────────────────────────
 
 interface NewSessionModalProps {
@@ -352,14 +360,18 @@ export default function TrainerClient() {
 
     const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
-    // Agrupar por trainee
+    // Agrupar por trainee (consolidado por nombre normalized en minúsculas)
     const traineeMap = new Map<string, { name: string; attempts: ExamResult[] }>();
     filteredResults.forEach(r => {
         const name = r.trainees?.full_name ?? 'Sin nombre';
-        if (!traineeMap.has(r.trainee_id)) {
-            traineeMap.set(r.trainee_id, { name, attempts: [] });
+        const cleanName = name.trim();
+        const normalizedKey = cleanName.toLowerCase();
+        
+        if (!traineeMap.has(normalizedKey)) {
+            const formattedDisplay = cleanName.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            traineeMap.set(normalizedKey, { name: formattedDisplay, attempts: [] });
         }
-        traineeMap.get(r.trainee_id)!.attempts.push(r);
+        traineeMap.get(normalizedKey)!.attempts.push(r);
     });
 
     // Filtrar agrupados por estado de acreditación final
@@ -441,7 +453,8 @@ export default function TrainerClient() {
             const groupName = r.training_sessions?.name ?? 'Sin Grupo';
             
             const isSimulation = r.answers && Array.isArray(r.answers) && r.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
-            const examType = isSimulation ? 'Simulación Práctica' : 'Teórico';
+            const level = getExamLevel(r);
+            const examType = `${isSimulation ? 'Simulación Práctica' : 'Teórico'} — ${level}`;
             
             const date = new Date(r.taken_at).toLocaleString('es-MX');
             const score = r.score;
@@ -850,9 +863,10 @@ export default function TrainerClient() {
                                                                 </span>
                                                                 {(() => {
                                                                     const isSim = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                                                                    const level = getExamLevel(a);
                                                                     return (
                                                                         <span className="text-[10px] text-neutral-400 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
-                                                                            {isSim ? 'Simulación' : 'Teórico'}
+                                                                            {isSim ? 'Simulación' : 'Teórico'} — {level}
                                                                         </span>
                                                                     );
                                                                 })()}

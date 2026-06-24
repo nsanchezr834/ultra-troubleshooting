@@ -33,6 +33,53 @@ export interface TraineeIdentity {
     sessionName: string;
     trainerName: string;
     existingAttemptsCount: number;
+    approvedLevels: string[];
+}
+
+// Helper para normalizar nombres en formato Título (ej: nahum sanchez -> Nahum Sanchez)
+export function cleanAndFormatName(name: string): string {
+    return name
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+// Obtener los niveles previamente aprobados por el participante (insensible a mayúsculas/minúsculas)
+export async function getApprovedLevelsByName(fullName: string): Promise<string[]> {
+    const normalizedName = cleanAndFormatName(fullName);
+    const { data: siblingTrainees, error: siblingError } = await supabase
+        .from('trainees')
+        .select('id')
+        .ilike('full_name', normalizedName);
+
+    if (siblingError || !siblingTrainees) {
+        return [];
+    }
+
+    const siblingIds = siblingTrainees.map(t => t.id);
+    if (siblingIds.length === 0) return [];
+
+    const { data: passedExams, error: passedError } = await supabase
+        .from('exam_results')
+        .select('answers')
+        .in('trainee_id', siblingIds)
+        .eq('passed', true);
+
+    if (passedError || !passedExams) return [];
+
+    const approvedLevels: string[] = [];
+    passedExams.forEach(exam => {
+        if (exam.answers && Array.isArray(exam.answers)) {
+            const levelObj = exam.answers.find((ans: any) => ans.questionId === 'exam_level');
+            if (levelObj && levelObj.selectedText) {
+                approvedLevels.push(levelObj.selectedText);
+            }
+        }
+    });
+
+    return approvedLevels;
 }
 
 // ─── Validar PIN y registrar trainee ─────────────────────────────────────────
@@ -49,7 +96,7 @@ export async function validateAndRegisterTrainee(
     fullName: string
 ): Promise<TraineeIdentity> {
     const normalizedPin = pin.trim().toUpperCase();
-    const normalizedName = fullName.trim();
+    const normalizedName = cleanAndFormatName(fullName);
 
     // 1. Buscar la sesión activa con ese PIN
     const { data: session, error: sessionError } = await supabase
@@ -74,7 +121,7 @@ export async function validateAndRegisterTrainee(
         console.error('[training] Error al buscar trainee existente:', selectError);
     }
 
-    // Intentar buscar coincidencia exacta (sensible a mayúsculas/minúsculas), o tomar el primero si no hay coincidencia exacta
+    // Intentar buscar coincidencia exacta, o tomar el primero si no hay coincidencia exacta
     let trainee: { id: string; full_name: string } | null | undefined = existingTrainees?.find(t => t.full_name === normalizedName) || existingTrainees?.[0];
     let traineeError = null;
 
@@ -106,6 +153,9 @@ export async function validateAndRegisterTrainee(
         console.error('[training] Error al contar intentos existentes:', countError);
     }
 
+    // 4. Obtener todos los niveles aprobados históricamente por este participante
+    const approvedLevels = await getApprovedLevelsByName(normalizedName);
+
     return {
         traineeId: trainee.id,
         traineeName: trainee.full_name,
@@ -113,6 +163,7 @@ export async function validateAndRegisterTrainee(
         sessionName: session.name,
         trainerName: session.trainer,
         existingAttemptsCount: count || 0,
+        approvedLevels,
     };
 }
 

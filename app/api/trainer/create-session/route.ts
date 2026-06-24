@@ -79,7 +79,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, session: data });
     } catch (err) {
         console.error('Error en create-session:', err);
-        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ error: `Error interno del servidor: ${errMsg}` }, { status: 500 });
     }
 }
 

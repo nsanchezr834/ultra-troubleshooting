@@ -574,13 +574,35 @@ export default function TroubleshootingSearch({
               </div>
 
               {/* Protocolo de Resolución */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <span className="text-[10px] font-mono text-neutral-400 font-bold tracking-widest uppercase block">Guía de Resolución Estándar</span>
-                <div className="bg-neutral-50/50 p-5 rounded-xl border border-neutral-200/80 relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-ultra-orange"></div>
-                  <p className="text-neutral-800 text-sm leading-relaxed font-semibold pl-3">
-                    {selectedItemForModal.resolution_protocol}
-                  </p>
+                <div className="bg-neutral-50/50 p-5 rounded-3xl border border-neutral-200/80 relative overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FF6A00]"></div>
+                  <div className="space-y-3 pl-3">
+                    {selectedItemForModal.resolution_protocol.split('\n').map((stepText, stepIdx) => {
+                      const match = stepText.match(/^Paso\s+(\d+):\s*(.*)/i);
+                      if (match) {
+                        const stepNum = match[1];
+                        const stepDesc = match[2];
+                        return (
+                          <div key={stepIdx} className="flex gap-3 items-start bg-white p-3.5 rounded-2xl border border-neutral-150 shadow-2xs hover:border-[#FF6A00]/30 transition-all duration-200">
+                            <span className="w-6 h-6 rounded-full bg-[#FF6A00] text-white flex items-center justify-center text-[11px] font-black shrink-0 shadow-sm shadow-orange-500/20">
+                              {stepNum}
+                            </span>
+                            <p className="text-neutral-700 text-sm leading-relaxed font-semibold pt-0.5">
+                              {stepDesc}
+                            </p>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <p key={stepIdx} className="text-neutral-850 text-sm leading-relaxed font-semibold">
+                          {stepText}
+                        </p>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
