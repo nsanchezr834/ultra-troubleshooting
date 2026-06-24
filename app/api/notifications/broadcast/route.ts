@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'No active subscriptions found' }, { status: 200 });
         }
 
-        // 4. Formatear y Enviar Notificaciones en Paralelo
+        // 4. Formatear y Enviar Notificaciones en Paralelo con Timeout de 3 segundos
         const notificationPayload = JSON.stringify({ title, body, url });
 
         const results = await Promise.all(
@@ -89,12 +89,21 @@ export async function POST(req: NextRequest) {
                     },
                 };
 
+                // Promesa de timeout para evitar colgar la ejecución
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Push notification timeout')), 3000)
+                );
+
                 try {
-                    await webpush.sendNotification(pushSubscription, notificationPayload);
+                    await Promise.race([
+                        webpush.sendNotification(pushSubscription, notificationPayload),
+                        timeoutPromise
+                    ]);
                     return { success: true, id: sub.id };
                 } catch (err: any) {
+                    console.error(`Error sending push to subscription ${sub.id}:`, err.message);
                     // Si el dispositivo rechazó la notificación (410 Gone / 404 Not Found), la suscripción expiró
-                    if (err.statusCode === 410 || err.statusCode === 404) {
+                    if (err.statusCode === 410 || err.statusCode === 404 || err.message.includes('timeout')) {
                         await supabase
                             .from('push_subscriptions')
                             .delete()
