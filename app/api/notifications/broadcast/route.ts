@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
                             .eq('id', sub.id);
                         return { success: false, expired: true, id: sub.id };
                     }
-                    return { success: false, error: err.message, id: sub.id };
+                    return { success: false, error: `${err.statusCode || 'NO_STATUS'}: ${err.message}`, body: err.body, id: sub.id };
                 }
             })
         );
