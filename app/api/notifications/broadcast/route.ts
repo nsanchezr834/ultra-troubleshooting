@@ -116,12 +116,15 @@ export async function POST(req: NextRequest) {
 
         const succeeded = results.filter(r => r.success).length;
         const expired = results.filter(r => r.expired).length;
+        const failed = results.filter(r => !r.success && !r.expired);
 
         return NextResponse.json({
             message: 'Broadcast completed',
             total: subscriptions.length,
             sent: succeeded,
-            cleaned: expired
+            cleaned: expired,
+            errors: failed.map(f => ({ id: f.id, error: f.error })),
+            vapid_configured: !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY),
         }, { status: 200 });
 
     } catch (error: any) {
