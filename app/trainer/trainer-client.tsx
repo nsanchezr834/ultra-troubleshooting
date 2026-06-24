@@ -496,18 +496,18 @@ export default function TrainerClient() {
         const logoBase64 = await loadImageAsBase64('/ultra_logo.png');
 
         // --- PAGINA 1: Encabezado y Resumen Técnico ---
-        // Header Banner Oscuro
-        doc.setFillColor(22, 24, 32);
+        // Header Blanco
+        doc.setFillColor(255, 255, 255);
         doc.rect(0, 0, 210, 45, 'F');
         
         if (logoBase64) {
             doc.addImage(logoBase64, 'PNG', 15, 10, 40, 16);
-            doc.setTextColor(255, 255, 255);
+            doc.setTextColor(22, 24, 32); // Texto Oscuro
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(16);
             doc.text('REPORTE DE RETROALIMENTACIÓN', 60, 20);
         } else {
-            doc.setTextColor(255, 255, 255);
+            doc.setTextColor(22, 24, 32);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(18);
             doc.text('ULTRA • REPORTE DE RETROALIMENTACIÓN', 15, 22);
@@ -515,7 +515,7 @@ export default function TrainerClient() {
         
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        doc.setTextColor(200, 200, 200);
+        doc.setTextColor(80, 80, 80); // Gris Oscuro para legibilidad en fondo blanco
         doc.text('ÁREAS DE REFUERZO DETECTADAS POR EL SIMULADOR DE CAPACITACIÓN', logoBase64 ? 60 : 15, 29);
         
         // Fecha de emisión
@@ -523,12 +523,12 @@ export default function TrainerClient() {
             day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
         doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
+        doc.setTextColor(120, 120, 120);
         doc.text(`Fecha de Emisión: ${currentDate}`, logoBase64 ? 60 : 15, 36);
         
-        // Separador Naranja
+        // Separador Naranja Ultra
         doc.setFillColor(255, 79, 0);
-        doc.rect(0, 45, 210, 2, 'F');
+        doc.rect(0, 45, 210, 2.5, 'F');
         
         // Datos del Trainee
         doc.setTextColor(50, 50, 50);
