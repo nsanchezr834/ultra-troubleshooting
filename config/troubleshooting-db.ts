@@ -216,5 +216,23 @@ export const TROUBLESHOOTING_DATABASE: TroubleshootingKnowledge[] = [
     severity: "MEDIUM",
     resolution_protocol: "Paso 1: Pausar temporalmente las actividades.\nPaso 2: Registrar el incidente en el simulador seleccionando 'Other Headset Issue' en la categoría de software para alertar al equipo de soporte.\nPaso 3: Si es posible, realizar una calibración rápida de los sensores de tracking en el visor y reanudar la operación.",
     sop_reference: "SOP 4-F, Headset Troubleshoot"
+  },
+  {
+    id: "ERR-KIN-003",
+    category: "Consejos Operativos",
+    symptom: "Cómo utilizar el modo AUTO",
+    root_cause: "Si uno está en modo AUTO e interviene, es imperativo estar en la misma posición del robot en el momento que queremos intervenir presionando la letra A en el joystick.",
+    severity: "MEDIUM",
+    resolution_protocol: "Paso 1: Verifica que tu posición física coincida con la del robot en el momento de realizar la intervención.\nPaso 2: Presiona la letra A en el joystick para coordinar la posición y tomar el control de forma segura.",
+    sop_reference: "Modo AUTO"
+  },
+  {
+    id: "ERR-MEC-015",
+    category: "Consejos Operativos",
+    symptom: "Retiro correcto de etiquetas (labels) del gripper",
+    root_cause: "El mal retiro de etiquetas puede provocar que se queden adheridas al gripper o a las manos, ocasionando desesperación y mal uso de componentes como la bagger para retirarlas.",
+    severity: "MEDIUM",
+    resolution_protocol: "Paso 1: Nunca utilices la bagger u otros equipos como herramienta mecánica para raspar o quitar etiquetas adheridas.\nPaso 2: La mejor posición para quitar esas etiquetas es en la parte superior haciendo un movimiento vertical para evitar la ruptura de la etiqueta o que se quede pegada al gripper.\nPaso 3: Si no es posible retirarla de esta manera, solicita ayuda al supervisor de la estación.",
+    sop_reference: "Manejo de Etiquetas"
   }
 ];

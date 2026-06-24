@@ -46,6 +46,62 @@ const TRAINING_1_QUESTIONS: Question[] = [
         explanation: 'Visualizar el hombro del robot de forma persistente en la pantalla operativa indica que el operador está trabajando con las manos muy cerca de su pecho, forzando los límites articulares del robot, lo cual puede generar movimientos erráticos y pérdida de alineación.',
         difficulty: 'easy',
         category: 'Training 1'
+    },
+    {
+        id: 'q_t1_3',
+        question: 'Durante la preparación de tu estación de trabajo (station), ¿qué medida es indispensable tomar respecto a la alimentación eléctrica del visor o headset para evitar desconexiones o movimientos imprevistos del robot?',
+        options: [
+            'Dejar que la batería del headset se agote por completo antes de volver a conectarlo.',
+            'Asegurarse de que el visor esté conectado al cable USB-C de carga y verificar que realmente esté recibiendo corriente eléctrica.',
+            'Desconectar el cable USB-C de carga para que el visor funcione únicamente en modo inalámbrico durante todo el turno.',
+            'Conectar el cargador del headset en cualquier contacto sin importar el color o tipo de instalación.'
+        ],
+        correctIndex: 1,
+        explanation: 'Para evitar que la batería del visor se agote y provoque que el robot se desvíe o desvanezca lateralmente, es crucial comprobar que el cable USB-C esté correctamente conectado y cargando el headset.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_4',
+        question: '¿En qué tipo de contacto eléctrico se prefiere conectar el cargador del headset y por qué razón?',
+        options: [
+            'En cualquier contacto común de la estación para facilitar el acceso rápido.',
+            'En el contacto de color naranja (caída regulada), ya que está respaldado por la planta del corporativo para evitar la pérdida de conexión ante un corte de luz.',
+            'Directamente a la computadora de control mediante el cable de red.',
+            'En el contacto gris básico del laboratorio de pruebas.'
+        ],
+        correctIndex: 1,
+        explanation: 'El contacto naranja representa una línea de corriente regulada y respaldada por la planta de energía del corporativo. Conectar allí el cargador evita que el visor se apague por pérdida de energía en caso de fallas en el suministro eléctrico general.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_5',
+        question: '¿Qué componentes deben ser inspeccionados y estar correctamente conectados físicamente como parte de una preparación segura de la estación?',
+        options: [
+            'Únicamente la banda transportadora y la torre de luces.',
+            'Los pedales de control, el cable de red RJ45, el cable USB tipo C del headset y su respectivo cargador en la toma de energía asignada.',
+            'Solamente los joysticks manuales y los headsets de repuesto.',
+            'El display digital de la bagger y el regulador de presión neumática de la planta.'
+        ],
+        correctIndex: 1,
+        explanation: 'Una preparación integral y correcta de la estación exige verificar las conexiones físicas de los pedales, el cable de red para garantizar estabilidad de comunicación, y el sistema de carga del headset (tanto cable USB-C como cargador).',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_6',
+        question: '¿Qué consecuencia operativa y de seguridad puede ocurrir si el visor del operador se apaga repentinamente debido a que se agotó la batería durante una operación activa?',
+        options: [
+            'El robot entra automáticamente a su estación de mantenimiento autónomo sin afectar el entorno.',
+            'El robot se desvanece completamente hacia un lado, lo que puede provocar que tire producto, dañe la imagen frente al cliente o golpee a alguna persona en la celda.',
+            'La interfaz web simplemente muestra una advertencia de pausa, manteniendo los brazos del robot rígidos e inmóviles.',
+            'La impresora de etiquetas duplica las órdenes impresas para proteger el flujo de trabajo.'
+        ],
+        correctIndex: 1,
+        explanation: 'Si el visor se apaga por falta de batería, la pérdida instantánea del tracking hace que el robot pierda sustentación y se desvíe o desvanezca físicamente, poniendo en riesgo la integridad de los productos, la infraestructura y el personal circundante.',
+        difficulty: 'easy',
+        category: 'Training 1'
     }
 ];
 
@@ -300,6 +356,34 @@ const TRAINING_2_QUESTIONS: Question[] = [
         ],
         correctIndex: 2,
         explanation: '"Head Cam Out" se selecciona cuando la cámara principal ubicada en la cabeza del robot pierde señal o deja de transmitir video.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_19',
+        question: 'Si una etiqueta (label) se queda pegada en las pinzas (grippers) del robot o en tus manos durante el proceso de empaque, ¿cuál es la mejor manera de retirarla de forma segura?',
+        options: [
+            'Utilizar la estructura de la bagger o de la impresora para raspar y remover los restos adheridos.',
+            'Llevar las pinzas a la parte superior y realizar un movimiento vertical para evitar que la etiqueta se rompa o quede más adherida al gripper.',
+            'Frotar con fuerza una pinza contra la otra a alta velocidad para generar fricción.',
+            'Ignorar la etiqueta pegada y continuar operando, permitiendo que se adhiera al siguiente producto.'
+        ],
+        correctIndex: 1,
+        explanation: 'La mejor posición para quitar restos de etiquetas es en la parte superior realizando un movimiento vertical. Esto previene que se rompa la etiqueta y evita que quede atascada en el gripper.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_20',
+        question: 'Durante el proceso de empaque, ¿por qué se considera incorrecto raspar el gripper contra el display de la máquina bagger o la impresora de etiquetas para quitar restos de adhesivo?',
+        options: [
+            'Porque ralentiza el ciclo de empaque en la banda transportadora.',
+            'Porque puede provocar daños mecánicos severos tanto en el robot como en la bagger, además de correr el riesgo de tirar objetos periféricos como la hospital bin.',
+            'Porque las etiquetas adhesivas solo deben retirarse usando solventes químicos especiales en caliente.',
+            'No es incorrecto; cualquier superficie de la celda de trabajo es adecuada para limpiar los grippers.'
+        ],
+        correctIndex: 1,
+        explanation: 'Utilizar componentes físicos de la estación como raspadores improvisados daña los sensores, pantallas e infraestructura del robot o la embolsadora, pudiendo tirar elementos de la celda. Las etiquetas deben retirarse con la técnica vertical recomendada.',
         difficulty: 'easy',
         category: 'Training 2'
     }

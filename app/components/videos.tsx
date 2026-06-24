@@ -34,7 +34,7 @@ interface RobotVideoConfig {
 
 const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
     'fleetwood-pack': {
-        layout: 'carousel',
+        layout: 'grid',
         videos: [
             {
                 title: 'Proceso Completo — Fleetwood',
@@ -44,10 +44,18 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },
+            {
+                title: 'Mala Inserción de Producto en la Bolsa',
+                description:
+                    'Caso de estudio demostrando una mala inserción del producto en la bolsa.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Fleetwood%20_%20Bad%20package.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
+            },
         ],
     },
     'fleetwood': {
-        layout: 'carousel',
+        layout: 'grid',
         videos: [
             {
                 title: 'Proceso Completo — Fleetwood',
@@ -56,6 +64,14 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_fleetwood.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
+            },
+            {
+                title: 'Mala Inserción de Producto en la Bolsa',
+                description:
+                    'Caso de estudio demostrando una mala inserción del producto en la bolsa.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Fleetwood%20_%20Bad%20package.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
             },
         ],
     },
@@ -75,6 +91,14 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 description:
                     'La bolsa queda fuera de posición dentro de la bagger durante el proceso de embolsado, interrumpiendo el ciclo operativo.',
                 src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/falla_future.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
+            },
+            {
+                title: 'Operator and AUTO Mismatch',
+                description:
+                    '**Aquí el operador, utilizando el modo AUTO, no realizó una correcta intervención debido a su posición física.**',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Future%202.0%20_%20Operator%20&%20AUTO%20not%20matching%201_2.mp4',
                 badge: 'ERROR',
                 badgeColor: 'red',
             },
@@ -155,14 +179,6 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_tower_completo.mp4',
                 badge: 'ERROR',
                 badgeColor: 'red',
-            },
-            {
-                title: 'Gripper — Producto Grande',
-                description:
-                    'Vista desde el gripper demostrando el proceso de ingreso y manejo de un producto de gran tamaño.',
-                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Proceso%20Packie%20Grande.mp4',
-                badge: 'OPERATIVO',
-                badgeColor: 'emerald',
             },
         ],
     },

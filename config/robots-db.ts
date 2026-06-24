@@ -58,37 +58,37 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'packie-2.0__1',
                         adviceNumber: 1,
-                        content: 'Verifica las dimensiones de el producto, ya que si son muy grandes procuremos ingresarlo de forma vertical para que pueda realizar correctamente el cierre.',
+                        content: 'Verifica las dimensiones del producto, ya que si es muy grande, procura ingresarlo de forma vertical para que pueda realizar correctamente el cierre.',
                         isException: false
                     },
                     {
                         id: 'packie-2.0__2',
                         adviceNumber: 2,
-                        content: 'Si se observa que la bagger arrojo la bolsa sin que abra por el aire que emite la maquina con los grippers cerrados haz un movimiento vertical de arrib abajo para poder obligar a que entre el aire en la psosicon correcta y abra la bolsa.',
+                        content: 'Si se observa que la bagger arrojó la bolsa sin abrirse por falta de aire con los grippers cerrados, haz un movimiento vertical de arriba hacia abajo para obligar a que entre el aire en la posición correcta y abra la bolsa.',
                         isException: false
                     },
                     {
                         id: 'packie-2.0__3',
                         adviceNumber: 3,
-                        content: 'Cuando los objetos son grandes y pesados pongamos la pinza debajo de la bolsa para ayudar con el peso y facilitar el cierre.',
+                        content: 'Cuando los objetos sean grandes y pesados, coloca la pinza debajo de la bolsa para ayudar con el peso y facilitar el cierre.',
                         isException: false
                     },
                     {
                         id: 'packie-2.0__4',
                         adviceNumber: 4,
-                        content: 'Prioriza que el moviemiento de los brazos sea minimo y que el movimiento sea de el robot completamente por los espacios reducidos.',
+                        content: 'Prioriza que el movimiento de los brazos sea mínimo y que el movimiento sea del robot completamente debido a los espacios reducidos.',
                         isException: false
                     },
                     {
                         id: 'packie-2.0__5',
                         adviceNumber: 5,
-                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que realices deben ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
                     },
                     {
                         id: 'packie-2.0__6',
                         adviceNumber: 6,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
                         isException: false
                     }
                 ]
@@ -102,42 +102,55 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'future-2.0__1',
                         adviceNumber: 1,
-                        content: 'Verifica las dimensiones de el producto, ya que si son muy grandes procuremos ingresarlo de forma vertical para que pueda realizar correctamente el cierre.',
+                        content: 'Verifica las dimensiones del producto, ya que si es muy grande, procura ingresarlo de forma vertical para que pueda realizar correctamente el cierre.',
                         isException: false
                     },
                     {
                         id: 'future-2.0__2',
                         adviceNumber: 2,
-                        content: 'Si se observa que la bagger arrojo la bolsa sin que abra por el aire que emite la maquina con los grippers cerrados haz un movimiento vertical de arrib abajo para poder obligar a que entre el aire en la psosicon correcta y abra la bolsa.',
+                        content: 'Si se observa que la bagger arrojó la bolsa sin abrirse por falta de aire con los grippers cerrados, haz un movimiento vertical de arriba hacia abajo para obligar a que entre el aire en la posición correcta y abra la bolsa.',
                         isException: false
                     },
                     {
                         id: 'future-2.0__3',
                         adviceNumber: 3,
-                        content: 'Cuando los objetos son grandes y pesados pongamos la pinza debajo de la bolsa para ayudar con el peso y facilitar el cierre.',
+                        content: 'Cuando los objetos sean grandes y pesados, coloca la pinza debajo de la bolsa para ayudar con el peso y facilitar el cierre.',
                         isException: false
                     },
                     {
                         id: 'future-2.0__4',
                         adviceNumber: 4,
-                        content: 'Prioriza que el moviemiento de los brazos sea minimo y que el movimiento sea de el robot completamente por los espacios reducidos.',
+                        content: 'Prioriza que el movimiento de los brazos sea mínimo y que el movimiento sea del robot completamente debido a los espacios reducidos.',
                         isException: false
                     },
                     {
                         id: 'future-2.0__5',
                         adviceNumber: 5,
-                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que realices deben ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
                     },
                     {
                         id: 'future-2.0__6',
                         adviceNumber: 6,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
                         isException: false
                     }
                 ]
             },
-            { id: 'captain-pack-sparrow', name: 'Captain Pack Sparrow', status: 'active', faults: [] },
+            { 
+                id: 'captain-pack-sparrow', 
+                name: 'Captain Pack Sparrow', 
+                status: 'active', 
+                faults: [],
+                advises: [
+                    {
+                        id: 'captain-pack-sparrow__1',
+                        adviceNumber: 1,
+                        content: 'La mejor posición para quitar las etiquetas es en la parte superior haciendo un movimiento vertical para evitar la ruptura de la etiqueta o que se quede pegada al gripper.',
+                        isException: false
+                    }
+                ]
+            },
             { 
                 id: 'packasaurus', 
                 name: 'Packasaurus', 
@@ -147,19 +160,25 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'packasaurus__1',
                         adviceNumber: 1,
-                        content: 'se necesita agarrar la etiqueta con el brazo donde se encuentre la etiquetadora',
+                        content: 'Se necesita agarrar la etiqueta con el brazo donde se encuentre la etiquetadora.',
                         isException: false
                     },
                     {
                         id: 'packasaurus__2',
                         adviceNumber: 2,
-                        content: 'Mientras va cerrando la bolsa se le pega la etiqueta, la bagger tardara unos 10 segundos aproximadamente para terminar de cerrar la bolsa',
+                        content: 'Mientras se va cerrando la bolsa se le pega la etiqueta; la bagger tardará unos 10 segundos aproximadamente para terminar de cerrar la bolsa.',
                         isException: false
                     },
                     {
                         id: 'packasaurus__3',
                         adviceNumber: 3,
-                        content: 'Mucho cuidado al finalizar el cerrado inmediatamente sale la otra bolsa de la bagger hay que ser rapidos y precisos en estos movimientos',
+                        content: 'Mucho cuidado al finalizar el cerrado: inmediatamente sale la otra bolsa de la bagger, por lo que hay que ser rápidos y precisos en estos movimientos.',
+                        isException: false
+                    },
+                    {
+                        id: 'packasaurus__4',
+                        adviceNumber: 4,
+                        content: 'La mejor posición para quitar las etiquetas es en la parte superior haciendo un movimiento vertical para evitar la ruptura de la etiqueta o que se quede pegada al gripper.',
                         isException: false
                     }
                 ]
@@ -205,19 +224,19 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'fleetwood-pack__1',
                         adviceNumber: 1,
-                        content: 'Verifica qué workflow está activo, ya que en cierta hora cambia de Bagger a Tote. Asegúrate de estar trabajando en el modo correcto antes de iniciar.',
+                        content: 'Verifica qué workflow está activo, ya que a cierta hora cambia de Bagger a Tote. Asegúrate de estar trabajando en el modo correcto antes de iniciar.',
                         isException: false
                     },
                     {
                         id: 'fleetwood-pack__2',
                         adviceNumber: 2,
-                        content: 'Ingresa los objetos por la parte más delgada para facilitar la entrada a la bolsa y asegurar un cierre limpio.',
+                        content: 'Ingresa los objetos por la parte más delgada para facilitar su entrada a la bolsa y asegurar un cierre limpio.',
                         isException: false
                     },
                     {
                         id: 'fleetwood-pack__3',
                         adviceNumber: 3,
-                        content: 'La bin roja se ocupa exclusivamente para la basura generada durante el proceso. No mezclar con producto.',
+                        content: 'La bin roja se ocupa exclusivamente para la basura generada durante el proceso. No la mezcles con el producto.',
                         isException: false
                     },
                     {
@@ -229,13 +248,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'fleetwood-pack__5',
                         adviceNumber: 5,
-                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que realices deben ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
                     },
                     {
                         id: 'fleetwood-pack__6',
                         adviceNumber: 6,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
                         isException: false
                     }
                 ]
@@ -295,43 +314,43 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'phil__1',
                         adviceNumber: 1,
-                        content: 'Las etiquetas que tienen una letra van a ir en la bin mas lejana al robot, y las etiquetas que no tienen una letra van a ir en la bin mas cercana de el robot.',
+                        content: 'Las etiquetas que tienen una letra van en la bin más lejana al robot, y las etiquetas que no tienen letra van en la bin más cercana al robot.',
                         isException: false
                     },
                     {
                         id: 'phil__2',
                         adviceNumber: 2,
-                        content: 'Es importante escanear producto por producto siguiendo la secuencia de 1 x 1 para ingresarlos en la bolsa.',
+                        content: 'Es importante escanear producto por producto, siguiendo la secuencia de 1 a 1, antes de ingresarlos a la bolsa.',
                         isException: false
                     },
                     {
                         id: 'phil__3',
                         adviceNumber: 3,
-                        content: 'Si el tote contiene 6 productos o más se ocupa la bolsa de mayor tamaño, y si tiene 5 productos o menos se ocupa la bolsa pequeña (medida estándar).',
+                        content: 'Si el tote contiene 6 productos o más, se utiliza la bolsa de mayor tamaño; si tiene 5 productos o menos, se utiliza la bolsa pequeña (medida estándar).',
                         isException: false
                     },
                     {
                         id: 'phil__4',
                         adviceNumber: 4,
-                        content: 'Una vez terminada el tote se dejara en la parte de hasta abajo del rack.',
+                        content: 'Una vez terminado el tote, se debe dejar en la parte más baja del rack.',
                         isException: false
                     },
                     {
                         id: 'phil__5',
                         adviceNumber: 5,
-                        content: 'Cuando se tiene algun problema con la orden ya sea que no imprime la eqituqta y continua solicitando otro producto, o se tiene algun otro detalle, se ingresa todo al mismo tote y se deja en la parte de hasta arriba de el rack con todos los elementos, se levanta un pick fault, seleccionas order package y posterior a "FAIL JOB".',
+                        content: 'Cuando se presente algún problema con la orden (ya sea que no se imprima la etiqueta y continúe solicitando otro producto, o cualquier otro detalle), ingresa todo al mismo tote y déjalo en la parte superior del rack con todos los elementos. Luego, levanta un "Pick Fault", selecciona "Order Package" y posteriormente presiona "FAIL JOB".',
                         isException: true
                     },
                     {
                         id: 'phil__6',
                         adviceNumber: 6,
-                        content: 'Es tambien importante saber que si el tote contiene una etiqueta no se olvide ingresarla tambien en el sobre bolsa.',
+                        content: 'También es importante recordar que si el tote contiene una etiqueta, esta debe ingresarse dentro del sobre-bolsa.',
                         isException: false
                     },
                     {
                         id: 'phil__7',
                         adviceNumber: 7,
-                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que realices deben ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
                     }
                 ]
@@ -429,19 +448,19 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'mabel__1',
                         adviceNumber: 1,
-                        content: 'Presiona el botón verde de la máquina que se encuentra en la esquina inferior derecha para proceder con el cerrado de la bolsa.',
+                        content: 'Presiona el botón verde de la máquina, ubicado en la esquina inferior derecha, para proceder con el cerrado de la bolsa.',
                         isException: false
                     },
                     {
                         id: 'mabel__2',
                         adviceNumber: 2,
-                        content: 'Ingresa el producto por la parte más delgada para evitar forzar la bolsa.',
+                        content: 'Ingresa el producto por su parte más delgada para evitar forzar la bolsa.',
                         isException: false
                     },
                     {
                         id: 'mabel__3',
                         adviceNumber: 3,
-                        content: 'Verifica en más de una ocasión cuál es la cantidad de productos a ingresar.',
+                        content: 'Verifica más de una vez la cantidad de productos a ingresar.',
                         isException: false
                     }
                 ]
@@ -455,19 +474,19 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'monty__1',
                         adviceNumber: 1,
-                        content: 'Presiona el botón verde de la máquina que se encuentra en la esquina inferior derecha para proceder con el cerrado de la bolsa.',
+                        content: 'Presiona el botón verde de la máquina, ubicado en la esquina inferior derecha, para proceder con el cerrado de la bolsa.',
                         isException: false
                     },
                     {
                         id: 'monty__2',
                         adviceNumber: 2,
-                        content: 'Ingresa el producto por la parte más delgada para evitar forzar la bolsa.',
+                        content: 'Ingresa el producto por su parte más delgada para evitar forzar la bolsa.',
                         isException: false
                     },
                     {
                         id: 'monty__3',
                         adviceNumber: 3,
-                        content: 'Verifica en más de una ocasión cuál es la cantidad de productos a ingresar.',
+                        content: 'Verifica más de una vez la cantidad de productos a ingresar.',
                         isException: false
                     }
                 ]
@@ -478,9 +497,66 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
         id: 'internal',
         name: 'Internal',
         robots: [
-            { id: 'box-fold',           name: 'Box Fold',           status: 'active', faults: [] },
-            { id: 'tower-stack-unstack',name: 'Tower Stack/Unstack', status: 'active', faults: [] },
-            { id: 'pick-sort',          name: 'Pick Sort',          status: 'active', faults: [] },
+            {
+                id: 'box-fold',
+                name: 'Box Fold',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'box-fold__1',
+                        adviceNumber: 1,
+                        content: 'Procura soltar las dos pestañas al mismo tiempo para agilizar el armado.',
+                        isException: false
+                    },
+                    {
+                        id: 'box-fold__2',
+                        adviceNumber: 2,
+                        content: 'Voltea la caja de un solo movimiento sin soltar los grippers del lado izquierdo.',
+                        isException: false
+                    }
+                ]
+            },
+            {
+                id: 'tower-stack-unstack',
+                name: 'Tower Stack/Unstack',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'tower-stack-unstack__1',
+                        adviceNumber: 1,
+                        content: 'Intenta meter los anillos de lado para que el brazo no te obstruya la vista.',
+                        isException: false
+                    },
+                    {
+                        id: 'tower-stack-unstack__2',
+                        adviceNumber: 2,
+                        content: 'Confirma con el pedal la secuencia de manera correcta: apilado/desapilado.',
+                        isException: false
+                    },
+                    {
+                        id: 'tower-stack-unstack__3',
+                        adviceNumber: 3,
+                        content: 'Utiliza los dos brazos para apilar y para desapilar.',
+                        isException: false
+                    }
+                ]
+            },
+            {
+                id: 'pick-sort',
+                name: 'Pick Sort',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'pick-sort__1',
+                        adviceNumber: 1,
+                        content: 'Utiliza la mano derecha para alcanzar los objetos más alejados y pásalos a la mano izquierda para ingresarlos a la bin.',
+                        isException: false
+                    }
+                ]
+            },
             { id: 'tote',               name: 'Tote',               status: 'active', faults: [] },
             {
                 id: 'bagger-label',
@@ -491,7 +567,37 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'bagger-label__1',
                         adviceNumber: 1,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jalen la barra hacia sí mismo y posterior, con el gripper de la mano derecha cerrado, presionen la pantalla del display de la máquina de bagger para quitar el error. Posteriormente, con los pedales se confirma el cerrado para que la máquina alcance a reaccionar correctamente (si vuelve a dar fallo de cerrado, usar el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Verifica las dimensiones del producto, ya que si es muy grande, procura ingresarlo de forma vertical para que pueda realizar correctamente el cierre.',
+                        isException: false
+                    },
+                    {
+                        id: 'bagger-label__2',
+                        adviceNumber: 2,
+                        content: 'Si se observa que la bagger arrojó la bolsa sin abrirse por falta de aire con los grippers cerrados, haz un movimiento vertical de arriba hacia abajo para obligar a que entre el aire en la posición correcta y abra la bolsa.',
+                        isException: false
+                    },
+                    {
+                        id: 'bagger-label__3',
+                        adviceNumber: 3,
+                        content: 'Cuando los objetos sean grandes y pesados, coloca la pinza debajo de la bolsa para ayudar con el peso y facilitar el cierre.',
+                        isException: false
+                    },
+                    {
+                        id: 'bagger-label__4',
+                        adviceNumber: 4,
+                        content: 'Prioriza que el movimiento de los brazos sea mínimo y que el movimiento sea del robot completamente debido a los espacios reducidos.',
+                        isException: false
+                    },
+                    {
+                        id: 'bagger-label__5',
+                        adviceNumber: 5,
+                        content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que realices deben ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        isException: false
+                    },
+                    {
+                        id: 'bagger-label__6',
+                        adviceNumber: 6,
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
                         isException: false
                     }
                 ]
