@@ -1207,7 +1207,10 @@ export default function TrainerClient() {
                                                 <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Nivel (Categoría)</label>
                                                 <select
                                                     value={editingQuestion.difficulty || 'Training 1'}
-                                                    onChange={e => setEditingQuestion(prev => ({ ...prev, difficulty: e.target.value as any }))}
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        setEditingQuestion(prev => prev ? ({ ...prev, difficulty: val }) : null);
+                                                    }}
                                                     className="bg-neutral-900 border border-neutral-700 text-sm text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#ff4f00] transition-all cursor-pointer"
                                                 >
                                                     <option value="Training 1">Training 1</option>
