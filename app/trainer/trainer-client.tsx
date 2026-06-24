@@ -52,6 +52,21 @@ interface DBQuestion {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+async function loadImageAsBase64(url: string): Promise<string | null> {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    } catch {
+        return null;
+    }
+}
+
 function formatDuration(sec: number | null): string {
     if (!sec) return '—';
     const m = Math.floor(sec / 60);
@@ -462,33 +477,38 @@ export default function TrainerClient() {
     const commonFaults = getCommonFaults().slice(0, 5);
 
     // 📄 GENERAR PDF DE RETROALIMENTACIÓN PARA ÁREAS DE REFUERZO (jsPDF)
-    const handleGenerateFeedbackPDF = (traineeName: string, attempts: ExamResult[]) => {
+    const handleGenerateFeedbackPDF = async (traineeName: string, attempts: ExamResult[]) => {
         const doc = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
             format: 'a4'
         });
 
-        // 🎨 Paleta de colores Premium
-        const primaryColor = [255, 79, 0]; // Naranja Ultra
-        const darkBg = [22, 24, 32];
-        const textColor = [255, 255, 255];
-        const lightGray = [240, 242, 245];
-        
+        // Intentar cargar el logo de Ultra
+        const logoBase64 = await loadImageAsBase64('/ultra_logo.png');
+
         // --- PAGINA 1: Encabezado y Resumen Técnico ---
         // Header Banner Oscuro
         doc.setFillColor(22, 24, 32);
         doc.rect(0, 0, 210, 45, 'F');
         
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(22);
-        doc.text('ULTRA PLATFORM', 15, 20);
+        if (logoBase64) {
+            doc.addImage(logoBase64, 'PNG', 15, 10, 40, 16);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('REPORTE DE RETROALIMENTACIÓN', 60, 20);
+        } else {
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('ULTRA • REPORTE DE RETROALIMENTACIÓN', 15, 22);
+        }
         
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setTextColor(200, 200, 200);
-        doc.text('REPORTE INDIVIDUAL DE RETROALIMENTACIÓN Y ÁREAS DE REFUERZO', 15, 27);
+        doc.text('ÁREAS DE REFUERZO DETECTADAS POR EL SIMULADOR DE CAPACITACIÓN', logoBase64 ? 60 : 15, 29);
         
         // Fecha de emisión
         const currentDate = new Date().toLocaleDateString('es-MX', {
@@ -496,7 +516,7 @@ export default function TrainerClient() {
         });
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
-        doc.text(`Fecha de Emisión: ${currentDate}`, 15, 35);
+        doc.text(`Fecha de Emisión: ${currentDate}`, logoBase64 ? 60 : 15, 36);
         
         // Separador Naranja
         doc.setFillColor(255, 79, 0);
@@ -505,33 +525,66 @@ export default function TrainerClient() {
         // Datos del Trainee
         doc.setTextColor(50, 50, 50);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
-        doc.text('Información General del Participante', 15, 60);
+        doc.setFontSize(13);
+        doc.text('Información General del Participante', 15, 58);
         
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.text(`Nombre completo: ${traineeName}`, 15, 68);
+        doc.setFontSize(9.5);
+        doc.text(`Nombre completo: ${traineeName}`, 15, 65);
         
         const totalIntentos = attempts.length;
         const bestScore = Math.max(...attempts.map(a => a.percentage));
         const passed = attempts.some(a => a.passed);
         
-        doc.text(`Total de intentos registrados: ${totalIntentos}`, 15, 74);
-        doc.text(`Mejor porcentaje alcanzado: ${bestScore}%`, 15, 80);
+        doc.text(`Total de intentos registrados: ${totalIntentos}`, 15, 71);
+        doc.text(`Mejor porcentaje alcanzado: ${bestScore}%`, 15, 77);
+
+        // Desglose de qué exámenes aprobó o no aprobó con sus respectivos niveles y si cuenta con simulaciones
+        const theoryAttempts = attempts.filter(a => {
+            const isSimulation = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+            return !isSimulation;
+        });
+        const simAttempts = attempts.filter(a => {
+            const isSimulation = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+            return isSimulation;
+        });
+        
+        const approvedTheoryLevels = Array.from(new Set(theoryAttempts.filter(a => a.passed).map(a => getExamLevel(a))));
+        const pendingTheoryLevels = Array.from(new Set(theoryAttempts.filter(a => !a.passed).map(a => getExamLevel(a))));
+        
+        const approvedSimLevels = Array.from(new Set(simAttempts.filter(a => a.passed).map(a => getExamLevel(a))));
+        const pendingSimLevels = Array.from(new Set(simAttempts.filter(a => !a.passed).map(a => getExamLevel(a))));
+
+        const hasSimExercise = simAttempts.length > 0;
+        
+        doc.text(`¿Realizó ejercicio de Simulación Práctica?: ${hasSimExercise ? `SÍ (${simAttempts.length} intento/s)` : 'NO'}`, 15, 83);
+
+        // Estado de aprobación y niveles
+        let accreditationText = '';
+        if (passed) {
+            const approvedLevels = Array.from(new Set(attempts.filter(a => a.passed).map(a => getExamLevel(a))));
+            accreditationText = `Aprobado en nivel/es: ${approvedLevels.join(', ')}`;
+        } else {
+            const pendingLevels = Array.from(new Set(attempts.map(a => getExamLevel(a))));
+            accreditationText = `Pendiente en nivel/es: ${pendingLevels.join(', ')}`;
+        }
         
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(passed ? 16 : 239, passed ? 185 : 68, passed ? 129 : 68);
-        doc.text(`Estado de Acreditación Técnico: ${passed ? 'APROBADO ✓' : 'PENDIENTE DE APROBACIÓN ✗'}`, 15, 87);
-        
+        doc.setTextColor(passed ? [16, 185, 129] as any : [239, 68, 68] as any);
+        doc.text(`Estado General: ${passed ? '✓ APROBADO' : '✗ PENDIENTE DE APROBACIÓN'}`, 15, 89);
+        doc.setFontSize(9);
+        doc.text(accreditationText, 15, 94);
+
         // Caja de Alerta si requiere refuerzo urgente
+        doc.setTextColor(50, 50, 50);
         if (totalIntentos >= 3 && !passed) {
             doc.setFillColor(254, 243, 199); // Amarillo claro
             doc.setDrawColor(245, 158, 11);
-            doc.rect(15, 93, 180, 15, 'FD');
+            doc.rect(15, 100, 180, 14, 'FD');
             doc.setTextColor(180, 83, 9);
             doc.setFontSize(8.5);
-            doc.text('ATENCIÓN: Este participante ha fallado 3 o más intentos. Es imperativo revisar las sugerencias de', 20, 99);
-            doc.text('estudio y videos de soporte abajo detallados antes de permitirle realizar una nueva evaluación.', 20, 103);
+            doc.text('ATENCIÓN: Este participante ha fallado 3 o más intentos. Es imperativo revisar las sugerencias de', 20, 105);
+            doc.text('estudio y videos de soporte abajo detallados antes de permitirle realizar una nueva evaluación.', 20, 109);
         }
         
         // --- SECCIÓN: Análisis de Preguntas Falladas y Sugerencias de Estudio ---
