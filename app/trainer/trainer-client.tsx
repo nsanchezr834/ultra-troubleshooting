@@ -267,6 +267,16 @@ export default function TrainerClient() {
     const [examTypeFilter, setExamTypeFilter] = useState<'all' | 'theory' | 'simulation'>('all');
     const [categoryFilter, setCategoryFilter] = useState<'all' | 'Training 1' | 'Training 2' | 'Training 3' | 'DC' | 'Customer'>('all');
 
+    // Acordeón de alumnos: IDs de alumnos expandidos
+    const [expandedTraineeIds, setExpandedTraineeIds] = useState<Record<string, boolean>>({});
+
+    const toggleTraineeExpanded = (traineeId: string) => {
+        setExpandedTraineeIds(prev => ({
+            ...prev,
+            [traineeId]: !prev[traineeId]
+        }));
+    };
+
     const formatDurationMinutes = (sec: number | null): string => {
         if (!sec) return '—';
         const m = Math.floor(sec / 60);
@@ -1632,9 +1642,14 @@ export default function TrainerClient() {
                                             return { ...a, categorizedIndex: index, isSim };
                                         });
 
+                                        const isExpanded = !!expandedTraineeIds[traineeId];
+
                                         return (
                                             <div key={traineeId} className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded-2xl overflow-hidden shadow-lg hover:border-white/[0.08] transition-all duration-305">
-                                                <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
+                                                <div 
+                                                    onClick={() => toggleTraineeExpanded(traineeId)}
+                                                    className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-white/[0.01] transition-colors select-none"
+                                                >
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ${
                                                             passedBoth ? 'bg-emerald-500/10 text-emerald-400' : passedOnlyOne ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'
@@ -1644,7 +1659,10 @@ export default function TrainerClient() {
                                                         <div>
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 <button
-                                                                    onClick={() => setAnalyzingTrainee({ name, attempts: attemptsWithCategorizedIndexes })}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setAnalyzingTrainee({ name, attempts: attemptsWithCategorizedIndexes });
+                                                                    }}
                                                                     className="text-sm font-bold text-white hover:text-[#ff4f00] flex items-center gap-2 text-left transition-colors cursor-pointer"
                                                                     title="Ver análisis y reporte PDF de este alumno"
                                                                 >
@@ -1704,30 +1722,36 @@ export default function TrainerClient() {
                                                             })()}
                                                         </div>
                                                         <button
-                                                            onClick={() => handleDeleteTrainee(traineeId, name)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteTrainee(traineeId, name);
+                                                            }}
                                                             className="p-2 text-neutral-500 hover:text-red-400 hover:bg-white/5 rounded-xl transition-all cursor-pointer"
                                                             title="Eliminar este alumno permanentemente"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
+                                                        <ChevronDown className={`w-4 h-4 text-neutral-550 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                                                     </div>
                                                 </div>
 
-                                                <div className="px-5 py-4">
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-600 mb-3">Progresión de intentos</p>
-                                                    <div className="flex items-end gap-2 h-16">
-                                                        {attemptsWithCategorizedIndexes.map((a) => (
-                                                            <div key={a.id} className="flex flex-col items-center gap-1 flex-1 min-w-0 group cursor-default" title={`Intento ${a.isSim ? 'Práctico' : 'Teórico'} #${a.categorizedIndex}: ${a.percentage}%`}>
-                                                                <span className="text-[9px] text-neutral-500 font-bold group-hover:text-white transition-colors">{a.percentage}%</span>
-                                                                <div
-                                                                    className={`w-full rounded-t transition-all group-hover:opacity-80 ${a.passed ? 'bg-emerald-500' : a.percentage >= 60 ? 'bg-amber-500' : 'bg-[#ff4f00]'}`}
-                                                                    style={{ height: `${Math.max(4, (a.percentage / 100) * 40)}px` }}
-                                                                />
-                                                                <span className="text-[9px] text-neutral-700">#{a.categorizedIndex}</span>
+                                                {isExpanded && (
+                                                    <>
+                                                        <div className="border-t border-white/[0.04] px-5 py-4">
+                                                            <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-600 mb-3">Progresión de intentos</p>
+                                                            <div className="flex items-end gap-2 h-16">
+                                                                {attemptsWithCategorizedIndexes.map((a) => (
+                                                                    <div key={a.id} className="flex flex-col items-center gap-1 flex-1 min-w-0 group cursor-default" title={`Intento ${a.isSim ? 'Práctico' : 'Teórico'} #${a.categorizedIndex}: ${a.percentage}%`}>
+                                                                        <span className="text-[9px] text-neutral-500 font-bold group-hover:text-white transition-colors">{a.percentage}%</span>
+                                                                        <div
+                                                                            className={`w-full rounded-t transition-all group-hover:opacity-80 ${a.passed ? 'bg-emerald-500' : a.percentage >= 60 ? 'bg-amber-500' : 'bg-[#ff4f00]'}`}
+                                                                            style={{ height: `${Math.max(4, (a.percentage / 100) * 40)}px` }}
+                                                                        />
+                                                                        <span className="text-[9px] text-neutral-700">#{a.categorizedIndex}</span>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                                        </div>
 
                                                 {last && (
                                                     <div className="px-5 pb-4 flex flex-wrap gap-4 text-[11px] text-neutral-500">
@@ -1918,6 +1942,8 @@ export default function TrainerClient() {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                </>
+                                                )}
                                             </div>
                                         );
                                     })}
