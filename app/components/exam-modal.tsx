@@ -523,6 +523,7 @@ interface UserAnswerLog {
     isCorrect: boolean;
     selectedText: string;
     correctText: string;
+    timeSpentSeconds?: number;
 }
 
 // ─── Helper: wrap text and return lines ───────────────────────────────────────
@@ -913,6 +914,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
     // ── Fase 3: tracking de duración, intentos y estado de guardado ──
     const examStartTime = React.useRef<number | null>(null);
+    const questionStartTime = React.useRef<number | null>(null);
     const [attemptCount, setAttemptCount] = useState<number>(1);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [showRatingSurvey, setShowRatingSurvey] = useState(false);
@@ -980,6 +982,10 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         const isCorrect = idx === question.correctIndex;
         if (isCorrect) setScore(prev => prev + 1);
 
+        const timeSpentSeconds = questionStartTime.current
+            ? Math.round((Date.now() - questionStartTime.current) / 1000)
+            : 0;
+
         setAnswersLog(prev => [
             ...prev,
             {
@@ -987,7 +993,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 questionText: question.question,
                 isCorrect,
                 selectedText: question.options[idx],
-                correctText: question.options[question.correctIndex]
+                correctText: question.options[question.correctIndex],
+                timeSpentSeconds
             }
         ]);
 
@@ -1003,6 +1010,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             setSelectedOption(null);
             setIsAnswered(false);
             setExplanationScrolled(false); // Reset when going to next question
+            questionStartTime.current = Date.now();
         } else {
             // Mostrar encuesta de confianza antes de finalizar
             setShowRatingSurvey(true);
@@ -1079,6 +1087,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setExplanationScrolled(false);
 
         examStartTime.current = Date.now();
+        questionStartTime.current = Date.now();
         setStep('teorico');
     };
 
@@ -1100,6 +1109,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setAttemptCount(prev => prev + 1);
         setExplanationScrolled(false);
         examStartTime.current = Date.now(); // reiniciar cronómetro
+        questionStartTime.current = Date.now();
     };
 
     const handleDownloadPDF = async () => {

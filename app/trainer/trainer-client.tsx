@@ -219,6 +219,10 @@ export default function TrainerClient() {
     const [showNewSession, setShowNewSession] = useState(false);
     const [closingSession, setClosingSession] = useState(false);
     const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
+    const [analyzingTrainee, setAnalyzingTrainee] = useState<{
+        name: string;
+        attempts: any[];
+    } | null>(null);
     const [selectedFaultDetail, setSelectedFaultDetail] = useState<{
         questionText: string;
         correctText: string;
@@ -432,6 +436,145 @@ export default function TrainerClient() {
     };
 
     const commonFaults = getCommonFaults();
+
+    const renderAnalysisModal = () => {
+        if (!analyzingTrainee) return null;
+
+        const { name, attempts } = analyzingTrainee;
+
+        const questionStats: Record<string, {
+            questionText: string;
+            times: number[];
+            correctCount: number;
+            totalCount: number;
+            lastCorrect: boolean;
+            isSim: boolean;
+        }> = {};
+
+        attempts.forEach(a => {
+            if (a.answers && Array.isArray(a.answers)) {
+                const isSim = a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                a.answers.forEach((ans: any) => {
+                    if (ans.questionId === 'exam_level' || ans.questionId === 'feedback_rating') return;
+                    if (typeof ans.timeSpentSeconds === 'number') {
+                        const key = ans.questionText || ans.questionId;
+                        if (!questionStats[key]) {
+                            questionStats[key] = {
+                                questionText: ans.questionText,
+                                times: [],
+                                correctCount: 0,
+                                totalCount: 0,
+                                lastCorrect: ans.isCorrect,
+                                isSim
+                            };
+                        }
+                        questionStats[key].times.push(ans.timeSpentSeconds);
+                        questionStats[key].totalCount += 1;
+                        if (ans.isCorrect) {
+                            questionStats[key].correctCount += 1;
+                        }
+                        questionStats[key].lastCorrect = ans.isCorrect;
+                    }
+                });
+            }
+        });
+
+        const sortedQuestions = Object.values(questionStats)
+            .map(q => {
+                const avgTime = q.times.reduce((sum, t) => sum + t, 0) / q.times.length;
+                return { ...q, avgTime };
+            })
+            .sort((a, b) => b.avgTime - a.avgTime);
+
+        const questionsWithTimes = sortedQuestions.filter(q => q.avgTime > 0);
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-[#161820] border border-neutral-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 bg-neutral-900/50 shrink-0">
+                        <div>
+                            <h2 className="font-black text-white text-base">Análisis de Dudas y Tiempos</h2>
+                            <p className="text-xs text-[#ff4f00] font-bold mt-0.5">{name}</p>
+                        </div>
+                        <button onClick={() => setAnalyzingTrainee(null)} className="text-neutral-500 hover:text-white transition-colors p-1 rounded-full hover:bg-neutral-800">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="p-6 overflow-y-auto flex flex-col gap-6">
+                        {questionsWithTimes.length === 0 ? (
+                            <div className="text-center py-8 text-neutral-500">
+                                <Clock className="w-10 h-10 mx-auto mb-3 text-neutral-700" />
+                                <p className="font-bold text-sm">Sin datos de tiempo por pregunta</p>
+                                <p className="text-xs text-neutral-600 mt-1 max-w-xs mx-auto">
+                                    Los intentos cargados no tienen registro de tiempo por pregunta o son anteriores a la actualización.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <div>
+                                    <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">Preguntas con Mayor Tiempo de Respuesta</h3>
+                                    <div className="flex flex-col gap-4">
+                                        {questionsWithTimes.slice(0, 3).map((q, idx) => {
+                                            const isWrong = !q.lastCorrect;
+                                            let severityColor = "bg-amber-500/10 border-amber-500/20 text-amber-400";
+                                            let advice = "";
+
+                                            if (isWrong) {
+                                                severityColor = "bg-red-500/10 border-red-500/20 text-red-400";
+                                                advice = "🔴 Alto riesgo de duda conceptual: El alumno pasó mucho tiempo analizando esta pregunta y su última respuesta fue incorrecta. Se sugiere repasar este tema con el participante.";
+                                            } else if (q.avgTime > 15) {
+                                                severityColor = "bg-yellow-500/10 border-yellow-500/20 text-yellow-400";
+                                                advice = "🟡 Posible inseguridad: El alumno respondió correctamente, pero le tomó bastante tiempo decidirse. Puede que dude o no esté 100% seguro del concepto.";
+                                            } else {
+                                                advice = "🟢 Proceso normal: El alumno domina este concepto aunque le tomó un momento leerlo.";
+                                            }
+
+                                            return (
+                                                <div key={idx} className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4 flex flex-col gap-3">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <span className="text-xs font-black text-[#ff4f00]">Top {idx + 1}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] text-neutral-400 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
+                                                                {q.isSim ? 'Simulación' : 'Teórico'}
+                                                            </span>
+                                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${severityColor}`}>
+                                                                Tiempo prom: {Math.round(q.avgTime)}s
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-sm font-bold text-white leading-relaxed">{q.questionText}</p>
+                                                    <div className="text-xs text-neutral-400 bg-neutral-950/40 p-2.5 rounded border border-neutral-800/80">
+                                                        <p className="font-medium mb-1">
+                                                            Precisión histórica: <span className={q.correctCount === q.totalCount ? 'text-emerald-400 font-bold' : 'text-neutral-300'}>{q.correctCount}/{q.totalCount} aciertos</span>
+                                                        </p>
+                                                        <p className="text-[11px] leading-relaxed text-neutral-500 mt-1.5">{advice}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-neutral-800 pt-4">
+                                    <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2">Recomendación General</h3>
+                                    <p className="text-xs text-neutral-400 leading-relaxed bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+                                        Analizar las preguntas donde el trainee se tarda más tiempo permite identificar temas específicos que le causan confusión o inseguridad en la toma de decisiones, incluso si al final responde de manera correcta. Agenda una sesión corta de retroalimentación enfocándose en los conceptos resaltados arriba.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="bg-neutral-900/50 border-t border-neutral-800 px-6 py-4 flex justify-end shrink-0">
+                        <button onClick={() => setAnalyzingTrainee(null)} className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold px-5 py-2 rounded-xl transition-all text-xs">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     // Exportar datos filtrados a CSV para Google Sheets
     const handleExportCSV = () => {
@@ -772,8 +915,15 @@ export default function TrainerClient() {
                                                 {name.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-bold white flex items-center gap-2">
-                                                    {name}
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setAnalyzingTrainee({ name, attempts: attemptsWithCategorizedIndexes })}
+                                                        className="text-sm font-bold text-white hover:text-[#ff4f00] flex items-center gap-2 text-left transition-colors cursor-pointer"
+                                                        title="Hacer clic para ver análisis de tiempos y dudas de este alumno"
+                                                    >
+                                                        {name}
+                                                        <BarChart3 className="w-3.5 h-3.5 text-neutral-500 hover:text-[#ff4f00] shrink-0" />
+                                                    </button>
                                                     {needsAttention && (
                                                         <span 
                                                             className="flex items-center gap-1 text-[9px] font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md animate-pulse"
@@ -783,9 +933,11 @@ export default function TrainerClient() {
                                                             Requiere Atención
                                                         </span>
                                                     )}
-                                                </p>
+                                                </div>
                                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
-                                                    <p className="text-[11px] text-neutral-500">{attempts.length} intento{attempts.length !== 1 ? 's' : ''}</p>
+                                                    <p className="text-[11px] text-neutral-500">
+                                                        {attemptsWithCategorizedIndexes.filter(a => !a.isSim).length} teóricos • {attemptsWithCategorizedIndexes.filter(a => a.isSim).length} simulados
+                                                    </p>
                                                     {selectedSessionId === 'all' && last?.training_sessions?.name && (
                                                         <>
                                                             <span className="text-neutral-700">•</span>
@@ -805,7 +957,13 @@ export default function TrainerClient() {
                                             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
                                                 passed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
                                             }`}>
-                                                {passed ? '✓ Aprobado' : '✗ Pendiente'}
+                                                {(() => {
+                                                    if (!passed) return '✗ Pendiente';
+                                                    const approvedLevelsList = Array.from(new Set(
+                                                        attempts.filter(a => a.passed).map(a => getExamLevel(a))
+                                                    ));
+                                                    return `✓ Aprobado: ${approvedLevelsList.join(', ')}`;
+                                                })()}
                                             </div>
                                         </div>
                                     </div>
@@ -849,83 +1007,174 @@ export default function TrainerClient() {
                                         </div>
                                     )}
 
-                                    {/* Desglose por Intento (Preguntas correctas e incorrectas) */}
-                                    <div className="px-5 py-3 border-t border-neutral-800/50 bg-neutral-950/20">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">Respuestas por intento</p>
-                                        <div className="flex flex-col gap-2">
-                                            {attemptsWithCategorizedIndexes.map((a) => {
-                                                const isExpanded = expandedAttemptId === a.id;
-                                                return (
-                                                    <div key={a.id} className="border border-neutral-800 rounded-xl overflow-hidden bg-neutral-900/40">
-                                                        <button
-                                                            onClick={() => setExpandedAttemptId(isExpanded ? null : a.id)}
-                                                            className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-neutral-800/40 transition-colors text-left"
-                                                        >
-                                                            <div className="flex items-center gap-3.5">
-                                                                <span className="text-xs font-bold text-neutral-400">Intento #{a.categorizedIndex}</span>
-                                                                <span className={`text-xs font-black px-2 py-0.5 rounded ${
-                                                                    a.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                                                                }`}>
-                                                                    {a.percentage}%
-                                                                </span>
-                                                                <span className="text-[11px] text-neutral-500 hidden sm:inline">
-                                                                    ({a.score}/{a.max_score} aciertos)
-                                                                </span>
-                                                                {(() => {
-                                                                    const isSim = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
-                                                                    const level = getExamLevel(a);
-                                                                    return (
-                                                                        <span className="text-[10px] text-neutral-400 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
-                                                                            {isSim ? 'Simulación' : 'Teórico'} — {level}
+                                    {/* Desglose por Intento (Preguntas correctas e incorrectas divididas) */}
+                                    <div className="px-5 py-4 border-t border-neutral-800/50 bg-neutral-950/20 flex flex-col gap-5">
+                                        {/* Listado de Intentos Teóricos */}
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">Intentos Teóricos</p>
+                                            <div className="flex flex-col gap-2">
+                                                {attemptsWithCategorizedIndexes.filter(a => !a.isSim).length === 0 ? (
+                                                    <p className="text-xs text-neutral-600 italic py-1">No se registran intentos teóricos.</p>
+                                                ) : (
+                                                    attemptsWithCategorizedIndexes.filter(a => !a.isSim).map((a) => {
+                                                        const isExpanded = expandedAttemptId === a.id;
+                                                        return (
+                                                            <div key={a.id} className="border border-neutral-800 rounded-xl overflow-hidden bg-neutral-900/40">
+                                                                <button
+                                                                    onClick={() => setExpandedAttemptId(isExpanded ? null : a.id)}
+                                                                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-neutral-800/40 transition-colors text-left"
+                                                                >
+                                                                    <div className="flex items-center gap-3.5">
+                                                                        <span className="text-xs font-bold text-neutral-400">Intento #{a.categorizedIndex}</span>
+                                                                        <span className={`text-xs font-black px-2 py-0.5 rounded ${
+                                                                            a.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                                                                        }`}>
+                                                                            {a.percentage}%
                                                                         </span>
-                                                                    );
-                                                                })()}
-                                                                <span className="text-xs text-neutral-600">
-                                                                    {formatDuration(a.duration_sec)}
-                                                                </span>
-                                                                {selectedSessionId === 'all' && a.training_sessions?.name && (
-                                                                    <span className="text-[10px] text-neutral-500 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
-                                                                        {a.training_sessions.name}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="text-[11px] text-neutral-600 hidden md:inline">
-                                                                    {formatDate(a.taken_at)}
-                                                                </span>
-                                                                <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                                            </div>
-                                                        </button>
+                                                                        <span className="text-[11px] text-neutral-500 hidden sm:inline">
+                                                                            ({a.score}/{a.max_score} aciertos)
+                                                                        </span>
+                                                                        {(() => {
+                                                                            const level = getExamLevel(a);
+                                                                            return (
+                                                                                <span className="text-[10px] text-neutral-400 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
+                                                                                    Teórico — {level}
+                                                                                </span>
+                                                                            );
+                                                                        })()}
+                                                                        <span className="text-xs text-neutral-600">
+                                                                            {formatDuration(a.duration_sec)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="text-[11px] text-neutral-600 hidden md:inline">
+                                                                            {formatDate(a.taken_at)}
+                                                                        </span>
+                                                                        <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                                    </div>
+                                                                </button>
 
-                                                        {isExpanded && (
-                                                            <div className="px-4 pb-4 pt-2 border-t border-neutral-800 bg-[#0d0e12]/60 flex flex-col gap-3">
-                                                                {a.answers && Array.isArray(a.answers) && a.answers.length > 0 ? (
-                                                                    a.answers.map((ans: any, qIdx: number) => (
-                                                                        <div key={ans.questionId || qIdx} className="text-xs border-b border-neutral-800/40 pb-2.5 last:border-0 last:pb-0">
-                                                                            <p className="font-bold text-neutral-300 mb-1">
-                                                                                {qIdx + 1}. {ans.questionText}
-                                                                            </p>
-                                                                            <div className="flex flex-col gap-0.5 pl-3">
-                                                                                <p className={ans.isCorrect ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
-                                                                                    <span className="font-bold text-neutral-500">Seleccionado:</span> {ans.selectedText}
-                                                                                    {ans.isCorrect ? ' ✓' : ' ✗'}
-                                                                                </p>
-                                                                                {!ans.isCorrect && (
-                                                                                    <p className="text-emerald-400 font-medium">
-                                                                                        <span className="font-bold text-neutral-500">Correcta:</span> {ans.correctText}
-                                                                                    </p>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    ))
-                                                                ) : (
-                                                                    <p className="text-xs text-neutral-500">No hay detalles de respuestas guardados para este intento.</p>
+                                                                {isExpanded && (
+                                                                    <div className="px-4 pb-4 pt-2 border-t border-neutral-800 bg-[#0d0e12]/60 flex flex-col gap-3">
+                                                                        {a.answers && Array.isArray(a.answers) && a.answers.length > 0 ? (
+                                                                            a.answers.map((ans: any, qIdx: number) => {
+                                                                                if (ans.questionId === 'exam_level' || ans.questionId === 'feedback_rating') return null;
+                                                                                return (
+                                                                                    <div key={ans.questionId || qIdx} className="text-xs border-b border-neutral-800/40 pb-2.5 last:border-0 last:pb-0">
+                                                                                        <p className="font-bold text-neutral-300 mb-1">
+                                                                                            {qIdx + 1}. {ans.questionText}
+                                                                                        </p>
+                                                                                        <div className="flex flex-col gap-0.5 pl-3">
+                                                                                            <p className={ans.isCorrect ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
+                                                                                                <span className="font-bold text-neutral-500">Seleccionado:</span> {ans.selectedText}
+                                                                                                {ans.isCorrect ? ' ✓' : ' ✗'}
+                                                                                                {typeof ans.timeSpentSeconds === 'number' && (
+                                                                                                    <span className="text-neutral-500 text-[10px] ml-2">({ans.timeSpentSeconds}s)</span>
+                                                                                                )}
+                                                                                            </p>
+                                                                                            {!ans.isCorrect && (
+                                                                                                <p className="text-emerald-400 font-medium">
+                                                                                                    <span className="font-bold text-neutral-500">Correcta:</span> {ans.correctText}
+                                                                                                </p>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })
+                                                                        ) : (
+                                                                            <p className="text-xs text-neutral-500">No hay detalles de respuestas guardados para este intento.</p>
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Listado de Intentos de Simulación */}
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">Intentos de Simulación Práctica</p>
+                                            <div className="flex flex-col gap-2">
+                                                {attemptsWithCategorizedIndexes.filter(a => a.isSim).length === 0 ? (
+                                                    <p className="text-xs text-neutral-600 italic py-1">No se registran intentos de simulación.</p>
+                                                ) : (
+                                                    attemptsWithCategorizedIndexes.filter(a => a.isSim).map((a) => {
+                                                        const isExpanded = expandedAttemptId === a.id;
+                                                        return (
+                                                            <div key={a.id} className="border border-neutral-800 rounded-xl overflow-hidden bg-neutral-900/40">
+                                                                <button
+                                                                    onClick={() => setExpandedAttemptId(isExpanded ? null : a.id)}
+                                                                    className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-neutral-800/40 transition-colors text-left"
+                                                                >
+                                                                    <div className="flex items-center gap-3.5">
+                                                                        <span className="text-xs font-bold text-neutral-400">Intento #{a.categorizedIndex}</span>
+                                                                        <span className={`text-xs font-black px-2 py-0.5 rounded ${
+                                                                            a.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                                                                        }`}>
+                                                                            {a.percentage}%
+                                                                        </span>
+                                                                        <span className="text-[11px] text-neutral-500 hidden sm:inline">
+                                                                            ({a.score}/{a.max_score} aciertos)
+                                                                        </span>
+                                                                        {(() => {
+                                                                            const level = getExamLevel(a);
+                                                                            return (
+                                                                                <span className="text-[10px] text-neutral-400 font-bold bg-neutral-800 px-2 py-0.5 rounded border border-neutral-700">
+                                                                                    Simulación — {level}
+                                                                                </span>
+                                                                            );
+                                                                        })()}
+                                                                        <span className="text-xs text-neutral-600">
+                                                                            {formatDuration(a.duration_sec)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="text-[11px] text-neutral-600 hidden md:inline">
+                                                                            {formatDate(a.taken_at)}
+                                                                        </span>
+                                                                        <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                                                    </div>
+                                                                </button>
+
+                                                                {isExpanded && (
+                                                                    <div className="px-4 pb-4 pt-2 border-t border-neutral-800 bg-[#0d0e12]/60 flex flex-col gap-3">
+                                                                        {a.answers && Array.isArray(a.answers) && a.answers.length > 0 ? (
+                                                                            a.answers.map((ans: any, qIdx: number) => {
+                                                                                if (ans.questionId === 'exam_level' || ans.questionId === 'feedback_rating') return null;
+                                                                                return (
+                                                                                    <div key={ans.questionId || qIdx} className="text-xs border-b border-neutral-800/40 pb-2.5 last:border-0 last:pb-0">
+                                                                                        <p className="font-bold text-neutral-300 mb-1">
+                                                                                            {qIdx + 1}. {ans.questionText}
+                                                                                        </p>
+                                                                                        <div className="flex flex-col gap-0.5 pl-3">
+                                                                                            <p className={ans.isCorrect ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
+                                                                                                <span className="font-bold text-neutral-500">Seleccionado:</span> {ans.selectedText}
+                                                                                                {ans.isCorrect ? ' ✓' : ' ✗'}
+                                                                                                {typeof ans.timeSpentSeconds === 'number' && (
+                                                                                                    <span className="text-neutral-500 text-[10px] ml-2">({ans.timeSpentSeconds}s)</span>
+                                                                                                )}
+                                                                                            </p>
+                                                                                            {!ans.isCorrect && (
+                                                                                                <p className="text-emerald-400 font-medium">
+                                                                                                    <span className="font-bold text-neutral-500">Correcta:</span> {ans.correctText}
+                                                                                                </p>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })
+                                                                        ) : (
+                                                                            <p className="text-xs text-neutral-500">No hay detalles de respuestas guardados para este intento.</p>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1049,6 +1298,9 @@ export default function TrainerClient() {
                     </div>
                 </div>
             )}
+
+            {/* Modal de Análisis de Dudas */}
+            {analyzingTrainee && renderAnalysisModal()}
         </div>
     );
 }
