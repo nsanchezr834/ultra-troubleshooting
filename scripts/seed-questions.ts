@@ -1,5 +1,5 @@
 /**
- * SEED SCRIPT — Questions database
+ * SEED SCRIPT — Questions database (Fixed to use existing Supabase structure)
  * --------------------------------
  * Migra las preguntas del examen (EXAM_QUESTIONS) de exam-modal.tsx a Supabase.
  *
@@ -25,8 +25,29 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// Función auxiliar para convertir el string id en un UUID válido basado en hash si no lo es, 
+// o simplemente generar un uuid v4 dummy/consistente para la siembra de preguntas hardcoded.
+function getDeterministicUUID(idStr: string): string {
+    // Si ya tiene formato uuid, retornarlo
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(idStr)) {
+        return idStr;
+    }
+    // Generar un UUID determinista simple basado en el texto del id string.
+    // Usaremos un mapeo básico o un UUID base relleno para que sea único pero repetible si corremos de nuevo el seed.
+    let hash = 0;
+    for (let i = 0; i < idStr.length; i++) {
+        const char = idStr.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // Convertir a entero de 32 bits
+    }
+    const hex = Math.abs(hash).toString(16).padStart(8, '0');
+    // Retornamos un UUID válido concatenando el hex
+    return `00000000-0000-4000-a000-${hex.padEnd(12, '0')}`;
+}
+
 async function seedQuestions() {
-    console.log('🚀  Ultra Platform — Seed Questions Database\n');
+    console.log('🚀  Ultra Platform — Seed Questions Database (Adaptado a Producción)\n');
     console.log(`📡  URL: ${SUPABASE_URL}`);
     
     // Importación dinámica para asegurar que dotenv cargó el env antes de iniciar supabase en exam-modal.tsx
@@ -34,14 +55,14 @@ async function seedQuestions() {
     console.log(`📝  Preguntas a migrar: ${EXAM_QUESTIONS.length}\n`);
 
     const questionsToInsert = EXAM_QUESTIONS.map(q => ({
-        id: q.id,
+        id: getDeterministicUUID(q.id),
         question: q.question,
         options: q.options,
         correct_index: q.correctIndex,
         explanation: q.explanation,
-        difficulty: q.difficulty || 'easy',
-        category: q.category || 'Training 1',
-        active: true
+        difficulty: q.difficulty || 'medium', // 'media' o 'easy'
+        // Mapear campos de la base de datos real
+        is_active: true
     }));
 
     const { error } = await supabase
@@ -52,7 +73,7 @@ async function seedQuestions() {
         throw new Error(`[exam_questions] Error during upsert: ${error.message}`);
     }
 
-    console.log('✅  Exito: exam_questions insertadas correctamente.');
+    console.log('✅  Exito: exam_questions insertadas correctamente utilizando columnas de producción.');
 }
 
 seedQuestions().catch(err => {
