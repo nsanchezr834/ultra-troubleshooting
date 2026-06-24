@@ -1610,8 +1610,19 @@ export default function TrainerClient() {
                                     {trainees.map(([traineeId, { name, attempts }]) => {
                                         const best = Math.max(...attempts.map(a => a.percentage));
                                         const last = attempts[attempts.length - 1];
-                                        const passed = attempts.some(a => a.passed);
-                                        const needsAttention = attempts.length >= 3 && !passed;
+                                        
+                                        const passedTheory = attempts.some(a => {
+                                            const isSim = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                                            return !isSim && a.passed;
+                                        });
+                                        const passedSimulation = attempts.some(a => {
+                                            const isSim = a.answers && Array.isArray(a.answers) && a.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                                            return isSim && a.passed;
+                                        });
+                                        const passedBoth = passedTheory && passedSimulation;
+                                        const passedOnlyOne = (passedTheory && !passedSimulation) || (!passedTheory && passedSimulation);
+                                        const pendingExam = !passedBoth;
+                                        const needsAttention = attempts.length >= 3 && !passedBoth;
 
                                         let simCount = 0;
                                         let theoryCount = 0;
@@ -1622,16 +1633,16 @@ export default function TrainerClient() {
                                         });
 
                                         return (
-                                            <div key={traineeId} className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
-                                                <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
+                                            <div key={traineeId} className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.04] rounded-2xl overflow-hidden shadow-lg hover:border-white/[0.08] transition-all duration-305">
+                                                <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04]">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ${
-                                                            passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                                                            passedBoth ? 'bg-emerald-500/10 text-emerald-400' : passedOnlyOne ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'
                                                         }`}>
                                                             {name.charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex flex-wrap items-center gap-2">
                                                                 <button
                                                                     onClick={() => setAnalyzingTrainee({ name, attempts: attemptsWithCategorizedIndexes })}
                                                                     className="text-sm font-bold text-white hover:text-[#ff4f00] flex items-center gap-2 text-left transition-colors cursor-pointer"
@@ -1647,6 +1658,14 @@ export default function TrainerClient() {
                                                                     >
                                                                         <ShieldAlert className="w-3 h-3" />
                                                                         Atención
+                                                                    </span>
+                                                                )}
+                                                                {pendingExam && (
+                                                                    <span 
+                                                                        className="flex items-center gap-1 text-[9px] font-black text-[#ff4f00] bg-[#ff4f00]/10 border border-[#ff4f00]/25 px-2 py-0.5 rounded-md animate-pulse"
+                                                                        title="El alumno no ha aprobado ambos exámenes (teoría y simulación)."
+                                                                    >
+                                                                        Examen Pendiente
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -1665,22 +1684,32 @@ export default function TrainerClient() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-5">
+                                                    <div className="flex items-center gap-4">
                                                         <div className="text-right hidden sm:block">
                                                             <p className="text-[10px] text-neutral-600 uppercase font-bold">Mejor</p>
                                                             <p className={`text-xl font-black ${best >= 80 ? 'text-emerald-400' : 'text-red-400'}`}>{best}%</p>
                                                         </div>
                                                         <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                                                            passed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                                            passedBoth ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : passedOnlyOne ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
                                                         }`}>
                                                             {(() => {
-                                                                if (!passed) return '✗ Pendiente';
-                                                                const approvedLevelsList = Array.from(new Set(
-                                                                    attempts.filter(a => a.passed).map(a => getExamLevel(a))
-                                                                ));
-                                                                return `✓ Aprobado: ${approvedLevelsList.join(', ')}`;
+                                                                if (passedBoth) {
+                                                                    const approvedLevelsList = Array.from(new Set(
+                                                                        attempts.filter(a => a.passed).map(a => getExamLevel(a))
+                                                                    ));
+                                                                    return `✓ Aprobado: ${approvedLevelsList.join(', ')}`;
+                                                                }
+                                                                if (passedOnlyOne) return '⚠ Acreditación Parcial';
+                                                                return '✗ Pendiente';
                                                             })()}
                                                         </div>
+                                                        <button
+                                                            onClick={() => handleDeleteTrainee(traineeId, name)}
+                                                            className="p-2 text-neutral-500 hover:text-red-400 hover:bg-white/5 rounded-xl transition-all cursor-pointer"
+                                                            title="Eliminar este alumno permanentemente"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
                                                     </div>
                                                 </div>
 
