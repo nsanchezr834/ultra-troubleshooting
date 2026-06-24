@@ -24,44 +24,53 @@ export interface WorkflowConfig {
     rootNode: WorkflowNode;
 }
 
-export const WORKFLOWS_DATABASE: Record<string, WorkflowConfig> = {
-    'packie-2.0': {
-        id: 'packie-2.0',
-        name: 'Packie 2.0 - Embolsado Estándar',
-        version: '2.0.0',
-        description: 'Flujo maestro e infinito para estaciones robóticas de empaque asistido por embolsadora industrial y sellado térmico.',
-        rootNode: {
-            node_type: "LoopForever",
-            node_name: "Bucle infinito",
+const BAGGER_STANDARD_ROOT_NODE: WorkflowNode = {
+    node_type: "LoopForever",
+    node_name: "Bucle infinito",
+    is_active: true,
+    action_id: null,
+    text_explain: null,
+    children: [
+        {
+            node_type: "ShowMessage",
+            node_name: "Obtener siguiente pedido",
             is_active: true,
             action_id: null,
             text_explain: null,
             children: [
                 {
-                    node_type: "ShowMessage",
-                    node_name: "Obtener siguiente pedido",
+                    node_type: "ShowAndWaitForAction",
+                    node_name: "Siguiente orden",
                     is_active: true,
-                    action_id: null,
+                    action_id: "fetch_next_order",
                     text_explain: null,
                     children: [
                         {
-                            node_type: "ShowAndWaitForAction",
+                            node_type: "FetchNextOrder",
                             node_name: "Siguiente orden",
-                            is_active: true,
-                            action_id: "fetch_next_order",
+                            is_active: false,
+                            action_id: null,
                             text_explain: null,
-                            children: [
-                                {
-                                    node_type: "FetchNextOrder",
-                                    node_name: "Siguiente orden",
-                                    is_active: false,
-                                    action_id: null,
-                                    text_explain: null,
-                                    children: []
-                                }
-                            ]
+                            children: []
                         }
                     ]
+                }
+            ]
+        },
+        {
+            node_type: "Sequence",
+            node_name: "Secuencia",
+            is_active: false,
+            action_id: null,
+            text_explain: null,
+            children: [
+                {
+                    node_type: "PrintLabel",
+                    node_name: "Print bag",
+                    is_active: false,
+                    action_id: null,
+                    text_explain: null,
+                    children: []
                 },
                 {
                     node_type: "Sequence",
@@ -71,84 +80,67 @@ export const WORKFLOWS_DATABASE: Record<string, WorkflowConfig> = {
                     text_explain: null,
                     children: [
                         {
-                            node_type: "PrintLabel",
-                            node_name: "Print bag",
+                            node_type: "While",
+                            node_name: null,
+                            is_active: false,
+                            action_id: null,
+                            text_explain: "order has more than 1 pending item",
+                            children: [
+                                {
+                                    node_type: "ShowAndWaitForAction",
+                                    node_name: "Confirmar colocado en el paquete",
+                                    is_active: false,
+                                    action_id: "confirm_placed",
+                                    text_explain: null,
+                                    children: []
+                                }
+                            ]
+                        },
+                        {
+                            node_type: "ShowAndWaitForAction",
+                            node_name: "Confirmar y sellar",
+                            is_active: false,
+                            action_id: "confirm_and_seal",
+                            text_explain: null,
+                            children: []
+                        },
+                        {
+                            node_type: "SealBag",
+                            node_name: "Sellar bolsa",
                             is_active: false,
                             action_id: null,
                             text_explain: null,
                             children: []
                         },
                         {
-                            node_type: "Sequence",
-                            node_name: "Secuencia",
+                            node_type: "ShowMessage",
+                            node_name: null,
                             is_active: false,
                             action_id: null,
                             text_explain: null,
                             children: [
                                 {
-                                    node_type: "While",
+                                    node_type: "DropOffBagInDesignatedBin",
                                     node_name: null,
                                     is_active: false,
                                     action_id: null,
-                                    text_explain: "order has more than 1 pending item",
-                                    children: [
-                                        {
-                                            node_type: "ShowAndWaitForAction",
-                                            node_name: "Confirmar colocado en el paquete",
-                                            is_active: false,
-                                            action_id: "confirm_placed",
-                                            text_explain: null,
-                                            children: []
-                                        }
-                                    ]
+                                    text_explain: null,
+                                    children: []
                                 },
                                 {
                                     node_type: "ShowAndWaitForAction",
-                                    node_name: "Confirmar y sellar",
+                                    node_name: "Finalizar pedido",
                                     is_active: false,
-                                    action_id: "confirm_and_seal",
-                                    text_explain: null,
-                                    children: []
-                                },
-                                {
-                                    node_type: "SealBag",
-                                    node_name: "Sellar bolsa",
-                                    is_active: false,
-                                    action_id: null,
-                                    text_explain: null,
-                                    children: []
-                                },
-                                {
-                                    node_type: "ShowMessage",
-                                    node_name: null,
-                                    is_active: false,
-                                    action_id: null,
+                                    action_id: "finish_order",
                                     text_explain: null,
                                     children: [
                                         {
-                                            node_type: "DropOffBagInDesignatedBin",
-                                            node_name: null,
+                                            node_type: "FinishOrder",
+                                            node_name: "Finalizar pedido",
                                             is_active: false,
                                             action_id: null,
                                             text_explain: null,
                                             children: []
-                                        },
-                                        {
-                                            node_type: "ShowAndWaitForAction",
-                                            node_name: "Finalizar pedido",
-                                            is_active: false,
-                                            action_id: "finish_order",
-                                            text_explain: null,
-                                            children: [
-                                                {
-                                                    node_type: "FinishOrder",
-                                                    node_name: "Finalizar pedido",
-                                                    is_active: false,
-                                                    action_id: null,
-                                                    text_explain: null,
-                                                    children: []
-                                                }
-                                            ]
                                         }
                                     ]
                                 }
@@ -158,6 +150,210 @@ export const WORKFLOWS_DATABASE: Record<string, WorkflowConfig> = {
                 }
             ]
         }
+    ]
+};
+
+const SPARROW_ASURUS_ROOT_NODE: WorkflowNode = {
+  action_id: null,
+  is_active: true,
+  node_name: "Sequence",
+  node_type: "Sequence",
+  text_explain: null,
+  children: [
+    {
+      action_id: null,
+      is_active: true,
+      node_name: "Clear the work area of any items",
+      node_type: "ShowMessage",
+      text_explain: null,
+      children: [
+        {
+          action_id: "confirm_work_area_clear",
+          children: [],
+          is_active: true,
+          node_name: "Confirm Work Area Clear",
+          node_type: "ShowAndWaitForAction",
+          text_explain: null
+        }
+      ]
+    },
+    {
+      action_id: null,
+      is_active: false,
+      node_name: "Loop Forever",
+      node_type: "LoopForever",
+      text_explain: null,
+      children: [
+        {
+          action_id: null,
+          is_active: false,
+          node_name: "Fetch next order",
+          node_type: "ShowMessage",
+          text_explain: null,
+          children: [
+            {
+              action_id: "fetch_next_order",
+              is_active: false,
+              node_name: "Fetch Next Order",
+              node_type: "ShowAndWaitForAction",
+              text_explain: null,
+              children: [
+                {
+                  action_id: null,
+                  children: [],
+                  is_active: false,
+                  node_name: "Fetch Next Order",
+                  node_type: "FetchNextOrder",
+                  text_explain: null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          action_id: null,
+          children: [],
+          is_active: false,
+          node_name: "Verify Batch Product",
+          node_type: "VerifyBatchProduct",
+          text_explain: null
+        },
+        {
+          action_id: null,
+          is_active: false,
+          node_name: "Sequence",
+          node_type: "Sequence",
+          text_explain: null,
+          children: [
+            {
+              action_id: null,
+              children: [],
+              is_active: false,
+              node_name: "Print bag",
+              node_type: "PrintLabel",
+              text_explain: null
+            },
+            {
+              action_id: null,
+              is_active: false,
+              node_name: "Sequence",
+              node_type: "Sequence",
+              text_explain: null,
+              children: [
+                {
+                  action_id: null,
+                  is_active: false,
+                  node_name: null,
+                  node_type: "While",
+                  text_explain: "order has more than 1 pending item",
+                  children: [
+                    {
+                      action_id: "confirm_placed",
+                      children: [],
+                      is_active: false,
+                      node_name: "Confirm Placed in Package",
+                      node_type: "ShowAndWaitForAction",
+                      text_explain: null
+                    }
+                  ]
+                },
+                {
+                  action_id: "confirm_and_seal",
+                  children: [],
+                  is_active: false,
+                  node_name: "Confirm and Seal",
+                  node_type: "ShowAndWaitForAction",
+                  text_explain: null
+                },
+                {
+                  action_id: null,
+                  children: [],
+                  is_active: false,
+                  node_name: "Seal Bag",
+                  node_type: "SealBag",
+                  text_explain: null
+                },
+                {
+                  action_id: null,
+                  is_active: false,
+                  node_name: "Place label on bag",
+                  node_type: "ShowMessage",
+                  text_explain: null,
+                  children: [
+                    {
+                      action_id: "confirm_label_placed",
+                      children: [],
+                      is_active: false,
+                      node_name: "Confirm Label Placed",
+                      node_type: "ShowAndWaitForAction",
+                      text_explain: null
+                    }
+                  ]
+                },
+                {
+                  action_id: null,
+                  is_active: false,
+                  node_name: null,
+                  node_type: "ShowMessage",
+                  text_explain: null,
+                  children: [
+                    {
+                      action_id: null,
+                      children: [],
+                      is_active: false,
+                      node_name: null,
+                      node_type: "DropOffBagInDesignatedBin",
+                      text_explain: null
+                    },
+                    {
+                      action_id: "finish_order",
+                      is_active: false,
+                      node_name: "Finish Order",
+                      node_type: "ShowAndWaitForAction",
+                      text_explain: null,
+                      children: [
+                        {
+                          action_id: null,
+                          children: [],
+                          is_active: false,
+                          node_name: "Finish Order",
+                          node_type: "FinishOrder",
+                          text_explain: null
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+export const WORKFLOWS_DATABASE: Record<string, WorkflowConfig> = {
+    'packie-2.0': {
+        id: 'packie-2.0',
+        name: 'Packie 2.0 - Embolsado Estándar',
+        version: '2.0.0',
+        description: 'Flujo maestro e infinito para estaciones robóticas de empaque asistido por embolsadora industrial y sellado térmico.',
+        rootNode: BAGGER_STANDARD_ROOT_NODE
+    },
+    'captain-pack-sparrow': {
+        id: 'captain-pack-sparrow',
+        name: 'Captain PackSparrow- Bagger Grande',
+        version: '2.0.0',
+        description: 'Flujo maestro e infinito para estaciones robóticas de empaque asistido por embolsadora industrial y sellado térmico.',
+        rootNode: SPARROW_ASURUS_ROOT_NODE
+    },
+    'packasaurus': {
+        id: 'packasaurus',
+        name: 'Packasaurus- Bagger Grande',
+        version: '2.0.0',
+        description: 'Flujo maestro e infinito para estaciones robóticas de empaque asistido por embolsadora industrial y sellado térmico.',
+        rootNode: SPARROW_ASURUS_ROOT_NODE
     },
     'future-2.0': {
         id: 'future-2.0',

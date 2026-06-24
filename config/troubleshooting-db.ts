@@ -85,11 +85,21 @@ export const TROUBLESHOOTING_DATABASE: TroubleshootingKnowledge[] = [
   {
     id: "ERR-MEC-014",
     category: "Qué hacer en caso de...",
-    symptom: "Qué hacer en caso de que no imprima la etiqueta",
-    root_cause: "Fallo de conexión con la impresora térmica, falta de insumos (etiquetas) o atasco en el cabezal.",
+    symptom: "Qué hacer en caso de que no imprima la etiqueta (Bagger / Impresora Integrada)",
+    root_cause: "Fallo de conexión con la impresora térmica integrada de la Bagger (máquina que saca la bolsa con la etiqueta pegada), falta de insumos o atasco en el cabezal.",
     severity: "MEDIUM",
-    resolution_protocol: "Paso 1: Revisar la impresora de etiquetas física y verificar si su pantalla integrada muestra un mensaje de error.\nPaso 2: Si hay un error en la pantalla de la impresora, usar las pinzas del robot (cerradas) para tocar la pantalla y borrar la alerta. Intentar imprimir de nuevo.\nPaso 3: Si el problema persiste y no imprime, levantar el reporte 'Out of Labels' en la ruta de fallos del simulador para alertar sobre rollo vacío o fallo de hardware.\nPaso 4: Esperar la autorrecuperación automática y el reinicio del módulo de impresión.\nPaso 5: Llevar el robot a la posición HOME e iniciar nuevamente la operación.\nPaso 6: Si el problema continúa sin resolverse, el sistema enviará de forma automática una notificación en el canal de Slack.",
+    resolution_protocol: "Paso 1: Revisar la impresora de la máquina Bagger (que expide la bolsa con etiqueta integrada) y verificar si su pantalla integrada muestra un mensaje de error.\nPaso 2: Si hay un error en la pantalla de la impresora, usar las pinzas del robot (cerradas) para tocar la pantalla y borrar la alerta. Intentar imprimir de nuevo.\nPaso 3: Si el problema persiste y no imprime, levantar el reporte 'Out of Labels' en la ruta de fallos del simulador para alertar sobre rollo vacío o fallo de hardware.\nPaso 4: Esperar la autorrecuperación automática y el reinicio del módulo de impresión.\nPaso 5: Llevar el robot a la posición HOME e iniciar nuevamente la operación.\nPaso 6: Si el problema continúa sin resolverse, el sistema enviará de forma automática una notificación en el canal de Slack.",
     sop_reference: "SOP 7, Estándares de Impresión"
+  },
+  {
+    id: "ERR-MEC-016",
+    category: "Qué hacer en caso de...",
+    symptom: "Qué hacer en caso de que la impresora de etiquetas (pegado manual) no saque la etiqueta",
+    root_cause: "La impresora de etiquetas manual se encuentra en pausa o requiere una reimpresión.",
+    severity: "MEDIUM",
+    resolution_protocol: "Paso 1: Verifica si la impresora está en pausa (te darás cuenta porque el led de pausa está encendido); si es así, presiona el botón de reanudar y listo.\nPaso 2: En caso de que el problema persista, manda el reprint label con el pedal de color amarillo.\nPaso 3: Si esto no funciona, entonces levanta la fault de Bagger / Out of Labels.\nSe anexa un video de cómo reanudar la impresora físicamente.",
+    sop_reference: "SOP 7, Estándares de Impresión (Pegado Manual)",
+    video_url: "https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/quitar%20pausa%20a%20impresora.mp4"
   },
   {
     id: "ERR-NET-003",
@@ -103,11 +113,11 @@ export const TROUBLESHOOTING_DATABASE: TroubleshootingKnowledge[] = [
   {
     id: "ERR-SW-004",
     category: "Software",
-    symptom: "Brazo del robot estático o congelado sin responder a los comandos del joystick/torso",
-    root_cause: "Crash o bloqueo (deadlock) en el demonio/proceso de control del actuador del brazo.",
-    severity: "HIGH",
-    resolution_protocol: "Paso 1: Detener la operación de inmediato.\nPaso 2: Enviar al canal el formato de alerta estricto utilizando el código de fallo específico 'frozen arm' para disparar el script automatizado que reinicia el backend del brazo.\nPaso 3: Esperar a que el robot complete su fase de autorrecuperación y reinicie el módulo.\nPaso 4: Mover el robot a la posición HOME.\nPaso 5: Iniciar nuevamente la operación.\nPaso 6: Si el robot sigue sin responder tras estos pasos, el sistema enviará una alerta automática al canal de Slack solicitando soporte.",
-    sop_reference: "SOP 8-C, Estándares de Seguridad (Brazo)"
+    symptom: "Qué hacer en caso de que el robot no se mueva (no se mueve en teleop pero sí en auto)",
+    root_cause: "Aplica únicamente para los robots que se encuentran en modo auto, donde el robot no responde a los comandos de teleop pero sí se mueve de manera autónoma.",
+    severity: "MEDIUM",
+    resolution_protocol: "Paso 1: Presionar el pedal de home.\nPaso 2: Solicitarle al supervisor reiniciar la estación.\nPaso 3: Nota: si estás en un laboratorio interno lo puedes hacer tú mismo.",
+    sop_reference: "Modo AUTO y Teleop"
   },
   {
     id: "ERR-SW-005",
@@ -208,15 +218,7 @@ export const TROUBLESHOOTING_DATABASE: TroubleshootingKnowledge[] = [
     resolution_protocol: "Paso 1: Levantar el fallo 'App Not Working' en el simulador para que se genere el ticket de soporte automáticamente.\nPaso 2: Cerrar la aplicación y realizar un reinicio forzado del navegador integrado en el visor/headset.\nPaso 3: Restablecer la conexión con el servidor y reanudar la operación.",
     sop_reference: "SOP 4-E, Headset Troubleshoot"
   },
-  {
-    id: "ERR-SW-007",
-    category: "Software",
-    symptom: "Problema técnico imprevisto con el visor o software (Other Headset Issue)",
-    root_cause: "Problemas diversos en el visor que no corresponden a categorías conocidas (descalibración de tracking, audio cortado, etc.).",
-    severity: "MEDIUM",
-    resolution_protocol: "Paso 1: Pausar temporalmente las actividades.\nPaso 2: Registrar el incidente en el simulador seleccionando 'Other Headset Issue' en la categoría de software para alertar al equipo de soporte.\nPaso 3: Si es posible, realizar una calibración rápida de los sensores de tracking en el visor y reanudar la operación.",
-    sop_reference: "SOP 4-F, Headset Troubleshoot"
-  },
+
   {
     id: "ERR-KIN-003",
     category: "Consejos Operativos",

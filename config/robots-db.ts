@@ -141,12 +141,31 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                 id: 'captain-pack-sparrow', 
                 name: 'Captain Pack Sparrow', 
                 status: 'active', 
-                faults: [],
+                faults: [
+                    {
+                        id: 'no-saca-bolsa',
+                        issue: 'No saca la bolsa de la bagger',
+                        severity: 'media',
+                        description: 'La bagger no arroja o no saca la bolsa correspondiente al pedido.',
+                        troubleshooting: [
+                            'Retirar la etiqueta.',
+                            'Darle en reportar falla y reimprimir, esto activará de nuevo la bagger.',
+                            'Si no la saca aún con los dos pasos anteriores, se tiene que poner la fault de bagger, bag jam. Eso hará que se mande un redo al pedido de forma automática.'
+                        ],
+                        escalation: 'Liam (Slack Internal)'
+                    }
+                ],
                 advises: [
                     {
                         id: 'captain-pack-sparrow__1',
                         adviceNumber: 1,
                         content: 'La mejor posición para quitar las etiquetas es en la parte superior haciendo un movimiento vertical para evitar la ruptura de la etiqueta o que se quede pegada al gripper.',
+                        isException: false
+                    },
+                    {
+                        id: 'captain-pack-sparrow__2',
+                        adviceNumber: 2,
+                        content: 'En caso de que no saque la bolsa de la bagger: 1. Retirar la etiqueta. 2. Darle en reportar falla y reimprimir (esto activará de nuevo la bagger). 3. Si persiste, colocar la fault de bagger "bag jam" para enviar un redo automático del pedido.',
                         isException: false
                     }
                 ]
@@ -155,7 +174,20 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                 id: 'packasaurus', 
                 name: 'Packasaurus', 
                 status: 'active', 
-                faults: [],
+                faults: [
+                    {
+                        id: 'no-saca-bolsa',
+                        issue: 'No saca la bolsa de la bagger',
+                        severity: 'media',
+                        description: 'La bagger no arroja o no saca la bolsa correspondiente al pedido.',
+                        troubleshooting: [
+                            'Retirar la etiqueta.',
+                            'Darle en reportar falla y reimprimir, esto activará de nuevo la bagger.',
+                            'Si no la saca aún con los dos pasos anteriores, se tiene que poner la fault de bagger, bag jam. Eso hará que se mande un redo al pedido de forma automática.'
+                        ],
+                        escalation: 'Liam (Slack Internal)'
+                    }
+                ],
                 advises: [
                     {
                         id: 'packasaurus__1',
@@ -179,6 +211,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'packasaurus__4',
                         adviceNumber: 4,
                         content: 'La mejor posición para quitar las etiquetas es en la parte superior haciendo un movimiento vertical para evitar la ruptura de la etiqueta o que se quede pegada al gripper.',
+                        isException: false
+                    },
+                    {
+                        id: 'packasaurus__5',
+                        adviceNumber: 5,
+                        content: 'En caso de que no saque la bolsa de la bagger: 1. Retirar la etiqueta. 2. Darle en reportar falla y reimprimir (esto activará de nuevo la bagger). 3. Si persiste, colocar la fault de bagger "bag jam" para enviar un redo automático del pedido.',
                         isException: false
                     }
                 ]

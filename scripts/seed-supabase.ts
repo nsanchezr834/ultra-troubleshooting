@@ -41,6 +41,8 @@ import { WORKFLOWS_DATABASE } from '../config/workflows-db';
 const ROBOT_TO_WORKFLOW_MAP: Record<string, string> = {
     'packie-2.0': 'packie-2.0',
     'future-2.0': 'future-2.0',
+    'captain-pack-sparrow': 'captain-pack-sparrow',
+    'packasaurus': 'packasaurus',
     'fleetwood-pack': 'highline-fleetwood',
     'fleetwood': 'highline-fleetwood',
     'phil': 'highline-phil',

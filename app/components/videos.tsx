@@ -94,14 +94,6 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 badge: 'ERROR',
                 badgeColor: 'red',
             },
-            {
-                title: 'Operator and AUTO Mismatch',
-                description:
-                    '**Aquí el operador, utilizando el modo AUTO, no realizó una correcta intervención debido a su posición física.**',
-                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Future%202.0%20_%20Operator%20&%20AUTO%20not%20matching%201_2.mp4',
-                badge: 'ERROR',
-                badgeColor: 'red',
-            },
         ],
     },
     'monty': {
@@ -183,20 +175,28 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
         ],
     },
     'captain-pack-sparrow': {
-        layout: 'carousel',
+        layout: 'grid',
         videos: [
             {
                 title: 'Proceso Completo — Captain Pack Sparrow',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Captain Pack Sparrow.',
-                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Captian%20Packsparrow%20Completo(1)(1).mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/packsparrow_completo.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
+            },
+            {
+                title: 'Falla — La bagger no sacó la bolsa',
+                description:
+                    'Falla cuando la bagger no arroja o no saca la bolsa correspondiente al pedido. Consulta el panel de troubleshooting para más información.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/packsparrow_error.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
             },
         ],
     },
     'packasaurus': {
-        layout: 'carousel',
+        layout: 'grid',
         videos: [
             {
                 title: 'Proceso Completo — Packasaurus',
@@ -371,7 +371,7 @@ function VideoCard({ entry }: { entry: VideoEntry }) {
                 <video
                     ref={videoRef}
                     key={entry.src}
-                    src={encodeURI(entry.src)}
+                    src={encodeURI(decodeURI(entry.src))}
                     controls={!activeInteraction} // Hide controls when interaction is active
                     playsInline
                     preload="metadata"
@@ -495,7 +495,7 @@ function VideoCarousel({ videos }: { videos: VideoEntry[] }) {
                 <div className="aspect-video w-full bg-neutral-950">
                     <video
                         key={activeVideo.src}
-                        src={encodeURI(activeVideo.src)}
+                        src={encodeURI(decodeURI(activeVideo.src))}
                         controls
                         playsInline
                         preload="metadata"

@@ -30,6 +30,8 @@ interface TelemetryDashboardProps {
 const ROBOT_TO_WORKFLOW_MAP: Record<string, string> = {
     'packie-2.0': 'packie-2.0',
     'future-2.0': 'future-2.0',
+    'captain-pack-sparrow': 'captain-pack-sparrow',
+    'packasaurus': 'packasaurus',
     'fleetwood-pack': 'highline-fleetwood',
     'fleetwood': 'highline-fleetwood',
     'phil': 'highline-phil',
@@ -59,7 +61,7 @@ export default function TelemetryDashboard({
     const [activeTab, setActiveTab] = useState<TabType>('videos');
 
     // Robots con material de vídeo disponible
-    const ROBOTS_WITH_VIDEOS = ['future-2.0', 'phil', 'fleetwood-pack', 'fleetwood', 'packie-2.0', 'monty', 'venus', 'bagger-label', 'box-fold', 'pick-sort', 'tower-stack-unstack', 'mabel'];
+    const ROBOTS_WITH_VIDEOS = ['future-2.0', 'phil', 'fleetwood-pack', 'fleetwood', 'packie-2.0', 'monty', 'venus', 'bagger-label', 'box-fold', 'pick-sort', 'tower-stack-unstack', 'mabel', 'captain-pack-sparrow', 'packasaurus'];
     const showVideoTab = !!(currentRobot?.id && ROBOTS_WITH_VIDEOS.includes(currentRobot.id));
     const showTipsTab = !!(currentRobot?.advises && currentRobot.advises.length > 0);
 

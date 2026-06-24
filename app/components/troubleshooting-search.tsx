@@ -661,6 +661,22 @@ export default function TroubleshootingSearch({
                 </div>
               )}
 
+              {/* Video Demostrativo */}
+              {selectedItemForModal.video_url && (
+                <div className="space-y-2 mt-3">
+                  <span className="text-[10px] font-mono text-neutral-400 font-bold tracking-widest uppercase block">Video Demostrativo</span>
+                  <div className="aspect-video w-full bg-neutral-950 rounded-2xl overflow-hidden relative border border-neutral-200">
+                    <video
+                      src={encodeURI(decodeURI(selectedItemForModal.video_url))}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Referencia SOP */}
               <div className="pt-2 flex items-center justify-between text-xs text-neutral-400">
                 <span className="font-mono">
