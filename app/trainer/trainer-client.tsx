@@ -45,7 +45,7 @@ interface DBQuestion {
     options: string[];
     correct_index: number;
     explanation: string;
-    difficulty: 'facil' | 'media' | 'dificil';
+    difficulty: string; // Guardará 'Training 1' | 'Training 2' | 'Training 3' | 'DC' | 'Customer' que mapea a la columna category en Supabase
     is_active: boolean;
     created_at?: string;
 }
@@ -309,7 +309,6 @@ export default function TrainerClient() {
         fetchResults();
     }, [selectedSessionId]);
 
-    // Fetch Banco de Preguntas
     const fetchQuestions = useCallback(async () => {
         setLoadingQuestions(true);
         const { data, error } = await supabase
@@ -317,7 +316,16 @@ export default function TrainerClient() {
             .select('*')
             .order('created_at', { ascending: false });
         if (!error && data) {
-            setDbQuestions(data as DBQuestion[]);
+            const mapped = (data as any[]).map(q => ({
+                id: q.id,
+                question: q.question,
+                options: q.options,
+                correct_index: q.correct_index,
+                explanation: q.explanation,
+                difficulty: q.category || 'Training 1', // Mapeamos la columna 'category' al campo 'difficulty' de la interfaz para mostrar el nivel real
+                is_active: q.is_active
+            }));
+            setDbQuestions(mapped as DBQuestion[]);
         }
         setLoadingQuestions(false);
     }, []);
@@ -570,7 +578,7 @@ export default function TrainerClient() {
         }
         
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(passed ? [16, 185, 129] as any : [239, 68, 68] as any);
+        doc.setTextColor(passed ? 16 : 239, passed ? 185 : 68, passed ? 129 : 68);
         doc.text(`Estado General: ${passed ? '✓ APROBADO' : '✗ PENDIENTE DE APROBACIÓN'}`, 15, 89);
         doc.setFontSize(9);
         doc.text(accreditationText, 15, 94);
@@ -733,6 +741,14 @@ export default function TrainerClient() {
         }
 
         try {
+            // Mapear dificultades inglesas a las aceptadas por la base de datos de producción ('facil', 'media', 'dificil')
+            // para que no viole la restricción CHECK de Postgres difficulty_check.
+            let dbDiff = 'media';
+            const rawDiff = q.difficulty || 'Training 1';
+            if (rawDiff.startsWith('Training 1') || rawDiff === 'facil') dbDiff = 'facil';
+            else if (rawDiff.startsWith('Training 2') || rawDiff === 'media') dbDiff = 'media';
+            else dbDiff = 'dificil'; // Training 3, DC, Customer
+
             if (q.id) {
                 // Modificar pregunta existente
                 const { error } = await supabase
@@ -742,13 +758,14 @@ export default function TrainerClient() {
                         options: q.options,
                         correct_index: q.correct_index,
                         explanation: q.explanation || '',
-                        difficulty: q.difficulty || 'media',
+                        difficulty: dbDiff,
+                        category: rawDiff, // Guardamos la categoría real aquí (Training 1, Training 2, etc)
                         is_active: q.is_active !== undefined ? q.is_active : true
                     })
                     .eq('id', q.id);
                 if (error) throw error;
             } else {
-                // Crear nueva pregunta (generando un UUID en postgres o localmente)
+                // Crear nueva pregunta
                 const newId = crypto.randomUUID();
                 const { error } = await supabase
                     .from('exam_questions')
@@ -758,7 +775,8 @@ export default function TrainerClient() {
                         options: q.options,
                         correct_index: q.correct_index,
                         explanation: q.explanation || '',
-                        difficulty: q.difficulty || 'media',
+                        difficulty: dbDiff,
+                        category: rawDiff, // Guardamos la categoría real aquí (Training 1, Training 2, etc)
                         is_active: true
                     });
                 if (error) throw error;
@@ -1075,7 +1093,7 @@ export default function TrainerClient() {
                                 <p className="text-xs text-neutral-500">Agrega, edita o desactiva preguntas que se muestran en el examen dinámicamente.</p>
                             </div>
                             <button
-                                onClick={() => setEditingQuestion({ question: '', options: ['', ''], correct_index: 0, explanation: '', difficulty: 'media', is_active: true })}
+                                onClick={() => setEditingQuestion({ question: '', options: ['', ''], correct_index: 0, explanation: '', difficulty: 'Training 1', is_active: true })}
                                 className="bg-[#ff4f00] hover:bg-[#e04500] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
                             >
                                 <Plus className="w-4 h-4" /> Agregar Pregunta
@@ -1096,11 +1114,7 @@ export default function TrainerClient() {
                                     <div key={q.id} className={`bg-neutral-900 border rounded-2xl p-5 flex flex-col gap-3.5 transition-all ${q.is_active ? 'border-neutral-800' : 'border-neutral-800/30 opacity-50'}`}>
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="flex items-center gap-2">
-                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${
-                                                    q.difficulty === 'facil' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                                                    q.difficulty === 'media' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                                                    'bg-red-500/10 border-red-500/20 text-red-400'
-                                                }`}>
+                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase bg-neutral-800 border-neutral-700 text-neutral-350`}>
                                                     {q.difficulty}
                                                 </span>
                                                 <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${
@@ -1190,15 +1204,17 @@ export default function TrainerClient() {
 
                                         <div className="flex gap-4">
                                             <div className="flex-1 flex flex-col gap-1.5">
-                                                <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Dificultad</label>
+                                                <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Nivel (Categoría)</label>
                                                 <select
-                                                    value={editingQuestion.difficulty || 'media'}
+                                                    value={editingQuestion.difficulty || 'Training 1'}
                                                     onChange={e => setEditingQuestion(prev => ({ ...prev, difficulty: e.target.value as any }))}
                                                     className="bg-neutral-900 border border-neutral-700 text-sm text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#ff4f00] transition-all cursor-pointer"
                                                 >
-                                                    <option value="facil">Fácil</option>
-                                                    <option value="media">Media</option>
-                                                    <option value="dificil">Difícil</option>
+                                                    <option value="Training 1">Training 1</option>
+                                                    <option value="Training 2">Training 2</option>
+                                                    <option value="Training 3">Training 3</option>
+                                                    <option value="DC">DC</option>
+                                                    <option value="Customer">Customer</option>
                                                 </select>
                                             </div>
                                             <div className="flex-1 flex flex-col gap-1.5">
