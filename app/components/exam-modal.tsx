@@ -21,11 +21,11 @@ interface Question {
 const TRAINING_1_QUESTIONS: Question[] = [
     {
         id: 'q_t1_1',
-        question: 'Al iniciar la operación en el simulador o robot real, ¿cuál es la postura física que debe tomar el operador para evitar desalineaciones en el tracking?',
+        question: 'Al iniciar la operación en el robot real, ¿cuál es la postura física que debe tomar el operador para evitar desalineaciones?',
         options: [
             'Trabajar con los brazos totalmente estirados hacia el frente.',
             'Operar con las manos muy pegadas al pecho y los codos flexionados.',
-            'Mantener una postura erguida y centrar el torso alineado con la posición física de HOME para un correcto tracking',
+            'Mantener una postura erguida y centrar el torso alineado con la posición física de HOME para un correcto manejo',
             'Agacharse y mirar hacia el suelo para calibrar los sensores.'
         ],
         correctIndex: 2,
@@ -851,7 +851,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
     const selectNextAdaptiveQuestion = (lastQuestion: Question, wasCorrect: boolean, currentQuestionsList: Question[]): Question => {
         const usedIds = new Set(currentQuestionsList.map(q => q.id));
-        
+
         // Determine target difficulty
         const lastQuestionDiff = lastQuestion.difficulty || 'easy';
         let targetDiff: 'easy' | 'medium' | 'hard' = lastQuestionDiff;
@@ -862,17 +862,17 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             if (lastQuestionDiff === 'hard') targetDiff = 'medium';
             else if (lastQuestionDiff === 'medium') targetDiff = 'easy';
         }
-        
+
         // Get all questions with difficulty from eligible pool
         const poolToUse = eligiblePool.length > 0 ? eligiblePool : EXAM_QUESTIONS;
         const allQuestions = poolToUse.map(q => ({
             ...q,
             difficulty: q.difficulty || 'easy'
         }));
-        
+
         // Try target difficulty first
         let available = allQuestions.filter(q => q.difficulty === targetDiff && !usedIds.has(q.id));
-        
+
         // Fallback order
         if (available.length === 0) {
             const fallbackOrder: Record<'easy' | 'medium' | 'hard', ('easy' | 'medium' | 'hard')[]> = {
@@ -885,11 +885,11 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 if (available.length > 0) break;
             }
         }
-        
+
         if (available.length === 0) {
             available = allQuestions.filter(q => !usedIds.has(q.id));
         }
-        
+
         const chosen = available[Math.floor(Math.random() * available.length)];
         return shuffleQuestionOptions(chosen);
     };
@@ -933,7 +933,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
         try {
             let approvedLevels: string[] = [];
-            
+
             // Si hay PIN, intentamos validarlo con Supabase
             if (sessionPin.trim()) {
                 const identity = await validateAndRegisterTrainee(sessionPin, cleanedName);
@@ -1064,11 +1064,11 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const startTeoricoExam = () => {
         const pool = getQuestionsForLevel(examLevel);
         setEligiblePool(pool);
-        
+
         const easyQuestions = pool.filter(q => q.difficulty === 'easy');
         const startPool = easyQuestions.length > 0 ? easyQuestions : pool;
         const firstQ = startPool[Math.floor(Math.random() * startPool.length)];
-        
+
         setQuestions([shuffleQuestionOptions(firstQ)]);
         setCurrentStep(0);
         setSelectedOption(null);
@@ -1077,7 +1077,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
         setIsFinished(false);
         setAnswersLog([]);
         setExplanationScrolled(false);
-        
+
         examStartTime.current = Date.now();
         setStep('teorico');
     };
@@ -1085,7 +1085,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const handleRetry = () => {
         const pool = getQuestionsForLevel(examLevel);
         setEligiblePool(pool);
-        
+
         const easyQuestions = pool.filter(q => q.difficulty === 'easy');
         const startPool = easyQuestions.length > 0 ? easyQuestions : pool;
         const firstQ = startPool[Math.floor(Math.random() * startPool.length)];
@@ -1181,11 +1181,10 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                         }}
                                         placeholder="PIN de sesión (6 dígitos — opcional)"
                                         disabled={isValidating}
-                                        className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all text-neutral-800 font-mono tracking-widest disabled:opacity-50 ${
-                                            validationError
+                                        className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all text-neutral-800 font-mono tracking-widest disabled:opacity-50 ${validationError
                                                 ? 'border-red-400 focus:border-red-500 bg-red-50'
                                                 : 'border-neutral-200 focus:border-[#FF6A00]'
-                                        }`}
+                                            }`}
                                     />
                                 </div>
 
@@ -1215,7 +1214,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     </select>
                                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-500">
                                         <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
                                         </svg>
                                     </div>
                                 </div>
@@ -1289,12 +1288,12 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     <div className="w-16 h-16 rounded-full bg-[#FF6A00]/10 border border-[#FF6A00]/25 flex items-center justify-center mx-auto mb-6">
                                         <Star className="w-8 h-8 text-[#FF6A00]" />
                                     </div>
-                                    
+
                                     <h3 className="text-2xl font-black text-neutral-800 mb-2">Encuesta de Confianza</h3>
                                     <p className="text-neutral-500 mb-8 max-w-sm text-sm">
                                         ¿Qué tan seguro te sientes para resolver esta falla en el robot real ahora que usaste el simulador de Ultra?
                                     </p>
-                                    
+
                                     <div className="flex items-center justify-center gap-3 mb-8">
                                         {[1, 2, 3, 4, 5].map((val) => (
                                             <button
@@ -1306,11 +1305,10 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                                 className="p-1 transition-transform hover:scale-125 focus:outline-none"
                                             >
                                                 <Star
-                                                    className={`w-10 h-10 transition-colors ${
-                                                        val <= (ratingHover || ratingValue)
+                                                    className={`w-10 h-10 transition-colors ${val <= (ratingHover || ratingValue)
                                                             ? 'text-[#FF6A00] fill-[#FF6A00]'
                                                             : 'text-neutral-300'
-                                                    }`}
+                                                        }`}
                                                 />
                                             </button>
                                         ))}
@@ -1335,75 +1333,75 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-6 animate-in slide-in-from-right-4 duration-300">
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                                        <span>Pregunta {currentStep + 1} de {EXAM_LENGTH}</span>
-                                        <span>Puntaje: {score}</span>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex justify-between text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                                            <span>Pregunta {currentStep + 1} de {EXAM_LENGTH}</span>
+                                            <span>Puntaje: {score}</span>
+                                        </div>
+                                        <div className="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
+                                            <div className="h-full bg-[#FF6A00] transition-all duration-500 ease-out" style={{ width: `${(currentStep / EXAM_LENGTH) * 100}%` }} />
+                                        </div>
                                     </div>
-                                    <div className="w-full bg-neutral-100 h-2 rounded-full overflow-hidden">
-                                        <div className="h-full bg-[#FF6A00] transition-all duration-500 ease-out" style={{ width: `${(currentStep / EXAM_LENGTH) * 100}%` }} />
-                                    </div>
-                                </div>
 
-                                <h3 className="text-xl font-bold text-neutral-800 leading-snug">{question.question}</h3>
+                                    <h3 className="text-xl font-bold text-neutral-800 leading-snug">{question.question}</h3>
 
-                                <div className="flex flex-col gap-3">
-                                    {question.options.map((opt, idx) => {
-                                        let btnClass = "border-neutral-200 bg-white text-neutral-700 hover:border-[#FF6A00] hover:bg-orange-50";
-                                        let icon = null;
+                                    <div className="flex flex-col gap-3">
+                                        {question.options.map((opt, idx) => {
+                                            let btnClass = "border-neutral-200 bg-white text-neutral-700 hover:border-[#FF6A00] hover:bg-orange-50";
+                                            let icon = null;
 
-                                        if (isAnswered) {
-                                            if (idx === question.correctIndex) {
-                                                btnClass = "border-emerald-500 bg-emerald-50 text-emerald-800 font-semibold";
-                                                icon = <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
-                                            } else if (idx === selectedOption) {
-                                                btnClass = "border-red-300 bg-red-50 text-red-800";
-                                                icon = <X className="w-5 h-5 text-red-500" />;
-                                            } else {
-                                                btnClass = "border-neutral-200 bg-neutral-50 text-neutral-400 opacity-60";
+                                            if (isAnswered) {
+                                                if (idx === question.correctIndex) {
+                                                    btnClass = "border-emerald-500 bg-emerald-50 text-emerald-800 font-semibold";
+                                                    icon = <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
+                                                } else if (idx === selectedOption) {
+                                                    btnClass = "border-red-300 bg-red-50 text-red-800";
+                                                    icon = <X className="w-5 h-5 text-red-500" />;
+                                                } else {
+                                                    btnClass = "border-neutral-200 bg-neutral-50 text-neutral-400 opacity-60";
+                                                }
                                             }
-                                        }
 
-                                        return (
-                                            <button key={idx} onClick={() => handleSelectOption(idx)} disabled={isAnswered}
-                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center justify-between gap-4 ${btnClass}`}>
-                                                <span className="text-sm">{opt}</span>
-                                                {icon}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                            return (
+                                                <button key={idx} onClick={() => handleSelectOption(idx)} disabled={isAnswered}
+                                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center justify-between gap-4 ${btnClass}`}>
+                                                    <span className="text-sm">{opt}</span>
+                                                    {icon}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
 
-                                {isAnswered && (
-                                    <div 
-                                        ref={(el) => {
-                                            if (el) {
-                                                // Wait 150ms to ensure layout has rendered and clientHeight is non-zero
-                                                setTimeout(() => {
-                                                    if (el && el.clientHeight > 0) {
-                                                        if (el.scrollHeight <= el.clientHeight) {
-                                                            setExplanationScrolled(true);
+                                    {isAnswered && (
+                                        <div
+                                            ref={(el) => {
+                                                if (el) {
+                                                    // Wait 150ms to ensure layout has rendered and clientHeight is non-zero
+                                                    setTimeout(() => {
+                                                        if (el && el.clientHeight > 0) {
+                                                            if (el.scrollHeight <= el.clientHeight) {
+                                                                setExplanationScrolled(true);
+                                                            }
                                                         }
-                                                    }
-                                                }, 150);
-                                            }
-                                        }}
-                                        onScroll={(e) => {
-                                            const target = e.currentTarget;
-                                            // 10px tolerance for Zoom and subpixel rounding
-                                            const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 10;
-                                            if (isAtBottom) {
-                                                setExplanationScrolled(true);
-                                            }
-                                        }}
-                                        className="mt-2 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-sm flex flex-col gap-1 animate-in fade-in duration-200 max-h-24 overflow-y-auto scrollbar-thin"
-                                    >
-                                        <span className="font-bold uppercase tracking-wider text-xs text-blue-600 mb-1">Explicación</span>
-                                        <p className="whitespace-pre-line leading-relaxed">{question.explanation}</p>
-                                    </div>
-                                )}
-                            </div>
-                        )
+                                                    }, 150);
+                                                }
+                                            }}
+                                            onScroll={(e) => {
+                                                const target = e.currentTarget;
+                                                // 10px tolerance for Zoom and subpixel rounding
+                                                const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 10;
+                                                if (isAtBottom) {
+                                                    setExplanationScrolled(true);
+                                                }
+                                            }}
+                                            className="mt-2 p-4 rounded-xl bg-blue-50 border border-blue-100 text-blue-800 text-sm flex flex-col gap-1 animate-in fade-in duration-200 max-h-24 overflow-y-auto scrollbar-thin"
+                                        >
+                                            <span className="font-bold uppercase tracking-wider text-xs text-blue-600 mb-1">Explicación</span>
+                                            <p className="whitespace-pre-line leading-relaxed">{question.explanation}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )
                         ) : (
                             <div className="flex flex-col items-center justify-center py-4 text-center">
                                 {passed ? (
@@ -1428,7 +1426,7 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                                     </>
                                 )}
 
-                            {/* Puntuación + estado de guardado */}
+                                {/* Puntuación + estado de guardado */}
                                 <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 w-full max-w-sm mb-6">
                                     <div className="text-xs text-neutral-500 font-bold uppercase tracking-wider mb-1">Puntuación Final</div>
                                     <div className={`text-5xl font-black ${passed ? 'text-emerald-500' : 'text-red-500'}`}>
@@ -1440,14 +1438,13 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
 
                                     {/* Estado de guardado en Supabase */}
                                     {traineeIdentity && (
-                                        <div className={`mt-3 pt-3 border-t border-neutral-200 flex items-center gap-2 text-xs font-semibold ${
-                                            saveStatus === 'saving' ? 'text-neutral-400' :
-                                            saveStatus === 'saved'  ? 'text-emerald-600' :
-                                            saveStatus === 'error'  ? 'text-red-500' : 'text-neutral-400'
-                                        }`}>
+                                        <div className={`mt-3 pt-3 border-t border-neutral-200 flex items-center gap-2 text-xs font-semibold ${saveStatus === 'saving' ? 'text-neutral-400' :
+                                                saveStatus === 'saved' ? 'text-emerald-600' :
+                                                    saveStatus === 'error' ? 'text-red-500' : 'text-neutral-400'
+                                            }`}>
                                             {saveStatus === 'saving' && <><Loader2 className="w-3 h-3 animate-spin" /> Guardando resultado...</>}
-                                            {saveStatus === 'saved'  && <><CheckCircle2 className="w-3 h-3" /> Resultado guardado en el sistema</>}
-                                            {saveStatus === 'error'  && <><AlertCircle className="w-3 h-3" /> No se pudo guardar — revisa conexión</>}
+                                            {saveStatus === 'saved' && <><CheckCircle2 className="w-3 h-3" /> Resultado guardado en el sistema</>}
+                                            {saveStatus === 'error' && <><AlertCircle className="w-3 h-3" /> No se pudo guardar — revisa conexión</>}
                                         </div>
                                     )}
                                 </div>
@@ -1488,14 +1485,13 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                         ) : (
                             <div />
                         )}
-                        <button 
-                            onClick={handleNext} 
+                        <button
+                            onClick={handleNext}
                             disabled={!isAnswered || !explanationScrolled}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shrink-0 ${
-                                isAnswered && explanationScrolled 
-                                    ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105' 
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shrink-0 ${isAnswered && explanationScrolled
+                                    ? 'bg-[#FF6A00] text-white hover:bg-[#E65C00] shadow-md hover:scale-105'
                                     : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                            }`}
+                                }`}
                         >
                             {currentStep === questions.length - 1 ? 'Finalizar' : 'Siguiente Pregunta'}
                             <ChevronRight className="w-4 h-4" />
