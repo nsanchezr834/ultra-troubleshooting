@@ -102,6 +102,34 @@ const TRAINING_1_QUESTIONS: Question[] = [
         explanation: 'Si el visor se apaga por falta de batería, la pérdida instantánea del tracking hace que el robot pierda sustentación y se desvíe o desvanezca físicamente, poniendo en riesgo la integridad de los productos, la infraestructura y el personal circundante.',
         difficulty: 'easy',
         category: 'Training 1'
+    },
+    {
+        id: 'q_t1_7',
+        question: '¿Qué representa la información de alineación o datos de posición necesarios para operar el robot en modo AUTO?',
+        options: [
+            'Son comandos manuales de texto que el operador debe escribir en el display.',
+            'Son los datos de calibración y tracking en tiempo real que sincronizan la posición del operador físico con los motores del robot para permitir intervenciones precisas.',
+            'Es la lista de códigos de barra pregrabada en la base de datos local.',
+            'Son videos de simulación que se reproducen en bucle en el headset.'
+        ],
+        correctIndex: 1,
+        explanation: 'Para que el modo AUTO funcione de forma segura y coordinada con las intervenciones del operador, el sistema requiere datos constantes del tracking y la posición física del usuario en tiempo real.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_8',
+        question: '¿Quién o qué componente proporciona la información de posición y tracking para que el robot pueda coordinarse de forma segura durante el modo AUTO?',
+        options: [
+            'El supervisor en turno de manera manual.',
+            'El visor (headset) y los sensores de la estación de trabajo del operador a través del sistema de tracking.',
+            'La impresora térmica de etiquetas en cada ciclo de empaque.',
+            'La banda transportadora al activarse mediante los pedales.'
+        ],
+        correctIndex: 1,
+        explanation: 'El visor (headset) del operador es el encargado de capturar y transmitir constantemente los datos de movimiento y posición mediante sus sensores de tracking al robot.',
+        difficulty: 'easy',
+        category: 'Training 1'
     }
 ];
 
@@ -546,6 +574,48 @@ const DC_QUESTIONS: Question[] = [
         ],
         correctIndex: 1,
         explanation: 'De acuerdo con las pautas de operación, realizar un movimiento vertical de arriba a abajo obliga a que entre el aire en la posición correcta para que la bolsa se abra y proceder a ingresar la batch correspondiente.',
+        difficulty: 'hard',
+        category: 'DC'
+    },
+    {
+        id: 'q_dc_6',
+        question: 'Estás operando en modo AUTO y notas que el robot se ha demorado demasiado tiempo tratando de sujetar un producto. Si decides realizar una intervención manual para asistir al robot, ¿qué acción es imperativa antes de interactuar física o virtualmente?',
+        options: [
+            'Tomar el control del joystick sin importar tu posición física en la celda.',
+            'Sincronizar tu posición física alineándote exactamente a la postura del robot y presionar la letra A en el joystick para coordinar el control.',
+            'Apagar de inmediato la estación con el botón de paro de emergencia.',
+            'Desconectar el cable de red para forzar la detención del modo auto.'
+        ],
+        correctIndex: 1,
+        explanation: 'Si decides intervenir manualmente en modo AUTO, es mandatorio que te alinees físicamente a la posición en la que está el robot y presiones la letra A en el joystick para asegurar que los movimientos no sean bruscos ni desalineados.',
+        difficulty: 'hard',
+        category: 'DC'
+    },
+    {
+        id: 'q_dc_7',
+        question: 'Durante una operación en modo AUTO, el robot tiene problemas para sujetar un objeto pesado. Decides tomar el control manual rápido con el joystick para corregir la pinza, pero olvidas presionar la letra A para sincronizar posiciones. ¿Qué riesgo representa esto?',
+        options: [
+            'Ninguno, el robot se alinea automáticamente por software sin importar la posición del operador.',
+            'Provoca una desalineación (mismatch) inmediata entre el operador y el robot, lo que puede causar movimientos bruscos, golpes o forzado de motores.',
+            'Que la impresora de etiquetas deje de funcionar temporalmente.',
+            'Que la banda transportadora se mueva en sentido contrario.'
+        ],
+        correctIndex: 1,
+        explanation: 'Intervenir sin coordinar las posiciones físicas (sin presionar la letra A) genera un desfase de control que puede derivar en movimientos erráticos y peligrosos del robot.',
+        difficulty: 'hard',
+        category: 'DC'
+    },
+    {
+        id: 'q_dc_8',
+        question: 'Escenario: El robot lleva más de 15 segundos intentando alcanzar un producto ubicado al extremo de la banda en modo AUTO. El ciclo se está retrasando. ¿Cuál es el protocolo correcto para intervenir de forma segura usando tu estación?',
+        options: [
+            'Mover bruscamente el torso para jalar el brazo del robot hacia ti.',
+            'Alinear tu postura física con la posición actual del robot, presionar la tecla A del joystick para sincronizar el control y proceder a realizar el agarre manualmente.',
+            'Esperar a que el headset se apague solo por inactividad.',
+            'Golpear la mesa de empaque para que el producto ruede hacia el centro del alcance del robot.'
+        ],
+        correctIndex: 1,
+        explanation: 'Para una intervención segura y fluida, debes alinear tu posición corporal con la del robot, pulsar la tecla A en el joystick para coordinar las señales, y concluir la maniobra de sujeción del producto de forma manual.',
         difficulty: 'hard',
         category: 'DC'
     }
