@@ -1,9 +1,11 @@
-self.addEventListener('push', function(event) {
+self.addEventListener('push', function (event) {
+    const origin = self.location.origin;
+
     let title = 'Nueva Notificación 🛡️';
     let options = {
         body: 'Tienes una nueva alerta en el portal de Ultra.',
-        icon: '/manifest_logo.png',
-        badge: '/favicon.ico',
+        icon: origin + '/manifest_logo.png',
+        badge: origin + '/favicon.ico',
         data: {
             url: '/'
         }
@@ -34,25 +36,23 @@ self.addEventListener('push', function(event) {
     );
 });
 
-self.addEventListener('notificationclick', function(event) {
+self.addEventListener('notificationclick', function (event) {
     event.notification.close();
 
     const targetUrl = event.notification.data?.url || '/';
 
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-            // Intentar reusar una pestaña existente abierta en el mismo origen
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
             for (let i = 0; i < clientList.length; i++) {
                 const client = clientList[i];
                 if (client.url.includes(self.location.origin) && 'focus' in client) {
-                    return client.focus().then(function(focusedClient) {
+                    return client.focus().then(function (focusedClient) {
                         if ('navigate' in focusedClient) {
                             return focusedClient.navigate(targetUrl);
                         }
                     });
                 }
             }
-            // Si no hay pestañas abiertas, abrir una nueva
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
