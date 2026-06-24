@@ -80,16 +80,14 @@ export default function PushNotificationManager() {
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
 
-            // 3. Serializar llaves para guardarlas en Supabase
-            const p256dh = sub.getKey('p256dh');
-            const auth = sub.getKey('auth');
+            // 3. Serializar llaves para guardarlas en Supabase usando toJSON() estándar
+            const subJson = sub.toJSON();
+            const p256dhString = subJson.keys?.p256dh;
+            const authString = subJson.keys?.auth;
 
-            if (!p256dh || !auth) {
+            if (!p256dhString || !authString) {
                 throw new Error('No se pudieron obtener las llaves de la suscripción.');
             }
-
-            const p256dhString = btoa(String.fromCharCode(...new Uint8Array(p256dh)));
-            const authString = btoa(String.fromCharCode(...new Uint8Array(auth)));
 
             // 4. Guardar suscripción en la base de datos de Supabase
             const { error } = await supabase
