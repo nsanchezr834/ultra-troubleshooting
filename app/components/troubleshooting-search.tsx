@@ -223,19 +223,12 @@ export default function TroubleshootingSearch({
       if (selectedIndex >= 0 && selectedIndex < lastResultsRef.current.length) {
         // Encontró la opción correspondiente
         const item = lastResultsRef.current[selectedIndex];
-        handleOpenModal(item);
         
         // Limpiar el estado de selección
         isWaitingForSelectionRef.current = false;
 
-        // Decir confirmación
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-          const cleanName = item.symptom.replace(/Qué hacer en caso de que/gi, '').replace(/\(ID:.*?\)/gi, '').trim();
-          const utter = new SpeechSynthesisUtterance(`Abriendo la opción ${selectedIndex + 1}: ${cleanName}`);
-          utter.lang = 'es-ES';
-          window.speechSynthesis.speak(utter);
-        }
+        // Abrir el modal y leer con el prefijo de confirmación
+        handleOpenModal(item, `Abriendo la opción ${selectedIndex + 1}. `);
         return;
       }
     }
@@ -428,7 +421,7 @@ export default function TroubleshootingSearch({
   };
 
   // Función para leer por voz el detalle de la falla seleccionada
-  const speakItemDetails = (item: ExtendedTroubleshootingKnowledge) => {
+  const speakItemDetails = (item: ExtendedTroubleshootingKnowledge, prefix: string = '') => {
     if (typeof window === 'undefined') return;
 
     const synth = window.speechSynthesis;
@@ -444,7 +437,7 @@ export default function TroubleshootingSearch({
       .replace(/\s+/g, ' ')
       .trim();
 
-    const textToSpeak = `Detalle de la falla: ${cleanSymptom}. Causa raíz: ${cleanRootCause}. Protocolo de resolución: ${cleanProtocol}`;
+    const textToSpeak = `${prefix}Detalle de la falla: ${cleanSymptom}. Causa raíz: ${cleanRootCause}. Protocolo de resolución: ${cleanProtocol}`;
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'es-ES';
@@ -452,13 +445,13 @@ export default function TroubleshootingSearch({
     synth.speak(utterance);
   };
 
-  const handleOpenModal = (item: ExtendedTroubleshootingKnowledge) => {
+  const handleOpenModal = (item: ExtendedTroubleshootingKnowledge, prefix: string = '') => {
     setSelectedItemForModal(item);
     setIsSpecificOpen(false);
     setSelectedError('');
     setSelectedRobot('');
     // Leer en voz alta el protocolo y detalle de la falla seleccionada
-    speakItemDetails(item);
+    speakItemDetails(item, prefix);
   };
 
   const handleCloseModal = () => {
