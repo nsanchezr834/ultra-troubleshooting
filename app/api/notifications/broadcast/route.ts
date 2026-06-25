@@ -54,6 +54,10 @@ export async function POST(req: NextRequest) {
                 title = 'Nueva Falla Registrada ⚠️';
                 body = record.symptom || 'Se ha registrado una nueva falla en el sistema.';
                 url = `/troubleshooting?search=${record.id}`;
+            } else if (payload.table === 'advises') {
+                title = 'Nuevo Consejo de Operación 💡';
+                body = record.content || 'Se ha registrado un nuevo consejo operativo.';
+                url = `/`;
             }
         }
 

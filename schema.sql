@@ -107,15 +107,21 @@ begin
     -- Construir payload con base en el origen del trigger
     if TG_TABLE_NAME = 'casos_estudio' then
         payload := jsonb_build_object(
-            'title', 'Nuevo Caso de Seguridad',
+            'title', 'Nuevo Caso de Seguridad 🛡️',
             'body', coalesce(new.titulo, 'Un nuevo caso de estudio ha sido publicado.'),
             'url', '/cases/' || new.id
         );
     elsif TG_TABLE_NAME = 'troubleshooting_knowledge' then
         payload := jsonb_build_object(
-            'title', 'Nueva Falla Registrada',
+            'title', 'Nueva Falla Registrada ⚠️',
             'body', coalesce(new.symptom, 'Se ha registrado la solución de una falla.'),
             'url', '/troubleshooting?search=' || new.id
+        );
+    elsif TG_TABLE_NAME = 'advises' then
+        payload := jsonb_build_object(
+            'title', 'Nuevo Consejo de Operación 💡',
+            'body', coalesce(new.content, 'Se ha registrado un nuevo consejo operativo.'),
+            'url', '/'
         );
     end if;
 
@@ -142,4 +148,9 @@ create trigger tr_casos_estudio_broadcast
 drop trigger if exists tr_troubleshooting_knowledge_broadcast on public.troubleshooting_knowledge;
 create trigger tr_troubleshooting_knowledge_broadcast
     after insert on public.troubleshooting_knowledge
+    for each row execute function public.fn_on_new_record_broadcast();
+
+drop trigger if exists tr_advises_broadcast on public.advises;
+create trigger tr_advises_broadcast
+    after insert on public.advises
     for each row execute function public.fn_on_new_record_broadcast();
