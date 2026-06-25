@@ -4,7 +4,7 @@ self.addEventListener('push', function (event) {
     let title = 'Nueva Notificación 🛡️';
     let options = {
         body: 'Tienes una nueva alerta en el portal de Ultra.',
-        icon: origin + '/manifest_logo.png',
+        icon: origin + '/ultra_logo.png',
         badge: origin + '/favicon.ico',
         data: {
             url: '/'
@@ -16,6 +16,12 @@ self.addEventListener('push', function (event) {
             const data = event.data.json();
             title = data.title || title;
             options.body = data.body || options.body;
+            if (data.icon) {
+                options.icon = data.icon.startsWith('http') ? data.icon : origin + data.icon;
+            }
+            if (data.image) {
+                options.image = data.image.startsWith('http') ? data.image : origin + data.image;
+            }
             if (options.data && data.url) {
                 options.data.url = data.url;
             }
