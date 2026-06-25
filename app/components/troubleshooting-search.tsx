@@ -123,6 +123,9 @@ export default function TroubleshootingSearch({
     if (!synth) return;
 
     synth.cancel(); // Cancelar cualquier lectura activa
+    if (synth.paused) {
+      synth.resume();
+    }
 
     if (results.length === 0) {
       lastResultsRef.current = [];
@@ -295,6 +298,18 @@ export default function TroubleshootingSearch({
       }
       setIsListening(false);
     } else {
+      // Desbloquear SpeechSynthesis para navegadores móviles (iOS/Android) bajo el gesto del usuario
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        try {
+          window.speechSynthesis.getVoices();
+          const dummyUtterance = new SpeechSynthesisUtterance(' ');
+          dummyUtterance.volume = 0;
+          window.speechSynthesis.speak(dummyUtterance);
+        } catch (e) {
+          console.warn('Error al desbloquear el sintetizador de voz:', e);
+        }
+      }
+
       try {
         const recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
@@ -428,6 +443,9 @@ export default function TroubleshootingSearch({
     if (!synth) return;
 
     synth.cancel();
+    if (synth.paused) {
+      synth.resume();
+    }
 
     const cleanSymptom = item.symptom.replace(/Qué hacer en caso de que/gi, '').replace(/\(ID:.*?\)/gi, '').trim();
     const cleanRootCause = item.root_cause.trim();
