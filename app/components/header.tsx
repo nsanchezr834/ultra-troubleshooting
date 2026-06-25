@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { Moon, Sun, GraduationCap, Zap } from 'lucide-react';
+import PushNotificationManager from './push-notification-manager';
 
 interface HeaderProps {
     isNavigatedToDashboard: boolean;
@@ -92,6 +93,9 @@ export default function Header({
                         <span>Menú Principal</span>
                     </button>
                 )}
+
+                {/* Gestor de Notificaciones Push (Campana) */}
+                <PushNotificationManager isDarkMode={isDarkMode} />
 
                 {/* Toggle Modo Oscuro */}
                 {onToggleDarkMode && (

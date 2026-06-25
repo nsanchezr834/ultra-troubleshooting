@@ -20,7 +20,11 @@ function urlBase64ToUint8Array(base64String: string) {
     return outputArray;
 }
 
-export default function PushNotificationManager() {
+interface PushNotificationManagerProps {
+    isDarkMode?: boolean;
+}
+
+export default function PushNotificationManager({ isDarkMode = false }: PushNotificationManagerProps) {
     const [isSupported, setIsSupported] = useState(false);
     const [subscription, setSubscription] = useState<PushSubscription | null>(null);
     const [loading, setLoading] = useState(true);
@@ -60,7 +64,6 @@ export default function PushNotificationManager() {
 
         setLoading(true);
         try {
-            // 1. Solicitar permisos de notificación
             const permission = await Notification.requestPermission();
             setPermissionState(permission);
 
@@ -70,9 +73,7 @@ export default function PushNotificationManager() {
                 return;
             }
 
-            // 2. Registrar/obtener service worker y suscribir al push manager
             const registration = await navigator.serviceWorker.register('/sw.js');
-            // Esperar que esté listo
             await navigator.serviceWorker.ready;
 
             const sub = await registration.pushManager.subscribe({
@@ -80,7 +81,6 @@ export default function PushNotificationManager() {
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
 
-            // 3. Serializar llaves para guardarlas en Supabase usando toJSON() estándar
             const subJson = sub.toJSON();
             const p256dhString = subJson.keys?.p256dh;
             const authString = subJson.keys?.auth;
@@ -89,7 +89,6 @@ export default function PushNotificationManager() {
                 throw new Error('No se pudieron obtener las llaves de la suscripción.');
             }
 
-            // 4. Guardar suscripción en la base de datos de Supabase
             const { error } = await supabase
                 .from('push_subscriptions')
                 .upsert({
@@ -113,7 +112,6 @@ export default function PushNotificationManager() {
         if (!subscription) return;
         setLoading(true);
         try {
-            // 1. Eliminar de la base de datos de Supabase
             const { error } = await supabase
                 .from('push_subscriptions')
                 .delete()
@@ -121,7 +119,6 @@ export default function PushNotificationManager() {
 
             if (error) throw error;
 
-            // 2. Desuscribir en el navegador
             await subscription.unsubscribe();
             setSubscription(null);
             setPermissionState(Notification.permission);
@@ -136,34 +133,32 @@ export default function PushNotificationManager() {
     if (!isSupported) return null;
 
     return (
-        <div className="fixed bottom-4 right-4 z-50">
-            {subscription ? (
-                <button
-                    onClick={unsubscribeFromPush}
-                    disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-neutral-900/90 hover:bg-neutral-800 text-green-400 border border-green-500/20 text-xs font-black tracking-wider uppercase transition-all duration-300 backdrop-blur-md shadow-lg"
-                >
-                    {loading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                    )}
-                    Notificaciones Activas
-                </button>
+        <button
+            onClick={subscription ? unsubscribeFromPush : subscribeToPush}
+            disabled={loading}
+            title={subscription ? 'Desactivar notificaciones push' : 'Activar notificaciones push'}
+            className={`relative w-9 h-9 flex items-center justify-center rounded-full border transition-all duration-300 active:scale-[0.92] shadow-sm ${
+                subscription
+                    ? isDarkMode
+                        ? 'bg-neutral-800 border-neutral-700 text-green-400 hover:bg-neutral-700'
+                        : 'bg-white border-neutral-200 text-green-600 hover:bg-neutral-50'
+                    : isDarkMode
+                        ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200'
+                        : 'bg-white border-neutral-200 text-neutral-400 hover:bg-neutral-50 hover:text-[#ff4f00] hover:border-neutral-300'
+            }`}
+        >
+            {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+            ) : subscription ? (
+                <>
+                    <Bell className="w-4 h-4 fill-current animate-pulse" />
+                    <span className={`absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full border border-white transition-all duration-300 ${
+                        isDarkMode ? 'dark:border-neutral-800' : ''
+                    }`} />
+                </>
             ) : (
-                <button
-                    onClick={subscribeToPush}
-                    disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs font-black tracking-wider uppercase transition-all duration-300 shadow-md shadow-red-600/20 animate-bounce"
-                >
-                    {loading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                        <Bell className="w-3.5 h-3.5" />
-                    )}
-                    Activar Notificaciones
-                </button>
+                <BellOff className="w-4 h-4" />
             )}
-        </div>
+        </button>
     );
 }
