@@ -131,6 +131,104 @@ const TRAINING_1_QUESTIONS: Question[] = [
         explanation: 'El visor (headset) del operador es el encargado de capturar y transmitir constantemente los datos de movimiento y posición mediante sus sensores de tracking al robot.',
         difficulty: 'easy',
         category: 'Training 1'
+    },
+    {
+        id: 'q_t1_9',
+        question: '¿Cuál es la definición técnica del término "Workflow" dentro del entorno operativo?',
+        options: [
+            'El tiempo acumulado que un robot pasa en mantenimiento preventivo.',
+            'La secuencia estructurada de pasos requeridos para completar un ciclo de trabajo.',
+            'La velocidad máxima de traslado que alcanza el sistema de bandas.',
+            'El volumen total de datos enviados al procesador de IA.'
+        ],
+        correctIndex: 1,
+        explanation: 'El término técnico "Workflow" define la secuencia estructurada de pasos necesarios para que se complete un ciclo de trabajo de manera eficiente.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_10',
+        question: 'Dentro del hardware del robot, ¿qué función cumple una pinza o "Gripper"?',
+        options: [
+            'Capturar y decodificar los códigos de barras de los empaques.',
+            'Actuar como las pinzas especializadas o "manos" para manipular físicamente los objetos.',
+            'Sostener las bolsas en la mesa de empaque mediante magnetismo.',
+            'Servir de riel de deslizamiento para contenedores con sobrepeso.'
+        ],
+        correctIndex: 1,
+        explanation: 'El gripper o pinza actúa como la mano del robot, encargada de la sujeción y manipulación física de los productos.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_11',
+        question: '¿Cuál es la función principal de los robots dedicados a la recolección de datos o "DC" (Data Collection)?',
+        options: [
+            'Retirar la basura o cajas dañadas de la zona operativa.',
+            'Sellar las bolsas plásticas a altas temperaturas.',
+            'Alimentar datos al sistema de Inteligencia Artificial para mejorar la autonomía de los robots.',
+            'Sustituir las pantallas principales de control en caso de un corte eléctrico.'
+        ],
+        correctIndex: 2,
+        explanation: 'Los robots de Data Collection recopilan información operativa para entrenar y mejorar los modelos de Inteligencia Artificial.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_12',
+        question: '¿Qué elemento físico traslada de forma continua las órdenes completadas a lo largo de toda la instalación?',
+        options: [
+            'El Hospital Bin.',
+            'La cinta transportadora o Conveyor Belt.',
+            'Las mesas metálicas de soporte de bolsas.',
+            'Los totes o bandejas estáticas de material.'
+        ],
+        correctIndex: 1,
+        explanation: 'La cinta transportadora (Conveyor Belt) es el elemento móvil que desplaza de forma continua las órdenes listas.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_13',
+        question: 'Si un artículo o contenedor sufre daños durante la manipulación, ¿en qué depósito específico debe colocarse?',
+        options: [
+            'Directamente sobre la banda transportadora principal.',
+            'En la bandeja de Overflow de la estación.',
+            'En un Tote estándar asignado a órdenes pendientes.',
+            'En el Hospital Bin ("basura" u objetos dañados).'
+        ],
+        correctIndex: 3,
+        explanation: 'Los objetos o empaques dañados deben ser depositados en el contenedor específico llamado Hospital Bin.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_14',
+        question: '¿A qué se refiere el término técnico "Downtime"?',
+        options: [
+            'El lapso programado para los descansos obligatorios del personal.',
+            'La duración de tiempo en la cual el sistema no está operativo debido a problemas técnicos.',
+            'La reducción intencional de la velocidad del robot ante objetos frágiles.',
+            'El tiempo requerido para encender el visor VR al inicio de la jornada.'
+        ],
+        correctIndex: 1,
+        explanation: 'Downtime es el tiempo inactivo o no operativo de un sistema debido a fallas técnicas, mantenimiento o problemas diversos.',
+        difficulty: 'easy',
+        category: 'Training 1'
+    },
+    {
+        id: 'q_t1_15',
+        question: '¿Qué situación logística describe la condición de "Overflow"?',
+        options: [
+            'Cuando un recipiente alcanza su capacidad total y se requiere emplear un contenedor de respaldo.',
+            'Una desconexión total de las señales de red con el robot en movimiento.',
+            'El exceso de presión ejercida por los grippers que deforma el embalaje.',
+            'La desalineación del tracking óptico entre los mandos y el visor.'
+        ],
+        correctIndex: 0,
+        explanation: 'Overflow se refiere a la saturación o llenado al límite de un contenedor, requiriendo el uso de un depósito o contenedor adicional.',
+        difficulty: 'easy',
+        category: 'Training 1'
     }
 ];
 
@@ -415,6 +513,104 @@ const TRAINING_2_QUESTIONS: Question[] = [
         explanation: 'Utilizar componentes físicos de la estación como raspadores improvisados daña los sensores, pantallas e infraestructura del robot o la embolsadora, pudiendo tirar elementos de la celda. Las etiquetas deben retirarse con la técnica vertical recomendada.',
         difficulty: 'easy',
         category: 'Training 2'
+    },
+    {
+        id: 'q_t2_21',
+        question: '¿Qué modelo específico de visor VR establece el manual oficial para llevar a cabo la teleoperación remota?',
+        options: [
+            'Apple Vision Pro',
+            'Meta Quest 3',
+            'HTC Vive Pro 2',
+            'PlayStation VR2'
+        ],
+        correctIndex: 1,
+        explanation: 'El manual oficial establece el uso de Meta Quest 3 como el visor VR estándar para la teleoperación remota.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_22',
+        question: '¿Cuál es el componente del sistema automatizado encargado del sellado de bolsas mediante calor a alta temperatura?',
+        options: [
+            'El dispensador o Bagger.',
+            'La barra selladora o Sealing Bar.',
+            'La mesa de soporte metálica.',
+            'El gripper del brazo robótico.'
+        ],
+        correctIndex: 1,
+        explanation: 'La barra selladora (Sealing Bar) utiliza calor a alta temperatura para cerrar herméticamente las bolsas plásticas.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_23',
+        question: 'De acuerdo con el protocolo corporativo, ¿en qué plataforma debe permanecer conectado por canal de voz el operador durante todo su turno?',
+        options: [
+            'En el canal de llamadas grupales de Slack.',
+            'En salas públicas de Meta Horizon.',
+            'Mediante llamada telefónica por red móvil.',
+            'En servidores externos de Discord.'
+        ],
+        correctIndex: 0,
+        explanation: 'Los operadores deben estar conectados permanentemente por Slack por motivos de coordinación y seguridad operativa.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_24',
+        question: 'Al realizar la preparación física de la estación de trabajo, ¿cuál es la distancia recomendada que debe mantener el operador respecto a la mesa de control?',
+        options: [
+            'Entre 10 y 15 centímetros de distancia.',
+            'Entre 30 y 35 centímetros de distancia.',
+            'Exactamente a 50 centímetros de distancia.',
+            'A una distancia libre mayor a 1 metro.'
+        ],
+        correctIndex: 1,
+        explanation: 'La distancia segura y óptima de posicionamiento del operador respecto a la mesa es entre 30 y 35 cm.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_25',
+        question: 'En el contexto de la sincronización remota, ¿qué implica operativamente el concepto de "1:1 Motion Mirroring"?',
+        options: [
+            'Que la velocidad del robot se reduce a la mitad respecto al movimiento humano para absorber impactos.',
+            'El intercambio automático de los controles de la mano derecha a la izquierda para operarios zurdos.',
+            'El establecimiento de un enlace directo donde el brazo del robot replica de forma idéntica y en tiempo real el movimiento físico del operador.',
+            'El almacenamiento automático de movimientos para su repetición en bucle de forma autónoma.'
+        ],
+        correctIndex: 2,
+        explanation: 'El concepto "1:1 Motion Mirroring" indica que el brazo robótico replica exactamente, en tiempo real, el movimiento del operador.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_26',
+        question: '¿Qué acción obligatoria e inmediata de seguridad debe ejecutar un teleoperador antes de levantarse o desplazarse físicamente de su asiento de trabajo?',
+        options: [
+            'Ajustar la nitidez de las pantallas del visor VR.',
+            'Activar la visualización secundaria de la cámara del torso del robot.',
+            'Cerrar por completo la aplicación (quit the app) para romper el enlace activo de movimiento.',
+            'Poner en modo de silencio la llamada de voz corporativa en Slack.'
+        ],
+        correctIndex: 2,
+        explanation: 'Es obligatorio cerrar por completo la aplicación (quit app) para cortar de forma segura la transmisión de señales antes de levantarse.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_27',
+        question: 'Si el horizonte visual o los límites de la interfaz gráfica se desalinean dentro del visor, ¿cómo se ejecuta la acción de re-centrado rápido mediante el hardware de control?',
+        options: [
+            'Manteniendo presionado el Meta Button situado en el controlador derecho.',
+            'Presionando dos veces seguidas el botón A en el mando izquierdo.',
+            'Manteniendo apretado por 5 segundos el gatillo de sujeción izquierdo (Left Trigger).',
+            'Realizando un desplazamiento continuo del joystick derecho hacia su posición inferior.'
+        ],
+        correctIndex: 0,
+        explanation: 'Para re-centrar la vista de forma rápida, se debe mantener presionado el Meta Button en el mando derecho.',
+        difficulty: 'easy',
+        category: 'Training 2'
     }
 ];
 
@@ -501,6 +697,90 @@ const TRAINING_3_QUESTIONS: Question[] = [
         ],
         correctIndex: 1,
         explanation: '"Other" se reserva para fallas y problemas imprevistos que no coinciden con ninguna de las opciones específicas provistas en el menú.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_7',
+        question: 'Durante la teleoperación de un brazo robótico, se observa la aparición súbita de "puntos" (dots) en el HUD (Heads-Up Display). ¿Cuál es el significado operativo y la reacción correcta?',
+        options: [
+            'Indican un nivel óptimo de batería en los controles; se puede incrementar la velocidad de traslado.',
+            'Advierten que se han alcanzado los límites de proximidad o sensores de fuerza táctil; se debe detener el movimiento de inmediato.',
+            'Indican que el sellado térmico de la bolsa ha terminado con éxito; se debe liberar el objeto manipulado.',
+            'Señalan una falla crítica de conexión Wi-Fi; se debe apagar el visor directamente desde el botón de encendido.'
+        ],
+        correctIndex: 1,
+        explanation: 'Los puntos en el HUD advierten que se ha alcanzado la proximidad máxima o los límites de los sensores de fuerza. Se debe detener el movimiento inmediatamente para evitar colisiones.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_8',
+        question: 'Con el fin de evitar colisiones o mermas debido a la alta potencia mecánica de las articulaciones del robot, ¿cuál es el procedimiento estándar para aproximarse a un objeto delicado?',
+        options: [
+            'Ejecutar aproximaciones rápidas e impulsos intermitentes a través de los joysticks analógicos.',
+            'Cerrar los grippers de forma anticipada antes de interceptar la trayectoria espacial del objeto.',
+            'Adoptar una aproximación lenta y sutil, utilizando primordialmente el posicionamiento detallado de la muñeca para la alineación.',
+            'Desconectar momentáneamente el tracking de las cámaras principales para fijar un punto ciego seguro.'
+        ],
+        correctIndex: 2,
+        explanation: 'Para interactuar con objetos frágiles, el procedimiento adecuado es una aproximación lenta y sutil utilizando el movimiento de la muñeca para la alineación fina.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_9',
+        question: '¿Cómo interactúan los joysticks analógicos de los mandos en el ajuste espacial de la interfaz de usuario (UI Adjustment) del sistema?',
+        options: [
+            'El joystick derecho modifica la escala (maximizar/minimizar) de la interfaz, mientras que el joystick izquierdo controla su posición en el espacio.',
+            'El joystick izquierdo alterna los colores del HUD y el derecho controla la rotación de los textos en pantalla.',
+            'Se requiere un clic sostenido hacia adentro de ambos joysticks (L3 y R3) para congelar el texto operativo.',
+            'Los joysticks están deshabilitados para la interfaz gráfica; su uso es estrictamente exclusivo de los brazos articulados.'
+        ],
+        correctIndex: 0,
+        explanation: 'En la calibración espacial, el joystick derecho regula la escala y el izquierdo controla la posición tridimensional de la UI.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_10',
+        question: 'Para el correcto alta y aprovisionamiento de credenciales operativas, ¿qué dominio institucional obligatorio debe poseer el correo electrónico del usuario tanto en app.ultra.tech como en Meta?',
+        options: [
+            '@ultra.tech',
+            '@gmail.com',
+            '@remotics.io',
+            '@meta.com'
+        ],
+        correctIndex: 0,
+        explanation: 'Por políticas corporativas y de seguridad, todas las credenciales operativas deben estar vinculadas a un correo con el dominio institucional @ultra.tech.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_11',
+        question: 'De acuerdo con las normas de gestión de incidencias (Issue Management), ¿quién es designado como el único punto de contacto oficial (POC) para notificar anomalías en los canales de comunicación?',
+        options: [
+            'El Supervisor de turno.',
+            'El Desarrollador de algoritmos de visión del robot.',
+            'Cualquier operador auxiliar que se encuentre disponible en los hilos generales.',
+            'El asistente de soporte automatizado (Slack Bot).'
+        ],
+        correctIndex: 0,
+        explanation: 'El Supervisor de turno es el canal y punto de contacto oficial (POC) para la comunicación y reporte de todas las incidencias técnicas.',
+        difficulty: 'medium',
+        category: 'Training 3'
+    },
+    {
+        id: 'q_t3_12',
+        question: 'De los siguientes criterios técnicos, ¿cuál NO forma parte de los requisitos oficiales documentados para acreditar la Certificación Operacional de Ultra Robotics?',
+        options: [
+            'Ejecución correcta del protocolo de inicialización de enlace del robot (Robot Link).',
+            'Dominio pleno y estricto de las normativas de seguridad operativa vigentes.',
+            'Acreditación obligatoria de 500 horas previas de simulación digital en videojuegos de conducción comercial.',
+            'Nivel óptimo de eficiencia y precisión en la sujeción estandarizada de productos.'
+        ],
+        correctIndex: 2,
+        explanation: 'El requisito de 500 horas de simulación en videojuegos de conducción comercial no forma parte de los criterios para obtener la Certificación Operacional oficial de Ultra Robotics.',
         difficulty: 'medium',
         category: 'Training 3'
     }
@@ -1143,14 +1423,28 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
             }
 
             // Validar progresión:
-            // 1. DC requiere haber aprobado algún nivel de Training
-            if (examLevel.startsWith('DC')) {
-                const hasTraining = approvedLevels.some(l => l.startsWith('Training'));
-                if (!hasTraining) {
-                    throw new Error('Bloqueado: Debes aprobar al menos un nivel de Training antes de poder realizar exámenes de nivel DC.');
+            // 1. Training 2 requiere haber aprobado Training 1
+            if (examLevel === 'Training 2') {
+                const hasT1 = approvedLevels.includes('Training 1');
+                if (!hasT1) {
+                    throw new Error('Bloqueado: Debes aprobar el nivel Training 1 antes de poder realizar el examen de Training 2.');
                 }
             }
-            // 2. Customer requiere haber aprobado algún nivel de DC
+            // 2. Training 3 requiere haber aprobado Training 2
+            if (examLevel === 'Training 3') {
+                const hasT2 = approvedLevels.includes('Training 2');
+                if (!hasT2) {
+                    throw new Error('Bloqueado: Debes aprobar el nivel Training 2 antes de poder realizar el examen de Training 3.');
+                }
+            }
+            // 3. DC requiere haber aprobado el nivel Training 3
+            if (examLevel.startsWith('DC')) {
+                const hasT3 = approvedLevels.includes('Training 3');
+                if (!hasT3) {
+                    throw new Error('Bloqueado: Debes aprobar el nivel Training 3 antes de poder realizar exámenes de nivel DC.');
+                }
+            }
+            // 4. Customer requiere haber aprobado algún nivel de DC
             if (examLevel.startsWith('Customer')) {
                 const hasDC = approvedLevels.some(l => l.startsWith('DC'));
                 if (!hasDC) {

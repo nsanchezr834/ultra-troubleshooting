@@ -582,6 +582,12 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         adviceNumber: 3,
                         content: 'Verifica más de una vez la cantidad de productos a ingresar.',
                         isException: false
+                    },
+                    {
+                        id: 'monty__4',
+                        adviceNumber: 4,
+                        content: 'La indicación y correcta manera de trabajar es tomar 2 productos a la vez e ingresarlos cuando la batch solicite más de uno: con el gripper derecho agarras un producto y con el izquierdo el segundo, ingresándolos uno a uno. Revisa bien la batch para ver qué cantidad de productos debe tener.',
+                        isException: false
                     }
                 ]
             },

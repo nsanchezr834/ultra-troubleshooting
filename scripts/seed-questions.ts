@@ -65,6 +65,7 @@ async function seedQuestions() {
         correct_index: q.correctIndex,
         explanation: q.explanation,
         difficulty: mapDifficulty(q.difficulty),
+        category: q.category || 'Training 1',
         is_active: true
     }));
 
