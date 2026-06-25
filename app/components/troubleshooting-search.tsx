@@ -199,19 +199,32 @@ export default function TroubleshootingSearch({
 
     if (searchWords.length === 0) return [];
 
-    return combinedKnowledgeBase.filter(item => {
+    // Calcular relevancia por coincidencia de palabras clave
+    const scoredItems = combinedKnowledgeBase.map(item => {
       const normSymptom = normalizeForSearch(item.symptom);
       const normRootCause = normalizeForSearch(item.root_cause);
       const normProtocol = normalizeForSearch(item.resolution_protocol);
       const normId = normalizeForSearch(item.id);
 
-      return searchWords.every(word => 
-        normSymptom.includes(word) ||
-        normRootCause.includes(word) ||
-        normProtocol.includes(word) ||
-        normId.includes(word)
-      );
+      let score = 0;
+      searchWords.forEach(word => {
+        let matches = 0;
+        if (normSymptom.includes(word)) matches += 10; // Síntoma tiene máxima prioridad
+        if (normId.includes(word)) matches += 8;       // Código de error es muy relevante
+        if (normRootCause.includes(word)) matches += 3;
+        if (normProtocol.includes(word)) matches += 1;
+
+        score += matches;
+      });
+
+      return { item, score };
     });
+
+    // Filtrar los que tengan al menos una coincidencia y ordenar de mayor a menor relevancia
+    return scoredItems
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.item);
   }, [combinedKnowledgeBase, searchTerm]);
 
   // Fallas de la categoría seleccionada
