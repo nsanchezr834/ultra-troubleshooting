@@ -9,6 +9,7 @@ import {
     Wrench, Plus, Trash2, Edit
 } from 'lucide-react';
 import Image from 'next/image';
+import { CLIENTS_DATABASE } from '../../config/robots-db';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -105,15 +106,17 @@ export default function AdminClient() {
     const fetchEditorData = useCallback(async () => {
         setLoadingEditor(true);
         try {
-            const { data: robotsData } = await supabase
-                .from('robots')
-                .select('*')
-                .order('name');
-            if (robotsData) {
-                setEditorRobots(robotsData);
-                if (robotsData.length > 0 && !selectedEditorRobotId) {
-                    setSelectedEditorRobotId(robotsData[0].id);
-                }
+            const robotsList: { id: string; name: string }[] = [];
+            Object.values(CLIENTS_DATABASE).forEach(client => {
+                client.robots.forEach(robot => {
+                    if (!robotsList.some(r => r.id === robot.id)) {
+                        robotsList.push({ id: robot.id, name: robot.name });
+                    }
+                });
+            });
+            setEditorRobots(robotsList);
+            if (robotsList.length > 0 && !selectedEditorRobotId) {
+                setSelectedEditorRobotId(robotsList[0].id);
             }
 
             const { data: faultsData } = await supabase
