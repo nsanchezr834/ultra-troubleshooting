@@ -39,7 +39,7 @@ export default function TroubleshootingSearch({
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('El reconocimiento de voz no está soportado en este navegador. Te recomendamos usar Google Chrome o Microsoft Edge.');
+      alert('El reconocimiento de voz no está soportado en este navegador o dispositivo. Te recomendamos usar Google Chrome, Microsoft Edge o Safari actualizados.');
       return;
     }
 
@@ -68,6 +68,17 @@ export default function TroubleshootingSearch({
         recognition.onerror = (event: any) => {
           console.error('Error en reconocimiento de voz:', event.error);
           setIsListening(false);
+          
+          if (event.error === 'not-allowed') {
+            alert('Acceso al micrófono denegado. Por favor, ve a la configuración de tu navegador y permite el uso del micrófono para este sitio web.');
+          } else if (event.error === 'no-speech') {
+            // Ocurre cuando el micrófono se activa pero no se detecta voz en unos segundos
+            alert('No se detectó ninguna voz. Por favor, intenta hablar de nuevo.');
+          } else if (event.error === 'network') {
+            alert('Error de red al intentar conectar con el servicio de reconocimiento de voz.');
+          } else {
+            alert(`Error en el micrófono: ${event.error}`);
+          }
         };
 
         recognition.onend = () => {
@@ -76,9 +87,10 @@ export default function TroubleshootingSearch({
 
         recognitionRef.current = recognition;
         recognition.start();
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error inicializando SpeechRecognition:', err);
         setIsListening(false);
+        alert(`No se pudo iniciar el dictado por voz: ${err?.message || err}`);
       }
     }
   };
