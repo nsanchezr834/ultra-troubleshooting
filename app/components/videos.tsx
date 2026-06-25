@@ -140,6 +140,25 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
             },
         ],
     },
+    'mercury': {
+        layout: 'grid',
+        videos: [
+            {
+                title: 'Proceso Correcto — Mercury',
+                description: 'Recorrido operativo completo del ciclo de trabajo del robot Mercury.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_mercury.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+            {
+                title: 'Falla en Mercury',
+                description: 'Caso de estudio que muestra una falla operativa en el robot Mercury.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Falla%20En%20Mercury.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
+            },
+        ],
+    },
     'mabel': {
         layout: 'carousel',
         videos: [
@@ -276,6 +295,18 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Tower Stack/Unstack: apilado y desapilado de producto.',
                 src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_tower_completo.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
+    'missouristar': {
+        layout: 'grid',
+        videos: [
+            {
+                title: 'Proceso Correcto — Missouri Star',
+                description: 'Recorrido operativo completo del ciclo de trabajo del robot en Missouri Star.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Control%20Msqc%20-%20Google%20Chrome%202026-06-24%2012-33-58.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
             },

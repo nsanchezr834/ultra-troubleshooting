@@ -21,6 +21,7 @@ const CLIENT_LOGOS: Record<string, string> = {
     'highline-commerce': '/highline_logo.png',
     'outerspace': '/outerspace_logo.png',
     'mountainy': '/mountainy_logo.png',
+    'missouristar': '/missouristar_logo.png',
 };
 
 export default function ClientSelector({

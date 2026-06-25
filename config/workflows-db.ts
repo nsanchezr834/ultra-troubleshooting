@@ -2411,6 +2411,242 @@ export const WORKFLOWS_DATABASE: Record<string, WorkflowConfig> = {
                 }
             ]
         }
+    },
+    'missouristar': {
+        id: 'missouristar',
+        name: 'Missouri Star Workflow',
+        version: '1.0.0',
+        description: 'Workflow de empaque y sellado para Missouri Star.',
+        rootNode: {
+            "node_type": "Sequence",
+            "node_name": "Secuencia",
+            "is_active": true,
+            "action_id": null,
+            "text_explain": null,
+            "children": [
+                {
+                    "node_type": "LogDuration",
+                    "node_name": "Effect",
+                    "is_active": false,
+                    "action_id": null,
+                    "text_explain": null,
+                    "children": []
+                },
+                {
+                    "node_type": "LogDuration",
+                    "node_name": "Limpieza",
+                    "is_active": false,
+                    "action_id": null,
+                    "text_explain": null,
+                    "children": [
+                        {
+                            "node_type": "ShowMessage",
+                            "node_name": "Please clean up the work area",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": [
+                                {
+                                    "node_type": "ShowAndWaitForAction",
+                                    "node_name": "OK",
+                                    "is_active": false,
+                                    "action_id": "check_cleanup",
+                                    "text_explain": null,
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "node_type": "LoopForever",
+                    "node_name": "Bucle infinito",
+                    "is_active": false,
+                    "action_id": null,
+                    "text_explain": null,
+                    "children": [
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Escanear código de barras",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": [
+                                {
+                                    "node_type": "ShowMessage",
+                                    "node_name": "Scan a tote barcode",
+                                    "is_active": false,
+                                    "action_id": null,
+                                    "text_explain": null,
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Effect",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": []
+                        },
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Effect",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": []
+                        },
+                        {
+                            "node_type": "BlackboardForEach",
+                            "node_name": null,
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": [
+                                {
+                                    "node_type": "LogDuration",
+                                    "node_name": "Empacar artículo",
+                                    "is_active": false,
+                                    "action_id": null,
+                                    "text_explain": null,
+                                    "children": [
+                                        {
+                                            "node_type": "ShowMessage",
+                                            "node_name": null,
+                                            "is_active": false,
+                                            "action_id": null,
+                                            "text_explain": null,
+                                            "children": [
+                                                {
+                                                    "node_type": "ShowAndWaitForAction",
+                                                    "node_name": "Confirmar colocado en el paquete",
+                                                    "is_active": false,
+                                                    "action_id": "confirm_placed",
+                                                    "text_explain": null,
+                                                    "children": []
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "node_type": "ShowMessage",
+                            "node_name": "Press the physical SEAL button",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": [
+                                {
+                                    "node_type": "ShowAndWaitForAction",
+                                    "node_name": "OK",
+                                    "is_active": false,
+                                    "action_id": "ok",
+                                    "text_explain": null,
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "node_type": "ShowMessage",
+                            "node_name": "Place package on scale",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": [
+                                {
+                                    "node_type": "ShowAndWaitForAction",
+                                    "node_name": "Aceptar",
+                                    "is_active": false,
+                                    "action_id": "ok",
+                                    "text_explain": null,
+                                    "children": []
+                                }
+                            ]
+                        },
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Effect",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": []
+                        },
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Effect",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": []
+                        },
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Aplicar etiqueta",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": [
+                                {
+                                    "node_type": "ShowMessage",
+                                    "node_name": "Apply the shipping label",
+                                    "is_active": false,
+                                    "action_id": null,
+                                    "text_explain": null,
+                                    "children": [
+                                        {
+                                            "node_type": "ShowAndWaitForAction",
+                                            "node_name": "OK",
+                                            "is_active": false,
+                                            "action_id": "confirm_applied",
+                                            "text_explain": null,
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Clasificar paquete",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": [
+                                {
+                                    "node_type": "ShowMessage",
+                                    "node_name": null,
+                                    "is_active": false,
+                                    "action_id": null,
+                                    "text_explain": null,
+                                    "children": [
+                                        {
+                                            "node_type": "ShowAndWaitForAction",
+                                            "node_name": "Confirmar entregado",
+                                            "is_active": false,
+                                            "action_id": "confirm_dropped",
+                                            "text_explain": null,
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "node_type": "LogDuration",
+                            "node_name": "Effect",
+                            "is_active": false,
+                            "action_id": null,
+                            "text_explain": null,
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        }
     }
 };
 

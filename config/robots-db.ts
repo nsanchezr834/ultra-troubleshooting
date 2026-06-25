@@ -697,5 +697,25 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                 ]
             },
         ]
+    },
+    'missouristar': {
+        id: 'missouristar',
+        name: 'Missouri Star',
+        robots: [
+            {
+                id: 'missouristar',
+                name: 'Missouri Star Robot',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'missouristar__1',
+                        adviceNumber: 1,
+                        content: 'Sigue el workflow establecido para asegurar la correcta operación del robot.',
+                        isException: false
+                    }
+                ]
+            }
+        ]
     }
 };

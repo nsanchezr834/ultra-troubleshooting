@@ -62,7 +62,15 @@ const SAFETY_CASES_DATA = [
     titulo: "Falta de Control y Mal Uso de la Bagger",
     descripcion: "El operador no pudo retirar de manera correcta la etiqueta de la impresora. La etiqueta se pega en las manos, choca con la bagger, se empieza a desesperar porque la etiqueta no se quita de los grippers y erróneamente utiliza la bagger como herramienta para poder quitarse los restos. Esto puede provocar daños tanto al robot como a la bagger. Además, tira la hospital bin que estaba ubicada sobre la impresora de etiquetas, hasta que por fin se va a la posición de home para solicitar ayuda.",
     recomendacion: "La mejor posición para quitar esas etiquetas es en la parte superior haciendo un movimiento vertical para evitar la ruptura de la etiqueta o que se quede pegada al gripper.",
-    video_url: "https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Packasaurus%20%20%20Be%20Careful%20With%20Movement%20While%20Operating.mp4"
+    video_url: "https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Packasaurus%2520%2520%2520Be%2520Careful%2520With%2520Movement%2520While%2520Operating.mp4"
+  },
+  {
+    id: 7,
+    label_corto: "Caso 7",
+    titulo: "Malas Prácticas",
+    descripcion: "Lo que se observa en el video es totalmente prohibido y no se debe de realizar esas acciones ya que pueden tener consecuencias físicas como daños al robot, problemas con Ultra y incluso faltas administrativas.",
+    recomendacion: "¡IMPORTANTE! Remarcar muy bien que esto es una mala práctica y nunca se deben de realizar estas acciones bajo ninguna circunstancia.",
+    video_url: "https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/MalasPracticas.mp4"
   }
 ];
 

@@ -141,7 +141,8 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
             'manifest.eco': 'manifest_logo.png',
             'highline-commerce': 'highline_logo.png',
             'outerspace': 'outerspace_logo.png',
-            'mountainy': 'mountainy_logo.png'
+            'mountainy': 'mountainy_logo.png',
+            'missouristar': 'missouristar_logo.png'
         };
         return `/${logoMap[key] || `${key.replace('-', '_')}_logo.png`}`;
     };

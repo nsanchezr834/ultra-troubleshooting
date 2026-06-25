@@ -45,6 +45,7 @@ const ROBOT_TO_WORKFLOW_MAP: Record<string, string> = {
     'tote':         'internal-tote',
     'bagger-label': 'internal-bagger-label',
     'tower-stack-unstack': 'internal-tower-stack',
+    'missouristar': 'missouristar',
 };
 
 export default function TelemetryDashboard({
@@ -61,7 +62,7 @@ export default function TelemetryDashboard({
     const [activeTab, setActiveTab] = useState<TabType>('videos');
 
     // Robots con material de vídeo disponible
-    const ROBOTS_WITH_VIDEOS = ['future-2.0', 'phil', 'fleetwood-pack', 'fleetwood', 'packie-2.0', 'monty', 'venus', 'bagger-label', 'box-fold', 'pick-sort', 'tower-stack-unstack', 'mabel', 'captain-pack-sparrow', 'packasaurus'];
+    const ROBOTS_WITH_VIDEOS = ['future-2.0', 'phil', 'fleetwood-pack', 'fleetwood', 'packie-2.0', 'monty', 'venus', 'bagger-label', 'box-fold', 'pick-sort', 'tower-stack-unstack', 'mabel', 'captain-pack-sparrow', 'packasaurus', 'missouristar'];
     const showVideoTab = !!(currentRobot?.id && ROBOTS_WITH_VIDEOS.includes(currentRobot.id));
     const showTipsTab = !!(currentRobot?.advises && currentRobot.advises.length > 0);
 
