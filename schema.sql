@@ -113,13 +113,13 @@ begin
         );
     elsif TG_TABLE_NAME = 'troubleshooting_knowledge' then
         payload := jsonb_build_object(
-            'title', 'Nueva Falla Registrada ⚠️',
+            'title', 'Nueva Falla (' || upper(coalesce(new.category, 'General')) || ') ⚠️',
             'body', coalesce(new.symptom, 'Se ha registrado la solución de una falla.'),
             'url', '/troubleshooting?search=' || new.id
         );
     elsif TG_TABLE_NAME = 'advises' then
         payload := jsonb_build_object(
-            'title', 'Nuevo Consejo de Operación 💡',
+            'title', 'Nuevo Consejo (' || upper(coalesce(new.robot_id, 'General')) || ') 💡',
             'body', coalesce(new.content, 'Se ha registrado un nuevo consejo operativo.'),
             'url', '/'
         );
@@ -139,18 +139,18 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- Triggers de inserción
+-- Triggers de inserción o actualización
 drop trigger if exists tr_casos_estudio_broadcast on public.casos_estudio;
 create trigger tr_casos_estudio_broadcast
-    after insert on public.casos_estudio
+    after insert or update on public.casos_estudio
     for each row execute function public.fn_on_new_record_broadcast();
 
 drop trigger if exists tr_troubleshooting_knowledge_broadcast on public.troubleshooting_knowledge;
 create trigger tr_troubleshooting_knowledge_broadcast
-    after insert on public.troubleshooting_knowledge
+    after insert or update on public.troubleshooting_knowledge
     for each row execute function public.fn_on_new_record_broadcast();
 
 drop trigger if exists tr_advises_broadcast on public.advises;
 create trigger tr_advises_broadcast
-    after insert on public.advises
+    after insert or update on public.advises
     for each row execute function public.fn_on_new_record_broadcast();

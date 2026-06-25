@@ -51,11 +51,13 @@ export async function POST(req: NextRequest) {
                 body = record.titulo || record.label_corto || 'Un nuevo caso de estudio ha sido publicado.';
                 url = `/cases/${record.id}`;
             } else if (payload.table === 'troubleshooting_knowledge') {
-                title = 'Nueva Falla Registrada ⚠️';
+                const categoryLabel = record.category ? ` (${record.category.toUpperCase()})` : '';
+                title = `Nueva Falla${categoryLabel} ⚠️`;
                 body = record.symptom || 'Se ha registrado una nueva falla en el sistema.';
                 url = `/troubleshooting?search=${record.id}`;
             } else if (payload.table === 'advises') {
-                title = 'Nuevo Consejo de Operación 💡';
+                const robotLabel = record.robot_id ? ` (${record.robot_id.toUpperCase()})` : '';
+                title = `Nuevo Consejo${robotLabel} 💡`;
                 body = record.content || 'Se ha registrado un nuevo consejo operativo.';
                 url = `/`;
             }

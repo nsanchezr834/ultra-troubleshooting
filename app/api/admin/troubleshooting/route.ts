@@ -44,6 +44,25 @@ export async function POST(req: NextRequest) {
 
         if (error) throw error;
 
+        // Dispatch broadcast notification dynamically
+        try {
+            const origin = req.nextUrl.origin;
+            await fetch(`${origin}/api/notifications/broadcast`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.WEBHOOK_SECRET || 'SUPER_SECRET_WEBHOOK_TOKEN'}`
+                },
+                body: JSON.stringify({
+                    title: `Nueva Falla (${category.toUpperCase()}) ⚠️`,
+                    body: symptom || 'Se ha registrado una nueva falla.',
+                    url: `/troubleshooting?search=${id}`
+                })
+            });
+        } catch (notifErr) {
+            console.error('Failed to trigger broadcast notification:', notifErr);
+        }
+
         return NextResponse.json({ success: true, data });
     } catch (err: any) {
         console.error('Error in POST /api/admin/troubleshooting:', err);
