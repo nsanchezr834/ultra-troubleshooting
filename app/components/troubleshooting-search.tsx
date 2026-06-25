@@ -159,13 +159,35 @@ export default function TroubleshootingSearch({
     utterance.lang = 'es-ES';
     utterance.rate = 1.05;
 
+    let spoken = false;
+    utterance.onstart = () => {
+      spoken = true;
+    };
+
     // Al finalizar la lectura, volver a activar el micrófono para esperar la respuesta
     utterance.onend = () => {
       isWaitingForSelectionRef.current = true;
       startListeningAfterSpeech();
     };
 
+    utterance.onerror = (e) => {
+      console.warn("SpeechSynthesis error:", e);
+      if (!spoken) {
+        isWaitingForSelectionRef.current = true;
+        startListeningAfterSpeech();
+      }
+    };
+
     synth.speak(utterance);
+
+    // Fallback de seguridad de 1.5s para móviles si el navegador bloquea la reproducción de voz
+    setTimeout(() => {
+      if (!spoken) {
+        console.warn("SpeechSynthesis no inició tras 1.5s (bloqueado por navegador). Reactivando micrófono de todos modos.");
+        isWaitingForSelectionRef.current = true;
+        startListeningAfterSpeech();
+      }
+    }, 1500);
   };
 
   // Función interna para arrancar el reconocimiento tras terminar de hablar la IA
@@ -176,7 +198,7 @@ export default function TroubleshootingSearch({
     try {
       const recognition = new SpeechRecognition();
       recognition.lang = 'es-ES';
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
@@ -184,8 +206,9 @@ export default function TroubleshootingSearch({
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        handleVoiceInput(transcript);
+        const result = event.results[event.results.length - 1];
+        const transcript = result[0].transcript;
+        handleVoiceInput(transcript, result.isFinal);
       };
 
       recognition.onerror = () => {
@@ -205,13 +228,17 @@ export default function TroubleshootingSearch({
   };
 
   // Manejador centralizado de transcripciones de voz
-  const handleVoiceInput = (transcript: string) => {
-    setSearchTerm(transcript);
-    setShowAllFaults(false);
-
+  const handleVoiceInput = (transcript: string, isFinal: boolean = true) => {
     const normalized = transcript.toLowerCase().trim();
 
-    // 1. Si estábamos esperando una selección numérica
+    // Comandos de control para cerrar el modal por voz (ejecutado de inmediato)
+    if (normalized.includes('entendido') || normalized.includes('cerrar') || normalized.includes('listo') || normalized.includes('salir') || normalized.includes('regresar') || normalized.includes('atras')) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      handleCloseModal();
+      return;
+    }
+
+    // 1. Si estábamos esperando una selección numérica (ejecutado de inmediato)
     if (isWaitingForSelectionRef.current && lastResultsRef.current.length > 0) {
       let selectedIndex = -1;
 
@@ -227,6 +254,9 @@ export default function TroubleshootingSearch({
         // Encontró la opción correspondiente
         const item = lastResultsRef.current[selectedIndex];
         
+        // Detener el micrófono inmediatamente para evitar colisiones
+        if (recognitionRef.current) recognitionRef.current.stop();
+
         // Limpiar el estado de selección
         isWaitingForSelectionRef.current = false;
 
@@ -236,7 +266,15 @@ export default function TroubleshootingSearch({
       }
     }
 
-    // 2. Si no es una selección numérica (o la selección falló), lo tomamos como una nueva búsqueda
+    // 2. Si no es una selección ni comando, y no es el resultado final, actualizamos la búsqueda
+    // en pantalla pero no la disparamos para evitar peticiones/voz errática.
+    if (!isFinal) {
+      setSearchTerm(transcript);
+      return;
+    }
+
+    setSearchTerm(transcript);
+    setShowAllFaults(false);
     isWaitingForSelectionRef.current = false;
 
     const stopWords = new Set([
@@ -313,7 +351,7 @@ export default function TroubleshootingSearch({
       try {
         const recognition = new SpeechRecognition();
         recognition.lang = 'es-ES';
-        recognition.interimResults = false;
+        recognition.interimResults = true;
         recognition.maxAlternatives = 1;
 
         recognition.onstart = () => {
@@ -323,8 +361,9 @@ export default function TroubleshootingSearch({
         };
 
         recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          handleVoiceInput(transcript);
+          const result = event.results[event.results.length - 1];
+          const transcript = result[0].transcript;
+          handleVoiceInput(transcript, result.isFinal);
         };
 
         recognition.onerror = (event: any) => {
@@ -460,7 +499,33 @@ export default function TroubleshootingSearch({
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'es-ES';
     utterance.rate = 1.05;
+
+    let spoken = false;
+    utterance.onstart = () => {
+      spoken = true;
+    };
+
+    utterance.onend = () => {
+      // Habilitar la escucha activa por comandos como "cerrar" o "entendido"
+      startListeningAfterSpeech();
+    };
+
+    utterance.onerror = (e) => {
+      console.warn("SpeechSynthesis error in modal:", e);
+      if (!spoken) {
+        startListeningAfterSpeech();
+      }
+    };
+
     synth.speak(utterance);
+
+    // Fallback de 1.5s para móviles
+    setTimeout(() => {
+      if (!spoken) {
+        console.warn("SpeechSynthesis bloqueado en modal. Reactivando micrófono de todos modos.");
+        startListeningAfterSpeech();
+      }
+    }, 1500);
   };
 
   const handleOpenModal = (item: ExtendedTroubleshootingKnowledge, prefix: string = '') => {
