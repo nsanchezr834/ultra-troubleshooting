@@ -33,75 +33,6 @@ export default function TroubleshootingSearch({
   // Estados y refs para control por voz
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = React.useRef<any>(null);
-
-  const toggleListening = () => {
-    if (typeof window === 'undefined') return;
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('El reconocimiento de voz no está soportado en este navegador o dispositivo. Te recomendamos usar Google Chrome, Microsoft Edge o Safari actualizados.');
-      return;
-    }
-
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-    } else {
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => {
-          setIsListening(true);
-        };
-
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setSearchTerm(transcript);
-          setShowAllFaults(false);
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error('Error en reconocimiento de voz:', event.error);
-          setIsListening(false);
-          
-          if (event.error === 'not-allowed') {
-            alert('Acceso al micrófono denegado. Por favor, ve a la configuración de tu navegador y permite el uso del micrófono para este sitio web.');
-          } else if (event.error === 'no-speech') {
-            // Ocurre cuando el micrófono se activa pero no se detecta voz en unos segundos
-            alert('No se detectó ninguna voz. Por favor, intenta hablar de nuevo.');
-          } else if (event.error === 'network') {
-            alert('Error de red al intentar conectar con el servicio de reconocimiento de voz.');
-          } else {
-            alert(`Error en el micrófono: ${event.error}`);
-          }
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
-        recognition.start();
-      } catch (err: any) {
-        console.error('Error inicializando SpeechRecognition:', err);
-        setIsListening(false);
-        alert(`No se pudo iniciar el dictado por voz: ${err?.message || err}`);
-      }
-    }
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
   
   // En Modo Experto arrancamos directo en búsqueda rápida
   const [searchMode, setSearchMode] = useState<'quick' | 'category'>(isExpert ? 'quick' : 'quick');
@@ -181,6 +112,159 @@ export default function TroubleshootingSearch({
       .replace(/ci/g, 'si')
       .replace(/[^a-z0-9\s]/g, '');    // Mantener alfanuméricos y espacios
   };
+
+  // Función para dictar por voz los resultados encontrados
+  const speakResults = (results: ExtendedTroubleshootingKnowledge[]) => {
+    if (typeof window === 'undefined') return;
+
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+
+    synth.cancel(); // Cancelar cualquier lectura activa
+
+    if (results.length === 0) {
+      const utter = new SpeechSynthesisUtterance("No se encontraron fallas ni consejos para tu búsqueda.");
+      utter.lang = 'es-ES';
+      synth.speak(utter);
+      return;
+    }
+
+    let textToSpeak = `Se encontraron ${results.length} ${results.length === 1 ? 'resultado' : 'resultados'}: `;
+    const maxToRead = Math.min(results.length, 3);
+    for (let i = 0; i < maxToRead; i++) {
+      const cleanSymptom = results[i].symptom
+        .replace(/Qué hacer en caso de que/gi, '')
+        .replace(/\(ID:.*?\)/gi, '')
+        .trim();
+      textToSpeak += `${i + 1}, ${cleanSymptom}. `;
+    }
+
+    if (results.length > 3) {
+      textToSpeak += "Y otros resultados adicionales en pantalla.";
+    }
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'es-ES';
+    utterance.rate = 1.0;
+    synth.speak(utterance);
+  };
+
+  const toggleListening = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('El reconocimiento de voz no está soportado en este navegador o dispositivo. Te recomendamos usar Google Chrome, Microsoft Edge o Safari actualizados.');
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+    } else {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+          // Detener lectura de voz activa si inicia un nuevo dictado
+          if (window.speechSynthesis) window.speechSynthesis.cancel();
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setSearchTerm(transcript);
+          setShowAllFaults(false);
+
+          // Calcular resultados inmediatamente para poder leerlos por voz
+          const stopWords = new Set([
+            'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 
+            'de', 'del', 'en', 'para', 'con', 'por', 'que', 'y', 'o', 'a',
+            'falla', 'fallas', 'error', 'errores', 'problema', 'problemas', 'fe'
+          ]);
+
+          const searchWords = transcript
+            .trim()
+            .split(/\s+/)
+            .map((w: string) => normalizeForSearch(w))
+            .filter((w: string) => w && !stopWords.has(w));
+
+          if (searchWords.length > 0) {
+            const scoredItems = combinedKnowledgeBase.map(item => {
+              const normSymptom = normalizeForSearch(item.symptom);
+              const normRootCause = normalizeForSearch(item.root_cause);
+              const normProtocol = normalizeForSearch(item.resolution_protocol);
+              const normId = normalizeForSearch(item.id);
+
+              let score = 0;
+              searchWords.forEach((word: string) => {
+                let matches = 0;
+                if (normSymptom.includes(word)) matches += 10;
+                if (normId.includes(word)) matches += 8;
+                if (normRootCause.includes(word)) matches += 3;
+                if (normProtocol.includes(word)) matches += 1;
+
+                score += matches;
+              });
+
+              return { item, score };
+            });
+
+            const results = scoredItems
+              .filter(x => x.score > 0)
+              .sort((a, b) => b.score - a.score)
+              .map(x => x.item);
+
+            speakResults(results);
+          } else {
+            speakResults([]);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('Error en reconocimiento de voz:', event.error);
+          setIsListening(false);
+          
+          if (event.error === 'not-allowed') {
+            alert('Acceso al micrófono denegado. Por favor, ve a la configuración de tu navegador y permite el uso del micrófono para este sitio web.');
+          } else if (event.error === 'no-speech') {
+            alert('No se detectó ninguna voz. Por favor, intenta hablar de nuevo.');
+          } else if (event.error === 'network') {
+            alert('Error de red al intentar conectar con el servicio de reconocimiento de voz.');
+          } else {
+            alert(`Error en el micrófono: ${event.error}`);
+          }
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (err: any) {
+        console.error('Error inicializando SpeechRecognition:', err);
+        setIsListening(false);
+        alert(`No se pudo iniciar el dictado por voz: ${err?.message || err}`);
+      }
+    }
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   // Búsqueda global
   const filteredKnowledge = useMemo(() => {
