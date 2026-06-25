@@ -33,6 +33,8 @@ export default function TroubleshootingSearch({
   // Estados y refs para control por voz
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = React.useRef<any>(null);
+  const lastResultsRef = React.useRef<ExtendedTroubleshootingKnowledge[]>([]);
+  const isWaitingForSelectionRef = React.useRef<boolean>(false);
   
   // En Modo Experto arrancamos directo en búsqueda rápida
   const [searchMode, setSearchMode] = useState<'quick' | 'category'>(isExpert ? 'quick' : 'quick');
@@ -113,7 +115,7 @@ export default function TroubleshootingSearch({
       .replace(/[^a-z0-9\s]/g, '');    // Mantener alfanuméricos y espacios
   };
 
-  // Función para dictar por voz los resultados encontrados
+  // Función para dictar por voz los resultados encontrados y habilitar la selección por voz
   const speakResults = (results: ExtendedTroubleshootingKnowledge[]) => {
     if (typeof window === 'undefined') return;
 
@@ -123,11 +125,16 @@ export default function TroubleshootingSearch({
     synth.cancel(); // Cancelar cualquier lectura activa
 
     if (results.length === 0) {
+      lastResultsRef.current = [];
+      isWaitingForSelectionRef.current = false;
       const utter = new SpeechSynthesisUtterance("No se encontraron fallas ni consejos para tu búsqueda.");
       utter.lang = 'es-ES';
       synth.speak(utter);
       return;
     }
+
+    // Almacenar los resultados para la selección por voz
+    lastResultsRef.current = results;
 
     let textToSpeak = `Se encontraron ${results.length} ${results.length === 1 ? 'resultado' : 'resultados'}: `;
     const maxToRead = Math.min(results.length, 3);
@@ -136,17 +143,148 @@ export default function TroubleshootingSearch({
         .replace(/Qué hacer en caso de que/gi, '')
         .replace(/\(ID:.*?\)/gi, '')
         .trim();
-      textToSpeak += `${i + 1}, ${cleanSymptom}. `;
+      textToSpeak += `${i + 1}: ${cleanSymptom}. `;
     }
 
     if (results.length > 3) {
-      textToSpeak += "Y otros resultados adicionales en pantalla.";
+      textToSpeak += "Y otros resultados adicionales en pantalla. ";
     }
+
+    textToSpeak += "¿Cuál número de opción deseas seleccionar?";
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'es-ES';
-    utterance.rate = 1.0;
+    utterance.rate = 1.05;
+
+    // Al finalizar la lectura, volver a activar el micrófono para esperar la respuesta
+    utterance.onend = () => {
+      isWaitingForSelectionRef.current = true;
+      startListeningAfterSpeech();
+    };
+
     synth.speak(utterance);
+  };
+
+  // Función interna para arrancar el reconocimiento tras terminar de hablar la IA
+  const startListeningAfterSpeech = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition || isListening) return;
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'es-ES';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        handleVoiceInput(transcript);
+      };
+
+      recognition.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('Error al re-iniciar micrófono para selección:', err);
+      setIsListening(false);
+    }
+  };
+
+  // Manejador centralizado de transcripciones de voz
+  const handleVoiceInput = (transcript: string) => {
+    setSearchTerm(transcript);
+    setShowAllFaults(false);
+
+    const normalized = transcript.toLowerCase().trim();
+
+    // 1. Si estábamos esperando una selección numérica
+    if (isWaitingForSelectionRef.current && lastResultsRef.current.length > 0) {
+      let selectedIndex = -1;
+
+      if (normalized.includes('uno') || normalized.includes('1') || normalized.includes('primera') || normalized.includes('primero')) {
+        selectedIndex = 0;
+      } else if (normalized.includes('dos') || normalized.includes('2') || normalized.includes('segunda') || normalized.includes('segundo')) {
+        selectedIndex = 1;
+      } else if (normalized.includes('tres') || normalized.includes('3') || normalized.includes('tercera') || normalized.includes('tercero')) {
+        selectedIndex = 2;
+      }
+
+      if (selectedIndex >= 0 && selectedIndex < lastResultsRef.current.length) {
+        // Encontró la opción correspondiente
+        const item = lastResultsRef.current[selectedIndex];
+        handleOpenModal(item);
+        
+        // Limpiar el estado de selección
+        isWaitingForSelectionRef.current = false;
+
+        // Decir confirmación
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const cleanName = item.symptom.replace(/Qué hacer en caso de que/gi, '').replace(/\(ID:.*?\)/gi, '').trim();
+          const utter = new SpeechSynthesisUtterance(`Abriendo la opción ${selectedIndex + 1}: ${cleanName}`);
+          utter.lang = 'es-ES';
+          window.speechSynthesis.speak(utter);
+        }
+        return;
+      }
+    }
+
+    // 2. Si no es una selección numérica (o la selección falló), lo tomamos como una nueva búsqueda
+    isWaitingForSelectionRef.current = false;
+
+    const stopWords = new Set([
+      'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 
+      'de', 'del', 'en', 'para', 'con', 'por', 'que', 'y', 'o', 'a',
+      'falla', 'fallas', 'error', 'errores', 'problema', 'problemas', 'fe'
+    ]);
+
+    const searchWords = transcript
+      .trim()
+      .split(/\s+/)
+      .map((w: string) => normalizeForSearch(w))
+      .filter((w: string) => w && !stopWords.has(w));
+
+    if (searchWords.length > 0) {
+      const scoredItems = combinedKnowledgeBase.map(item => {
+        const normSymptom = normalizeForSearch(item.symptom);
+        const normRootCause = normalizeForSearch(item.root_cause);
+        const normProtocol = normalizeForSearch(item.resolution_protocol);
+        const normId = normalizeForSearch(item.id);
+
+        let score = 0;
+        searchWords.forEach((word: string) => {
+          let matches = 0;
+          if (normSymptom.includes(word)) matches += 10;
+          if (normId.includes(word)) matches += 8;
+          if (normRootCause.includes(word)) matches += 3;
+          if (normProtocol.includes(word)) matches += 1;
+
+          score += matches;
+        });
+
+        return { item, score };
+      });
+
+      const results = scoredItems
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(x => x.item);
+
+      speakResults(results);
+    } else {
+      speakResults([]);
+    }
   };
 
   const toggleListening = () => {
@@ -178,52 +316,7 @@ export default function TroubleshootingSearch({
 
         recognition.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
-          setSearchTerm(transcript);
-          setShowAllFaults(false);
-
-          // Calcular resultados inmediatamente para poder leerlos por voz
-          const stopWords = new Set([
-            'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 
-            'de', 'del', 'en', 'para', 'con', 'por', 'que', 'y', 'o', 'a',
-            'falla', 'fallas', 'error', 'errores', 'problema', 'problemas', 'fe'
-          ]);
-
-          const searchWords = transcript
-            .trim()
-            .split(/\s+/)
-            .map((w: string) => normalizeForSearch(w))
-            .filter((w: string) => w && !stopWords.has(w));
-
-          if (searchWords.length > 0) {
-            const scoredItems = combinedKnowledgeBase.map(item => {
-              const normSymptom = normalizeForSearch(item.symptom);
-              const normRootCause = normalizeForSearch(item.root_cause);
-              const normProtocol = normalizeForSearch(item.resolution_protocol);
-              const normId = normalizeForSearch(item.id);
-
-              let score = 0;
-              searchWords.forEach((word: string) => {
-                let matches = 0;
-                if (normSymptom.includes(word)) matches += 10;
-                if (normId.includes(word)) matches += 8;
-                if (normRootCause.includes(word)) matches += 3;
-                if (normProtocol.includes(word)) matches += 1;
-
-                score += matches;
-              });
-
-              return { item, score };
-            });
-
-            const results = scoredItems
-              .filter(x => x.score > 0)
-              .sort((a, b) => b.score - a.score)
-              .map(x => x.item);
-
-            speakResults(results);
-          } else {
-            speakResults([]);
-          }
+          handleVoiceInput(transcript);
         };
 
         recognition.onerror = (event: any) => {
