@@ -69,7 +69,7 @@ const SAFETY_CASES_DATA = [
     label_corto: "Caso 7",
     titulo: "Malas Prácticas",
     descripcion: "Lo que se observa en el video es totalmente prohibido y no se debe de realizar esas acciones ya que pueden tener consecuencias físicas como daños al robot, problemas con Ultra y incluso faltas administrativas.",
-    recomendacion: "¡IMPORTANTE! Remarcar muy bien que esto es una mala práctica y nunca se deben de realizar estas acciones bajo ninguna circunstancia.",
+    recomendacion: "¡IMPORTANTE! esto es una mala práctica y nunca se deben de realizar estas acciones bajo ninguna circunstancia.",
     video_url: "https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/MalasPracticas.mp4"
   }
 ];

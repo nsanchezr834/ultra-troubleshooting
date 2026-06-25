@@ -300,12 +300,12 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
             },
         ],
     },
-    'missouristar': {
+    'msqc': {
         layout: 'grid',
         videos: [
             {
-                title: 'Proceso Correcto — Missouri Star',
-                description: 'Recorrido operativo completo del ciclo de trabajo del robot en Missouri Star.',
+                title: 'Proceso Correcto — MSQC',
+                description: 'Recorrido operativo completo del ciclo de trabajo del robot MSQC.',
                 src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Control%20Msqc%20-%20Google%20Chrome%202026-06-24%2012-33-58.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',

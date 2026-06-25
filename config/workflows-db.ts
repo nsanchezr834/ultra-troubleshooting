@@ -2412,9 +2412,9 @@ export const WORKFLOWS_DATABASE: Record<string, WorkflowConfig> = {
             ]
         }
     },
-    'missouristar': {
-        id: 'missouristar',
-        name: 'Missouri Star Workflow',
+    'msqc': {
+        id: 'msqc',
+        name: 'MSQC Workflow',
         version: '1.0.0',
         description: 'Workflow de empaque y sellado para Missouri Star.',
         rootNode: {

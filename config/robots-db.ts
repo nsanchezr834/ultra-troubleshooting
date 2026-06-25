@@ -703,13 +703,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
         name: 'Missouri Star',
         robots: [
             {
-                id: 'missouristar',
-                name: 'Missouri Star Robot',
+                id: 'msqc',
+                name: 'MSQC',
                 status: 'active',
                 faults: [],
                 advises: [
                     {
-                        id: 'missouristar__1',
+                        id: 'msqc__1',
                         adviceNumber: 1,
                         content: 'Sigue el workflow establecido para asegurar la correcta operación del robot.',
                         isException: false
