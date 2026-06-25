@@ -214,12 +214,22 @@ export default function TelemetryDashboard({
                             const match = adv.content.match(ytUrlRegex);
                             let displayContent = adv.content;
                             let youtubeId: string | null = null;
-                            
+                            let directVideoUrl: string | null = null;
+                             
+                            // Detectar URLs de video directo (.mp4)
+                            const videoUrlRegex = /href=["']([^"']+\.mp4[^"']*)["']/i;
+                            const videoMatch = adv.content.match(videoUrlRegex);
+                             
                             if (match) {
                                 youtubeId = match[1];
                                 // Remove the link tags pointing to youtube
                                 displayContent = adv.content.replace(/<a\s+[^>]*href="[^"]*youtube[^"]*"[^>]*>.*?<\/a>/gi, '');
                                 // Clean up trailing colons or spaces
+                                displayContent = displayContent.trim().replace(/:\s*$/, '');
+                            } else if (videoMatch) {
+                                directVideoUrl = videoMatch[1];
+                                // Remove the link tags pointing to the direct video (.mp4)
+                                displayContent = adv.content.replace(/<a\s+[^>]*href=["'][^"']+\.mp4[^"']*["'][^>]*>.*?<\/a>/gi, '');
                                 displayContent = displayContent.trim().replace(/:\s*$/, '');
                             }
 
@@ -264,14 +274,35 @@ export default function TelemetryDashboard({
                                             }}
                                         />
                                         {youtubeId && (
-                                            <div className="mt-3 aspect-video w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
-                                                <iframe
-                                                    className="w-full h-full"
-                                                    src={`https://www.youtube.com/embed/${youtubeId}`}
-                                                    title="YouTube video player"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                                    allowFullScreen
-                                                ></iframe>
+                                            <div className="mt-3 flex flex-col gap-2 max-w-md">
+                                                <div className="aspect-video w-full overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-black">
+                                                    <iframe
+                                                        className="w-full h-full"
+                                                        src={`https://www.youtube-nocookie.com/embed/${youtubeId}`}
+                                                        title="YouTube video player"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                        allowFullScreen
+                                                        referrerPolicy="strict-origin-when-cross-origin"
+                                                    ></iframe>
+                                                </div>
+                                                <a 
+                                                    href={`https://www.youtube.com/shorts/${youtubeId}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs text-ultra-orange hover:underline font-bold flex items-center gap-1 mt-1 self-start"
+                                                >
+                                                    Abrir directamente en YouTube ↗
+                                                </a>
+                                            </div>
+                                        )}
+                                        {directVideoUrl && (
+                                            <div className="mt-3 aspect-video w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700 bg-black">
+                                                <video
+                                                    src={directVideoUrl}
+                                                    controls
+                                                    playsInline
+                                                    className="w-full h-full object-contain"
+                                                />
                                             </div>
                                         )}
                                     </div>

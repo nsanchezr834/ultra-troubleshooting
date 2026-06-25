@@ -6,6 +6,7 @@ import {
     Users, TrendingUp, BookOpenCheck, LogOut,
     ChevronDown, BarChart3, Target, Clock, Award,
     X, Check, Download, ShieldAlert, Star, Shield, ArrowLeft, RefreshCw, HelpCircle,
+    Wrench, Plus, Trash2, Edit
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -69,6 +70,172 @@ export default function AdminClient() {
     const [loadingSessions, setLoadingSessions] = useState(true);
     const [loadingResults, setLoadingResults] = useState(false);
     const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
+
+    // Estados del Gestor de Contenidos (Fallas y Consejos)
+    const [view, setView] = useState<'analytics' | 'editor'>('analytics');
+    const [editorTab, setEditorTab] = useState<'faults' | 'advises'>('faults');
+    
+    const [editorRobots, setEditorRobots] = useState<any[]>([]);
+    const [selectedEditorRobotId, setSelectedEditorRobotId] = useState<string>('');
+    const [editorFaults, setEditorFaults] = useState<any[]>([]);
+    const [editorAdvises, setEditorAdvises] = useState<any[]>([]);
+    const [loadingEditor, setLoadingEditor] = useState(false);
+    
+    const [faultModalOpen, setFaultModalOpen] = useState(false);
+    const [selectedFault, setSelectedFault] = useState<any | null>(null);
+    const [faultForm, setFaultForm] = useState({
+        id: '',
+        category: 'Problemas con el robot',
+        symptom: '',
+        root_cause: '',
+        severity: 'LOW',
+        resolution_protocol: '',
+        sop_reference: '',
+        video_url: ''
+    });
+
+    const [adviceModalOpen, setAdviceModalOpen] = useState(false);
+    const [selectedAdvice, setSelectedAdvice] = useState<any | null>(null);
+    const [adviceForm, setAdviceForm] = useState({
+        id: '',
+        robot_id: '',
+        advice_number: 1,
+        content: '',
+        is_exception: false
+    });
+
+    const fetchEditorData = useCallback(async () => {
+        setLoadingEditor(true);
+        try {
+            const { data: robotsData } = await supabase
+                .from('robots')
+                .select('*')
+                .order('name');
+            if (robotsData) {
+                setEditorRobots(robotsData);
+                if (robotsData.length > 0 && !selectedEditorRobotId) {
+                    setSelectedEditorRobotId(robotsData[0].id);
+                }
+            }
+
+            const { data: faultsData } = await supabase
+                .from('troubleshooting_knowledge')
+                .select('*')
+                .order('id');
+            if (faultsData) setEditorFaults(faultsData);
+        } catch (err) {
+            console.error('Error fetching editor data:', err);
+        } finally {
+            setLoadingEditor(false);
+        }
+    }, [selectedEditorRobotId]);
+
+    const fetchEditorAdvises = useCallback(async () => {
+        if (!selectedEditorRobotId) return;
+        const { data: advisesData } = await supabase
+            .from('advises')
+            .select('*')
+            .eq('robot_id', selectedEditorRobotId)
+            .order('advice_number');
+        if (advisesData) setEditorAdvises(advisesData);
+    }, [selectedEditorRobotId]);
+
+    useEffect(() => {
+        if (view === 'editor') {
+            fetchEditorData();
+        }
+    }, [view, fetchEditorData]);
+
+    useEffect(() => {
+        if (view === 'editor' && selectedEditorRobotId) {
+            fetchEditorAdvises();
+        }
+    }, [view, selectedEditorRobotId, fetchEditorAdvises]);
+
+    const handleSaveFault = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/admin/troubleshooting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(faultForm)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setFaultModalOpen(false);
+                fetchEditorData();
+                alert(selectedFault ? 'Falla actualizada exitosamente' : 'Falla creada exitosamente');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Error saving fault:', err);
+            alert('Error al guardar la falla');
+        }
+    };
+
+    const handleDeleteFault = async (id: string) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta falla de forma permanente?')) return;
+        try {
+            const res = await fetch(`/api/admin/troubleshooting?id=${id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (res.ok) {
+                fetchEditorData();
+                alert('Falla eliminada exitosamente');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Error deleting fault:', err);
+            alert('Error al eliminar la falla');
+        }
+    };
+
+    const handleSaveAdvice = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/admin/advises', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...adviceForm,
+                    robot_id: selectedEditorRobotId
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setAdviceModalOpen(false);
+                fetchEditorAdvises();
+                alert(selectedAdvice ? 'Consejo actualizado exitosamente' : 'Consejo creado exitosamente');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Error saving advice:', err);
+            alert('Error al guardar el consejo');
+        }
+    };
+
+    const handleDeleteAdvice = async (id: string) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar este consejo de forma permanente?')) return;
+        try {
+            const res = await fetch(`/api/admin/advises?id=${id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (res.ok) {
+                fetchEditorAdvises();
+                alert('Consejo eliminado exitosamente');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Error deleting advice:', err);
+            alert('Error al eliminar el consejo');
+        }
+    };
 
     // Filtros de búsqueda
     const [searchQuery, setSearchQuery] = useState('');
@@ -393,6 +560,23 @@ export default function AdminClient() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {view === 'analytics' ? (
+                        <button
+                            onClick={() => setView('editor')}
+                            className="bg-[#FF5A00]/10 hover:bg-[#FF5A00]/20 text-[#FF5A00] border border-[#FF5A00]/25 hover:border-[#FF5A00]/40 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-all active:scale-[0.98]"
+                        >
+                            <Wrench className="w-4 h-4" />
+                            Editar Contenidos
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setView('analytics')}
+                            className="bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-white/[0.05] text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-all active:scale-[0.98]"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Ver Analíticas (ROI)
+                        </button>
+                    )}
                     <button
                         onClick={exportToCSV}
                         className="bg-[#00A8FC]/10 hover:bg-[#00A8FC]/20 text-[#00A8FC] border border-[#00A8FC]/25 hover:border-[#00A8FC]/40 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-all active:scale-[0.98]"
@@ -412,455 +596,886 @@ export default function AdminClient() {
 
             {/* Dashboard Workspace */}
             <main className="flex-1 overflow-y-auto px-8 py-8 flex flex-col gap-8">
-                {/* Selector de Sesiones y Filtros */}
-                <div className="bg-[#0d0e15]/80 border border-white/[0.04] rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider pl-1">Filtrar por Grupo:</span>
-                        <div className="relative">
-                            <select
-                                value={selectedSessionId}
-                                onChange={(e) => setSelectedSessionId(e.target.value)}
-                                className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg pl-3 pr-8 py-2 text-xs font-semibold text-white focus:outline-none appearance-none transition-colors min-w-[200px]"
-                            >
-                                <option value="all">Todos los Grupos de Estudio</option>
-                                {sessions.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name} ({s.trainer})</option>
-                                ))}
-                            </select>
-                            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3 items-center">
-                        {/* Filtro Tipo Examen */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">Examen:</span>
-                            <select
-                                value={examTypeFilter}
-                                onChange={(e) => setExamTypeFilter(e.target.value as any)}
-                                className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative"
-                            >
-                                <option value="all">Todos</option>
-                                <option value="theory">Teórico</option>
-                                <option value="simulation">Simulador</option>
-                            </select>
-                        </div>
-
-                        {/* Filtro Categoría */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">Categoría:</span>
-                            <select
-                                value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value as any)}
-                                className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative font-semibold"
-                            >
-                                <option value="all">Todas</option>
-                                <option value="Training 1">Training 1</option>
-                                <option value="Training 2">Training 2</option>
-                                <option value="Training 3">Training 3</option>
-                                <option value="DC">DC</option>
-                                <option value="Customer">Customer</option>
-                            </select>
-                        </div>
-
-                        {/* Filtro Fecha */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400">Fecha:</span>
-                            <select
-                                value={dateFilter}
-                                onChange={(e) => setDateFilter(e.target.value as any)}
-                                className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative"
-                            >
-                                <option value="all">Histórico</option>
-                                <option value="today">Hoy</option>
-                                <option value="week">Últimos 7 días</option>
-                                <option value="month">Este mes</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Grid de Métricas Principales (ROI & Performance) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
-                        <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Horas Ahorradas</span>
-                            <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
-                                <Clock className="w-4 h-4" />
+                {view === 'analytics' ? (
+                    <>
+                        {/* Selector de Sesiones y Filtros */}
+                        <div className="bg-[#0d0e15]/80 border border-white/[0.04] rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider pl-1">Filtrar por Grupo:</span>
+                                <div className="relative">
+                                    <select
+                                        value={selectedSessionId}
+                                        onChange={(e) => setSelectedSessionId(e.target.value)}
+                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg pl-3 pr-8 py-2 text-xs font-semibold text-white focus:outline-none appearance-none transition-colors min-w-[200px]"
+                                    >
+                                        <option value="all">Todos los Grupos de Estudio</option>
+                                        {sessions.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.trainer})</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <div className="text-3xl font-black text-white">{trainerHoursSaved}h</div>
-                            <p className="text-[10px] text-gray-500 mt-1">Horas de trainer administradas guardadas</p>
-                        </div>
-                    </div>
 
-                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
-                        <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Nivel Confianza</span>
-                            <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
-                                <Star className="w-4 h-4 fill-[#00A8FC]" />
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-3xl font-black text-white flex items-center gap-1.5">
-                                {avgConfidenceRating} <span className="text-xs text-gray-500 font-medium">/ 5</span>
-                            </div>
-                            <p className="text-[10px] text-gray-500 mt-1">Percepción promedio del operador (Paso 4)</p>
-                        </div>
-                    </div>
+                            <div className="flex flex-wrap gap-3 items-center">
+                                {/* Filtro Tipo Examen */}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-400">Examen:</span>
+                                    <select
+                                        value={examTypeFilter}
+                                        onChange={(e) => setExamTypeFilter(e.target.value as any)}
+                                        className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative"
+                                    >
+                                        <option value="all">Todos</option>
+                                        <option value="theory">Teórico</option>
+                                        <option value="simulation">Simulador</option>
+                                    </select>
+                                </div>
 
-                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
-                        <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Ramp-up Time</span>
-                            <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
-                                <TrendingUp className="w-4 h-4" />
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-3xl font-black text-white">{rampUpTime}</div>
-                            <p className="text-[10px] text-gray-500 mt-1">Tiempo de habilitación (1er intento a aprobado)</p>
-                        </div>
-                    </div>
+                                {/* Filtro Categoría */}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-400">Categoría:</span>
+                                    <select
+                                        value={categoryFilter}
+                                        onChange={(e) => setCategoryFilter(e.target.value as any)}
+                                        className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative font-semibold"
+                                    >
+                                        <option value="all">Todas</option>
+                                        <option value="Training 1">Training 1</option>
+                                        <option value="Training 2">Training 2</option>
+                                        <option value="Training 3">Training 3</option>
+                                        <option value="DC">DC</option>
+                                        <option value="Customer">Customer</option>
+                                    </select>
+                                </div>
 
-                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
-                        <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Tasa Aprobación</span>
-                            <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
-                                <Award className="w-4 h-4" />
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-3xl font-black text-white">{passRate}%</div>
-                            <p className="text-[10px] text-gray-500 mt-1">De {totalAttempts} intentos totales registrados</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
-                        <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
-                        <div className="flex items-center justify-between mb-4">
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Duración Promedio</span>
-                            <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
-                                <Clock className="w-4 h-4" />
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-3xl font-black text-white">
-                                {avgDurationSec ? `${Math.floor(avgDurationSec / 60)}m ${avgDurationSec % 60}s` : '—'}
-                            </div>
-                            <p className="text-[10px] text-gray-500 mt-1">Tiempo promedio de resolución activa</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sección de Curva de Aprendizaje Analítica */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Tabla de la Curva de Aprendizaje */}
-                    <div className="lg:col-span-2 bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-                        <div>
-                            <h3 className="text-sm font-bold text-white mb-1 tracking-wider uppercase">Análisis de la Curva de Aprendizaje</h3>
-                            <p className="text-xs text-gray-500 mb-6">Progresión del rendimiento del operador a lo largo de sus intentos sucesivos</p>
-                            
-                            <div className="overflow-hidden rounded-xl border border-white/[0.05]">
-                                <table className="w-full text-left text-xs">
-                                    <thead>
-                                        <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
-                                            <th className="p-4">Nivel / Número de Intento</th>
-                                            <th className="p-4 text-center">Intentos Completados</th>
-                                            <th className="p-4 text-center">Precisión Promedio</th>
-                                            <th className="p-4 text-center">Tiempo Promedio</th>
-                                            <th className="p-4 text-center">Tasa Acreditación</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/[0.03]">
-                                        <tr className="hover:bg-white/[0.01] transition-colors">
-                                            <td className="p-4 font-bold text-[#00A8FC]">Primer Intento (Línea Base)</td>
-                                            <td className="p-4 text-center font-medium">{learningCurve[1].count}</td>
-                                            <td className="p-4 text-center font-bold text-neutral-200">
-                                                {learningCurve[1].count > 0 ? `${Math.round(learningCurve[1].scoreSum / learningCurve[1].count)}%` : '—'}
-                                            </td>
-                                            <td className="p-4 text-center text-gray-400">
-                                                {learningCurve[1].timeCount > 0 ? formatDuration(Math.round(learningCurve[1].timeSum / learningCurve[1].timeCount)) : '—'}
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
-                                                    {learningCurve[1].count > 0 ? `${Math.round((learningCurve[1].passed / learningCurve[1].count) * 100)}%` : '—'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-white/[0.01] transition-colors">
-                                            <td className="p-4 font-bold text-[#00A8FC]">Segundo Intento (Asimilación)</td>
-                                            <td className="p-4 text-center font-medium">{learningCurve[2].count}</td>
-                                            <td className="p-4 text-center font-bold text-neutral-200">
-                                                {learningCurve[2].count > 0 ? `${Math.round(learningCurve[2].scoreSum / learningCurve[2].count)}%` : '—'}
-                                            </td>
-                                            <td className="p-4 text-center text-gray-400">
-                                                {learningCurve[2].timeCount > 0 ? formatDuration(Math.round(learningCurve[2].timeSum / learningCurve[2].timeCount)) : '—'}
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
-                                                    {learningCurve[2].count > 0 ? `${Math.round((learningCurve[2].passed / learningCurve[2].count) * 100)}%` : '—'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-white/[0.01] transition-colors">
-                                            <td className="p-4 font-bold text-[#00A8FC]">Tercer Intento+ (Perfeccionamiento)</td>
-                                            <td className="p-4 text-center font-medium">{learningCurve['3+'].count}</td>
-                                            <td className="p-4 text-center font-bold text-neutral-200">
-                                                {learningCurve['3+'].count > 0 ? `${Math.round(learningCurve['3+'].scoreSum / learningCurve['3+'].count)}%` : '—'}
-                                            </td>
-                                            <td className="p-4 text-center text-gray-400">
-                                                {learningCurve['3+'].timeCount > 0 ? formatDuration(Math.round(learningCurve['3+'].timeSum / learningCurve['3+'].timeCount)) : '—'}
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
-                                                    {learningCurve['3+'].count > 0 ? `${Math.round((learningCurve['3+'].passed / learningCurve['3+'].count) * 100)}%` : '—'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div className="mt-4 p-4 rounded-xl bg-blue-950/20 border border-[#00A8FC]/10 text-xs text-gray-400 flex items-start gap-3">
-                            <ShieldAlert className="w-4 h-4 text-[#00A8FC] shrink-0 mt-0.5" />
-                            <span>
-                                <strong>Análisis de Curva:</strong> Una curva exitosa muestra un incremento de precisión mayor a 80% y una reducción del tiempo de resolución mayor al 50% entre el intento 1 y el intento 3.
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Alertas de Alumnos Requeriendo Atención y Top Fallas */}
-                    <div className="flex flex-col gap-6">
-                        {/* Panel Alertas de Atención */}
-                        <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
-                            <div>
-                                <h3 className="text-sm font-bold text-white mb-1 tracking-wider uppercase flex items-center gap-2">
-                                    <ShieldAlert className="w-4 h-4 text-[#00A8FC]" /> Alumnos en Rezago
-                                </h3>
-                                <p className="text-xs text-gray-500 mb-4">Trainees con 3 o más intentos fallidos que requieren soporte personalizado</p>
-
-                                <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto">
-                                    {attentionList.length === 0 ? (
-                                        <div className="text-center py-6 text-gray-500 text-xs border border-dashed border-white/[0.04] rounded-xl bg-white/[0.01]">
-                                            Todos los operadores activos están progresando bien.
-                                        </div>
-                                    ) : (
-                                        attentionList.map((trainee, idx) => (
-                                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-red-950/10 border border-red-500/10 text-xs">
-                                                <span className="font-semibold text-neutral-200">{trainee.name}</span>
-                                                <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-bold">
-                                                    {trainee.attempts} intentos fallados
-                                                </span>
-                                            </div>
-                                        ))
-                                    )}
+                                {/* Filtro Fecha */}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-400">Fecha:</span>
+                                    <select
+                                        value={dateFilter}
+                                        onChange={(e) => setDateFilter(e.target.value as any)}
+                                        className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative"
+                                    >
+                                        <option value="all">Histórico</option>
+                                        <option value="today">Hoy</option>
+                                        <option value="week">Últimos 7 días</option>
+                                        <option value="month">Este mes</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Top Fallas Comunes */}
-                        <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
-                            <div>
-                                <h3 className="text-sm font-bold text-white mb-1 tracking-wider uppercase">Fallas Críticas Frecuentes</h3>
-                                <p className="text-xs text-gray-500 mb-4">Los 5 escenarios o preguntas con mayor índice de error</p>
+                        {/* Grid de Métricas Principales (ROI & Performance) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+                                <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Horas Ahorradas</span>
+                                    <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
+                                        <Clock className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-black text-white">{trainerHoursSaved}h</div>
+                                    <p className="text-[10px] text-gray-500 mt-1">Horas de trainer administradas guardadas</p>
+                                </div>
+                            </div>
 
-                                <div className="flex flex-col gap-3">
-                                    {topFailed.length === 0 ? (
-                                        <div className="text-center py-6 text-gray-500 text-xs border border-dashed border-white/[0.04] rounded-xl bg-white/[0.01]">
-                                            No hay datos suficientes de fallas.
-                                        </div>
-                                    ) : (
-                                        topFailed.map((item, idx) => (
-                                            <div key={idx} className="flex flex-col gap-1 text-xs">
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <span className="font-medium text-neutral-300 leading-tight block line-clamp-1">{item.text}</span>
-                                                    <span className="bg-[#00A8FC]/10 text-[#00A8FC] px-1.5 py-0.5 rounded font-bold shrink-0 text-[10px]">
-                                                        {item.count} err
-                                                    </span>
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+                                <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Nivel Confianza</span>
+                                    <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
+                                        <Star className="w-4 h-4 fill-[#00A8FC]" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-black text-white flex items-center gap-1.5">
+                                        {avgConfidenceRating} <span className="text-xs text-gray-500 font-medium">/ 5</span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 mt-1">Percepción promedio del operador (Paso 4)</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+                                <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Ramp-up Time</span>
+                                    <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
+                                        <TrendingUp className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-black text-white">{rampUpTime}</div>
+                                    <p className="text-[10px] text-gray-500 mt-1">Tiempo de habilitación (1er intento a aprobado)</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+                                <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Tasa Aprobación</span>
+                                    <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
+                                        <Award className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-black text-white">{passRate}%</div>
+                                    <p className="text-[10px] text-gray-500 mt-1">De {totalAttempts} intentos totales registrados</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+                                <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-[#00A8FC]/5 blur-lg transition-transform duration-500 group-hover:scale-150" />
+                                <div className="flex items-center justify-between mb-4">
+                                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Duración Promedio</span>
+                                    <div className="p-2 rounded-lg bg-[#00A8FC]/10 border border-[#00A8FC]/20 text-[#00A8FC]">
+                                        <Clock className="w-4 h-4" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-black text-white">
+                                        {avgDurationSec ? `${Math.floor(avgDurationSec / 60)}m ${avgDurationSec % 60}s` : '—'}
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 mt-1">Tiempo promedio de resolución activa</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sección de Curva de Aprendizaje Analítica */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Tabla de la Curva de Aprendizaje */}
+                            <div className="lg:col-span-2 bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-white mb-1 tracking-wider uppercase">Análisis de la Curva de Aprendizaje</h3>
+                                    <p className="text-xs text-gray-500 mb-6">Progresión del rendimiento del operador a lo largo de sus intentos sucesivos</p>
+                                    
+                                    <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                    <th className="p-4">Nivel / Número de Intento</th>
+                                                    <th className="p-4 text-center">Intentos Completados</th>
+                                                    <th className="p-4 text-center">Precisión Promedio</th>
+                                                    <th className="p-4 text-center">Tiempo Promedio</th>
+                                                    <th className="p-4 text-center">Tasa Acreditación</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/[0.03]">
+                                                <tr className="hover:bg-white/[0.01] transition-colors">
+                                                    <td className="p-4 font-bold text-[#00A8FC]">Primer Intento (Línea Base)</td>
+                                                    <td className="p-4 text-center font-medium">{learningCurve[1].count}</td>
+                                                    <td className="p-4 text-center font-bold text-neutral-200">
+                                                        {learningCurve[1].count > 0 ? `${Math.round(learningCurve[1].scoreSum / learningCurve[1].count)}%` : '—'}
+                                                    </td>
+                                                    <td className="p-4 text-center text-gray-400">
+                                                        {learningCurve[1].timeCount > 0 ? formatDuration(Math.round(learningCurve[1].timeSum / learningCurve[1].timeCount)) : '—'}
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                                            {learningCurve[1].count > 0 ? `${Math.round((learningCurve[1].passed / learningCurve[1].count) * 100)}%` : '—'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-white/[0.01] transition-colors">
+                                                    <td className="p-4 font-bold text-[#00A8FC]">Segundo Intento (Asimilación)</td>
+                                                    <td className="p-4 text-center font-medium">{learningCurve[2].count}</td>
+                                                    <td className="p-4 text-center font-bold text-neutral-200">
+                                                        {learningCurve[2].count > 0 ? `${Math.round(learningCurve[2].scoreSum / learningCurve[2].count)}%` : '—'}
+                                                    </td>
+                                                    <td className="p-4 text-center text-gray-400">
+                                                        {learningCurve[2].timeCount > 0 ? formatDuration(Math.round(learningCurve[2].timeSum / learningCurve[2].timeCount)) : '—'}
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <span className="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                                            {learningCurve[2].count > 0 ? `${Math.round((learningCurve[2].passed / learningCurve[2].count) * 100)}%` : '—'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                <tr className="hover:bg-white/[0.01] transition-colors">
+                                                    <td className="p-4 font-bold text-[#00A8FC]">Tercer Intento+ (Perfeccionamiento)</td>
+                                                    <td className="p-4 text-center font-medium">{learningCurve['3+'].count}</td>
+                                                    <td className="p-4 text-center font-bold text-neutral-200">
+                                                        {learningCurve['3+'].count > 0 ? `${Math.round(learningCurve['3+'].scoreSum / learningCurve['3+'].count)}%` : '—'}
+                                                    </td>
+                                                    <td className="p-4 text-center text-gray-400">
+                                                        {learningCurve['3+'].timeCount > 0 ? formatDuration(Math.round(learningCurve['3+'].timeSum / learningCurve['3+'].timeCount)) : '—'}
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                                            {learningCurve['3+'].count > 0 ? `${Math.round((learningCurve['3+'].passed / learningCurve['3+'].count) * 100)}%` : '—'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div className="mt-4 p-4 rounded-xl bg-blue-950/20 border border-[#00A8FC]/10 text-xs text-gray-400 flex items-start gap-3">
+                                    <ShieldAlert className="w-4 h-4 text-[#00A8FC] shrink-0 mt-0.5" />
+                                    <span>
+                                        <strong>Análisis de Curva:</strong> Una curva exitosa muestra un incremento de precisión mayor a 80% y una reducción del tiempo de resolución mayor al 50% entre el intento 1 y el intento 3.
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Alertas de Alumnos Requeriendo Atención y Top Fallas */}
+                            <div className="flex flex-col gap-6">
+                                {/* Panel Alertas de Atención */}
+                                <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-white mb-1 tracking-wider uppercase flex items-center gap-2">
+                                            <ShieldAlert className="w-4 h-4 text-[#00A8FC]" /> Alumnos en Rezago
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mb-4">Trainees con 3 o más intentos fallidos que requieren soporte personalizado</p>
+
+                                        <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto">
+                                            {attentionList.length === 0 ? (
+                                                <div className="text-center py-6 text-gray-500 text-xs border border-dashed border-white/[0.04] rounded-xl bg-white/[0.01]">
+                                                    Todos los operadores activos están progresando bien.
                                                 </div>
-                                            </div>
-                                        ))
-                                    )}
+                                            ) : (
+                                                attentionList.map((trainee, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-red-950/10 border border-red-500/10 text-xs">
+                                                        <span className="font-semibold text-neutral-200">{trainee.name}</span>
+                                                        <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-bold">
+                                                            {trainee.attempts} intentos fallados
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Top Fallas Comunes */}
+                                <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-white mb-1 tracking-wider uppercase">Fallas Críticas Frecuentes</h3>
+                                        <p className="text-xs text-gray-500 mb-4">Los 5 escenarios o preguntas con mayor índice de error</p>
+
+                                        <div className="flex flex-col gap-3">
+                                            {topFailed.length === 0 ? (
+                                                <div className="text-center py-6 text-gray-500 text-xs border border-dashed border-white/[0.04] rounded-xl bg-white/[0.01]">
+                                                    No hay datos suficientes de fallas.
+                                                </div>
+                                            ) : (
+                                                topFailed.map((item, idx) => (
+                                                    <div key={idx} className="flex flex-col gap-1 text-xs">
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <span className="font-medium text-neutral-300 leading-tight block line-clamp-1">{item.text}</span>
+                                                            <span className="bg-[#00A8FC]/10 text-[#00A8FC] px-1.5 py-0.5 rounded font-bold shrink-0 text-[10px]">
+                                                                {item.count} err
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Listado General de Trainees */}
-                <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex-1 flex flex-col">
-                    <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
-                        <div>
-                            <h3 className="text-sm font-bold text-white tracking-wider uppercase">Historial General de Operadores</h3>
-                            <p className="text-xs text-gray-500">Listado de operadores, intentos realizados y estatus de acreditación</p>
-                        </div>
+                        {/* Listado General de Trainees */}
+                        <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex-1 flex flex-col">
+                            <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
+                                <div>
+                                    <h3 className="text-sm font-bold text-white tracking-wider uppercase">Historial General de Operadores</h3>
+                                    <p className="text-xs text-gray-500">Listado de operadores, intentos realizados y estatus de acreditación</p>
+                                </div>
 
-                        <div className="flex flex-wrap gap-3 items-center">
-                            {/* Buscar por Nombre */}
-                            <input
-                                type="text"
-                                placeholder="Buscar por nombre..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none transition-colors min-w-[200px]"
-                            />
+                                <div className="flex flex-wrap gap-3 items-center">
+                                    {/* Buscar por Nombre */}
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por nombre..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none transition-colors min-w-[200px]"
+                                    />
 
-                            {/* Filtro Estado */}
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as any)}
-                                className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative"
-                            >
-                                <option value="all">Estatus: Todos</option>
-                                <option value="passed">Aprobados</option>
-                                <option value="failed">Pendientes</option>
-                            </select>
-                        </div>
-                    </div>
+                                    {/* Filtro Estatus */}
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                                        className="bg-[#14151f] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none appearance-none cursor-pointer pr-7 relative"
+                                    >
+                                        <option value="all">Estatus: Todos</option>
+                                        <option value="passed">Aprobados</option>
+                                        <option value="failed">Pendientes</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                    {loadingResults ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-20 text-gray-500 gap-3">
-                            <span className="w-8 h-8 border-2 border-[#00A8FC]/30 border-t-[#00A8FC] rounded-full animate-spin" />
-                            <span className="text-xs">Cargando registros...</span>
-                        </div>
-                    ) : traineesList.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center py-20 text-gray-500 border border-dashed border-white/[0.04] rounded-2xl bg-white/[0.01]">
-                            <Users className="w-8 h-8 text-gray-600 mb-2" />
-                            <span className="text-xs">No se encontraron operadores registrados con los filtros aplicados.</span>
-                        </div>
-                    ) : (
-                        <div className="overflow-hidden rounded-xl border border-white/[0.05]">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-xs">
-                                    <thead>
-                                        <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
-                                            <th className="p-4">Operador</th>
-                                            <th className="p-4">Grupo / Sesión</th>
-                                            <th className="p-4 text-center">Intentos</th>
-                                            <th className="p-4 text-center">Mejor Precisión</th>
-                                            <th className="p-4 text-center">Último Intento</th>
-                                            <th className="p-4 text-center">Estatus Final</th>
-                                            <th className="p-4 text-center">Nivel Confianza (Paso 4)</th>
-                                            <th className="p-4 text-center">Historial</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/[0.03]">
-                                        {traineesList.map(([traineeId, data]) => {
-                                            const name = data.name;
-                                            const totalAttempts = data.attempts.length;
-                                            const bestScore = Math.max(...data.attempts.map(a => a.percentage));
-                                            const lastAttempt = data.attempts[data.attempts.length - 1];
-                                            const isApproved = data.attempts.some(a => a.passed);
-                                            const groupName = lastAttempt.training_sessions?.name ?? 'General';
+                            {loadingResults ? (
+                                <div className="flex-1 flex flex-col items-center justify-center py-20 text-gray-500 gap-3">
+                                    <span className="w-8 h-8 border-2 border-[#00A8FC]/30 border-t-[#00A8FC] rounded-full animate-spin" />
+                                    <span className="text-xs">Cargando registros...</span>
+                                </div>
+                            ) : traineesList.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center py-20 text-gray-500 border border-dashed border-white/[0.04] rounded-2xl bg-white/[0.01]">
+                                    <Users className="w-8 h-8 text-gray-600 mb-2" />
+                                    <span className="text-xs">No se encontraron operadores registrados con los filtros aplicados.</span>
+                                </div>
+                            ) : (
+                                <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                    <th className="p-4">Operador</th>
+                                                    <th className="p-4">Grupo / Sesión</th>
+                                                    <th className="p-4 text-center">Intentos</th>
+                                                    <th className="p-4 text-center">Mejor Precisión</th>
+                                                    <th className="p-4 text-center">Último Intento</th>
+                                                    <th className="p-4 text-center">Estatus Final</th>
+                                                    <th className="p-4 text-center">Nivel Confianza (Paso 4)</th>
+                                                    <th className="p-4 text-center">Historial</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/[0.03]">
+                                                {traineesList.map(([traineeId, data]) => {
+                                                    const name = data.name;
+                                                    const totalAttempts = data.attempts.length;
+                                                    const bestScore = Math.max(...data.attempts.map(a => a.percentage));
+                                                    const lastAttempt = data.attempts[data.attempts.length - 1];
+                                                    const isApproved = data.attempts.some(a => a.passed);
+                                                    const groupName = lastAttempt.training_sessions?.name ?? 'General';
 
-                                            // Obtener rating del Paso 4
-                                            let lastRating = '—';
-                                            const ratingAttempt = data.attempts.find(a => {
-                                                if (a.answers && Array.isArray(a.answers)) {
-                                                    return a.answers.some((ans: any) => ans.questionId === 'feedback_rating');
-                                                }
-                                                return false;
-                                            });
-                                            if (ratingAttempt) {
-                                                const ratingObj = ratingAttempt.answers.find((ans: any) => ans.questionId === 'feedback_rating');
-                                                if (ratingObj && ratingObj.selectedText) {
-                                                    lastRating = ratingObj.selectedText + ' ★';
-                                                }
-                                            }
+                                                    // Obtener rating del Paso 4
+                                                    let lastRating = '—';
+                                                    const ratingAttempt = data.attempts.find(a => {
+                                                        if (a.answers && Array.isArray(a.answers)) {
+                                                            return a.answers.some((ans: any) => ans.questionId === 'feedback_rating');
+                                                        }
+                                                        return false;
+                                                    });
+                                                    if (ratingAttempt) {
+                                                        const ratingObj = ratingAttempt.answers.find((ans: any) => ans.questionId === 'feedback_rating');
+                                                        if (ratingObj && ratingObj.selectedText) {
+                                                            lastRating = ratingObj.selectedText + ' ★';
+                                                        }
+                                                    }
 
-                                            return (
-                                                <React.Fragment key={traineeId}>
-                                                    <tr className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
-                                                        <td className="p-4 font-bold text-neutral-200 flex items-center gap-2">
-                                                            {name}
-                                                            {!isApproved && totalAttempts >= 3 && (
-                                                                <span className="bg-red-500/10 text-red-400 border border-red-500/25 px-1.5 py-0.5 rounded text-[9px] font-extrabold flex items-center gap-1">
-                                                                    <ShieldAlert className="w-2.5 h-2.5" /> REZAGO
-                                                                </span>
+                                                    return (
+                                                        <React.Fragment key={traineeId}>
+                                                            <tr className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                                <td className="p-4 font-bold text-neutral-200 flex items-center gap-2">
+                                                                    {name}
+                                                                    {!isApproved && totalAttempts >= 3 && (
+                                                                        <span className="bg-red-500/10 text-red-400 border border-red-500/25 px-1.5 py-0.5 rounded text-[9px] font-extrabold flex items-center gap-1">
+                                                                            <ShieldAlert className="w-2.5 h-2.5" /> REZAGO
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-4 text-gray-400 font-medium">{groupName}</td>
+                                                                <td className="p-4 text-center font-bold text-neutral-300">{totalAttempts}</td>
+                                                                <td className="p-4 text-center">
+                                                                    <span className={`font-black ${bestScore >= 80 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                                        {bestScore}%
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-4 text-center text-gray-400">{formatDate(lastAttempt.taken_at)}</td>
+                                                                <td className="p-4 text-center">
+                                                                    {isApproved ? (
+                                                                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                                                            ACREDITADO
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                                                                            PENDIENTE
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-4 text-center text-[#FF5A00] font-bold">{lastRating}</td>
+                                                                <td className="p-4 text-center">
+                                                                    <button
+                                                                        onClick={() => setExpandedAttemptId(expandedAttemptId === traineeId ? null : traineeId)}
+                                                                        className="text-[#00A8FC] hover:underline font-semibold"
+                                                                    >
+                                                                        {expandedAttemptId === traineeId ? 'Ocultar' : 'Ver Detalles'}
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+
+                                                            {/* Desglose de Intentos del Estudiante */}
+                                                            {expandedAttemptId === traineeId && (
+                                                                <tr>
+                                                                    <td colSpan={8} className="bg-[#0e0f16]/90 p-4 border-b border-white/[0.05]">
+                                                                        <div className="flex flex-col gap-4">
+                                                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Desglose de Intentos de {name}:</div>
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                                                {data.attempts.map((attempt) => {
+                                                                                    const isSim = attempt.answers && Array.isArray(attempt.answers) && attempt.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
+                                                                                    return (
+                                                                                        <div key={attempt.id} className="bg-[#141520] border border-white/[0.05] rounded-xl p-4 flex flex-col gap-2">
+                                                                                            <div className="flex items-center justify-between border-b border-white/[0.04] pb-2">
+                                                                                                <span className="font-bold text-[#00A8FC]">Intento #{attempt.attempt_number}</span>
+                                                                                                <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/[0.05]">
+                                                                                                    {isSim ? 'Simulador' : 'Teórico'}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                                                                                <span>Precisión:</span>
+                                                                                                <span className={`font-bold ${attempt.passed ? 'text-emerald-400' : 'text-red-400'}`}>{attempt.percentage}%</span>
+                                                                                            </div>
+                                                                                            <div className="flex justify-between text-xs text-gray-400">
+                                                                                                <span>Duración:</span>
+                                                                                                <span className="font-medium text-neutral-300">{formatDuration(attempt.duration_sec)}</span>
+                                                                                            </div>
+                                                                                            <div className="flex justify-between text-xs text-gray-400">
+                                                                                                <span>Fecha:</span>
+                                                                                                <span className="font-medium text-neutral-400">{formatDate(attempt.taken_at)}</span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
                                                             )}
-                                                        </td>
-                                                        <td className="p-4 text-gray-400 font-medium">{groupName}</td>
-                                                        <td className="p-4 text-center font-bold text-neutral-300">{totalAttempts}</td>
+                                                        </React.Fragment>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                    /* VISTA EDITOR DE CONTENIDOS */
+                    <div className="flex flex-col gap-6 animate-fadeIn text-left">
+                        {/* Cabecera / Pestañas */}
+                        <div className="bg-[#0d0e15]/80 border border-white/[0.04] rounded-2xl p-5 flex flex-wrap gap-4 items-center justify-between">
+                            <div className="flex items-center gap-6">
+                                <h2 className="text-sm font-black text-white tracking-widest flex items-center gap-2 uppercase">
+                                    <Wrench className="w-4 h-4 text-[#FF5A00]" />
+                                    Gestor de Base de Conocimientos
+                                </h2>
+                                <div className="h-5 w-[1px] bg-white/[0.07]" />
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setEditorTab('faults')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all border ${
+                                            editorTab === 'faults'
+                                                ? 'bg-[#FF5A00] text-white border-[#FF5A00]'
+                                                : 'bg-[#14151f] text-gray-400 border-white/[0.05] hover:text-white'
+                                        }`}
+                                    >
+                                        Fallas (Troubleshooting)
+                                    </button>
+                                    <button
+                                        onClick={() => setEditorTab('advises')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all border ${
+                                            editorTab === 'advises'
+                                                ? 'bg-[#FF5A00] text-white border-[#FF5A00]'
+                                                : 'bg-[#14151f] text-gray-400 border-white/[0.05] hover:text-white'
+                                        }`}
+                                    >
+                                        Consejos de Operación (Advises)
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {editorTab === 'faults' ? (
+                                <button
+                                    onClick={() => {
+                                        setSelectedFault(null);
+                                        setFaultForm({
+                                            id: '',
+                                            category: 'Problemas con el robot',
+                                            symptom: '',
+                                            root_cause: '',
+                                            severity: 'LOW',
+                                            resolution_protocol: '',
+                                            sop_reference: '',
+                                            video_url: ''
+                                        });
+                                        setFaultModalOpen(true);
+                                    }}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Agregar Nueva Falla
+                                </button>
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-400 font-semibold">Seleccionar Robot:</span>
+                                    <div className="relative">
+                                        <select
+                                            value={selectedEditorRobotId}
+                                            onChange={(e) => setSelectedEditorRobotId(e.target.value)}
+                                            className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg pl-3 pr-8 py-2 text-xs font-semibold text-white focus:outline-none appearance-none cursor-pointer"
+                                        >
+                                            {editorRobots.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedAdvice(null);
+                                            const nextNum = editorAdvises.length > 0
+                                                ? Math.max(...editorAdvises.map(a => a.advice_number)) + 1
+                                                : 1;
+                                            setAdviceForm({
+                                                id: `${selectedEditorRobotId}__${nextNum}`,
+                                                robot_id: selectedEditorRobotId,
+                                                advice_number: nextNum,
+                                                content: '',
+                                                is_exception: false
+                                            });
+                                            setAdviceModalOpen(true);
+                                        }}
+                                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" /> Agregar Consejo
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Listados de Contenido */}
+                        {loadingEditor ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-gray-500 gap-3 bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl">
+                                <span className="w-8 h-8 border-2 border-[#00A8FC]/30 border-t-[#00A8FC] rounded-full animate-spin" />
+                                <span className="text-xs">Cargando base de conocimiento...</span>
+                            </div>
+                        ) : editorTab === 'faults' ? (
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col">
+                                <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                    <th className="p-4">ID</th>
+                                                    <th className="p-4">Categoría</th>
+                                                    <th className="p-4">Síntoma</th>
+                                                    <th className="p-4">Causa Raíz</th>
+                                                    <th className="p-4 text-center">Severidad</th>
+                                                    <th className="p-4">SOP Ref</th>
+                                                    <th className="p-4 text-center">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/[0.03]">
+                                                {editorFaults.map(f => (
+                                                    <tr key={f.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                        <td className="p-4 font-mono font-semibold text-gray-300">{f.id}</td>
+                                                        <td className="p-4 text-gray-400 font-medium">{f.category}</td>
+                                                        <td className="p-4 text-white font-medium max-w-[200px] truncate" title={f.symptom}>{f.symptom}</td>
+                                                        <td className="p-4 text-gray-400 max-w-[200px] truncate" title={f.root_cause}>{f.root_cause}</td>
                                                         <td className="p-4 text-center">
-                                                            <span className={`font-black ${bestScore >= 80 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                                {bestScore}%
+                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                                                                f.severity === 'CRITICAL' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                                f.severity === 'HIGH' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                                                                f.severity === 'MEDIUM' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                                                'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                            }`}>
+                                                                {f.severity}
                                                             </span>
                                                         </td>
-                                                        <td className="p-4 text-center text-gray-400">{formatDate(lastAttempt.taken_at)}</td>
+                                                        <td className="p-4 text-gray-400 font-medium">{f.sop_reference}</td>
                                                         <td className="p-4 text-center">
-                                                            {isApproved ? (
-                                                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
-                                                                    ACREDITADO
-                                                                </span>
-                                                            ) : (
-                                                                <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
-                                                                    PENDIENTE
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td className="p-4 text-center text-[#FF5A00] font-bold">{lastRating}</td>
-                                                        <td className="p-4 text-center">
-                                                            <button
-                                                                onClick={() => setExpandedAttemptId(expandedAttemptId === traineeId ? null : traineeId)}
-                                                                className="text-[#00A8FC] hover:underline font-semibold"
-                                                            >
-                                                                {expandedAttemptId === traineeId ? 'Ocultar' : 'Ver Detalles'}
-                                                            </button>
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedFault(f);
+                                                                        setFaultForm({
+                                                                            id: f.id,
+                                                                            category: f.category,
+                                                                            symptom: f.symptom,
+                                                                            root_cause: f.root_cause,
+                                                                            severity: f.severity,
+                                                                            resolution_protocol: f.resolution_protocol,
+                                                                            sop_reference: f.sop_reference,
+                                                                            video_url: f.video_url || ''
+                                                                        });
+                                                                        setFaultModalOpen(true);
+                                                                    }}
+                                                                    className="p-1.5 text-gray-400 hover:text-[#00A8FC] transition-colors rounded hover:bg-white/[0.03]"
+                                                                    title="Editar"
+                                                                >
+                                                                    <Edit className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteFault(f.id)}
+                                                                    className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded hover:bg-white/[0.03]"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
-
-                                                    {/* Desglose de Intentos del Estudiante */}
-                                                    {expandedAttemptId === traineeId && (
-                                                        <tr>
-                                                            <td colSpan={8} className="bg-[#0e0f16]/90 p-4 border-b border-white/[0.05]">
-                                                                <div className="flex flex-col gap-4">
-                                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Desglose de Intentos de {name}:</div>
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                                        {data.attempts.map((attempt, attIdx) => {
-                                                                            const isSim = attempt.answers && Array.isArray(attempt.answers) && attempt.answers.some((ans: any) => ans.questionId?.startsWith('sq'));
-                                                                            return (
-                                                                                <div key={attempt.id} className="bg-[#141520] border border-white/[0.05] rounded-xl p-4 flex flex-col gap-2">
-                                                                                    <div className="flex items-center justify-between border-b border-white/[0.04] pb-2">
-                                                                                        <span className="font-bold text-[#00A8FC]">Intento #{attempt.attempt_number}</span>
-                                                                                        <span className="text-[9px] bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded border border-white/[0.05]">
-                                                                                            {isSim ? 'Simulador' : 'Teórico'}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between text-xs text-gray-400 mt-1">
-                                                                                        <span>Precisión:</span>
-                                                                                        <span className={`font-bold ${attempt.passed ? 'text-emerald-400' : 'text-red-400'}`}>{attempt.percentage}%</span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between text-xs text-gray-400">
-                                                                                        <span>Duración:</span>
-                                                                                        <span className="font-medium text-neutral-300">{formatDuration(attempt.duration_sec)}</span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between text-xs text-gray-400">
-                                                                                        <span>Fecha:</span>
-                                                                                        <span className="font-medium text-neutral-400">{formatDate(attempt.taken_at)}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </div>
+                        ) : (
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col">
+                                <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                    <th className="p-4">Número de Consejo</th>
+                                                    <th className="p-4">Contenido</th>
+                                                    <th className="p-4 text-center">Es Excepción</th>
+                                                    <th className="p-4 text-center">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/[0.03]">
+                                                {editorAdvises.map(a => (
+                                                    <tr key={a.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                        <td className="p-4 font-bold text-[#00A8FC] text-center w-32">Consejo #{a.advice_number}</td>
+                                                        <td className="p-4 text-white font-medium max-w-lg truncate" title={a.content}>{a.content}</td>
+                                                        <td className="p-4 text-center">
+                                                            {a.is_exception ? (
+                                                                <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[9px] font-semibold">Sí</span>
+                                                            ) : (
+                                                                <span className="text-gray-600">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="p-4 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedAdvice(a);
+                                                                        setAdviceForm({
+                                                                            id: a.id,
+                                                                            robot_id: a.robot_id,
+                                                                            advice_number: a.advice_number,
+                                                                            content: a.content,
+                                                                            is_exception: !!a.is_exception
+                                                                        });
+                                                                        setAdviceModalOpen(true);
+                                                                    }}
+                                                                    className="p-1.5 text-gray-400 hover:text-[#00A8FC] transition-colors rounded hover:bg-white/[0.03]"
+                                                                    title="Editar"
+                                                                >
+                                                                    <Edit className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteAdvice(a.id)}
+                                                                    className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded hover:bg-white/[0.03]"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </main>
+
+            {/* MODAL DE FALLA */}
+            {faultModalOpen && (
+                <div className="fixed inset-0 bg-[#07080c]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#0b0c13] border border-white/[0.08] rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-scaleIn text-left">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-sm font-black text-white tracking-widest uppercase flex items-center gap-2">
+                                <Wrench className="w-4 h-4 text-[#FF5A00]" />
+                                {selectedFault ? 'Editar Falla' : 'Nueva Falla'}
+                            </h3>
+                            <button onClick={() => setFaultModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveFault} className="flex flex-col gap-4 text-xs font-semibold">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Identificador único (ID)</label>
+                                <input
+                                    type="text"
+                                    required
+                                    disabled={!!selectedFault}
+                                    placeholder="Ej: robot_stopped"
+                                    value={faultForm.id}
+                                    onChange={e => setFaultForm({ ...faultForm, id: e.target.value })}
+                                    className="bg-[#14151f] border border-white/[0.07] disabled:bg-neutral-900 disabled:text-gray-500 focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Categoría</label>
+                                    <select
+                                        value={faultForm.category}
+                                        onChange={e => setFaultForm({ ...faultForm, category: e.target.value })}
+                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors cursor-pointer"
+                                    >
+                                        <option value="Problemas con el robot">Problemas con el robot</option>
+                                        <option value="Error de Calibración">Error de Calibración</option>
+                                        <option value="Falla de Alimentación">Falla de Alimentación</option>
+                                        <option value="Fallo de Software">Fallo de Software</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Severidad</label>
+                                    <select
+                                        value={faultForm.severity}
+                                        onChange={e => setFaultForm({ ...faultForm, severity: e.target.value })}
+                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors cursor-pointer"
+                                    >
+                                        <option value="CRITICAL">CRITICAL</option>
+                                        <option value="HIGH">HIGH</option>
+                                        <option value="MEDIUM">MEDIUM</option>
+                                        <option value="LOW">LOW</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Síntoma</label>
+                                <textarea
+                                    required
+                                    rows={2}
+                                    placeholder="Describe detalladamente el síntoma visible"
+                                    value={faultForm.symptom}
+                                    onChange={e => setFaultForm({ ...faultForm, symptom: e.target.value })}
+                                    className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors resize-none font-medium"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Causa Raíz</label>
+                                <textarea
+                                    required
+                                    rows={2}
+                                    placeholder="¿Por qué sucede este problema?"
+                                    value={faultForm.root_cause}
+                                    onChange={e => setFaultForm({ ...faultForm, root_cause: e.target.value })}
+                                    className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors resize-none font-medium"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Protocolo de Resolución</label>
+                                <textarea
+                                    required
+                                    rows={3}
+                                    placeholder="Pasos para solucionar la falla"
+                                    value={faultForm.resolution_protocol}
+                                    onChange={e => setFaultForm({ ...faultForm, resolution_protocol: e.target.value })}
+                                    className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors resize-none font-medium"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Referencia SOP</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ej: SOP-MERC-01"
+                                        value={faultForm.sop_reference}
+                                        onChange={e => setFaultForm({ ...faultForm, sop_reference: e.target.value })}
+                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">URL de Video (opcional)</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://..."
+                                        value={faultForm.video_url}
+                                        onChange={e => setFaultForm({ ...faultForm, video_url: e.target.value })}
+                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                className="bg-[#FF5A00] hover:bg-[#FF5A00]/90 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider mt-2 transition-all active:scale-[0.98]"
+                            >
+                                Guardar Falla
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DE CONSEJO (ADVISE) */}
+            {adviceModalOpen && (
+                <div className="fixed inset-0 bg-[#07080c]/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#0b0c13] border border-white/[0.08] rounded-2xl w-full max-w-md p-6 shadow-2xl animate-scaleIn text-left">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-sm font-black text-white tracking-widest uppercase flex items-center gap-2">
+                                <Wrench className="w-4 h-4 text-[#FF5A00]" />
+                                {selectedAdvice ? 'Editar Consejo' : 'Nuevo Consejo'}
+                            </h3>
+                            <button onClick={() => setAdviceModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveAdvice} className="flex flex-col gap-4 text-xs font-semibold">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Identificador único (ID)</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        disabled={!!selectedAdvice}
+                                        placeholder="Ej: mercury__1"
+                                        value={adviceForm.id}
+                                        onChange={e => setAdviceForm({ ...adviceForm, id: e.target.value })}
+                                        className="bg-[#14151f] border border-white/[0.07] disabled:bg-neutral-900 disabled:text-gray-500 focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors font-mono"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Número de consejo</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min={1}
+                                        value={adviceForm.advice_number}
+                                        onChange={e => setAdviceForm({ ...adviceForm, advice_number: parseInt(e.target.value) || 1 })}
+                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Contenido del consejo</label>
+                                <textarea
+                                    required
+                                    rows={4}
+                                    placeholder="Describe la instrucción o consejo para el operador..."
+                                    value={adviceForm.content}
+                                    onChange={e => setAdviceForm({ ...adviceForm, content: e.target.value })}
+                                    className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors resize-none font-medium"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 py-1">
+                                <input
+                                    type="checkbox"
+                                    id="is_exception"
+                                    checked={adviceForm.is_exception}
+                                    onChange={e => setAdviceForm({ ...adviceForm, is_exception: e.target.checked })}
+                                    className="w-4 h-4 border-white/[0.07] bg-[#14151f] rounded focus:ring-0 text-[#FF5A00] cursor-pointer"
+                                />
+                                <label htmlFor="is_exception" className="text-[11px] text-gray-300 font-semibold cursor-pointer select-none">
+                                    Marcar como excepción operacional
+                                </label>
+                            </div>
+                            <button
+                                type="submit"
+                                className="bg-[#FF5A00] hover:bg-[#FF5A00]/90 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider mt-2 transition-all active:scale-[0.98]"
+                            >
+                                Guardar Consejo
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

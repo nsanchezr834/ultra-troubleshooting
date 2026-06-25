@@ -437,7 +437,28 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'mercury__5',
                         adviceNumber: 5,
                         title: 'Agarre de Bolsa',
-                        content: 'Esta es la forma correcta de agarrar la bolsa: <a href="https://youtube.com/shorts/qSYPOQYCaTw?feature=share" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        content: 'Esta es la forma correcta de agarrar la bolsa: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/agarre%20de%20bolsa%20blanca.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        isException: false
+                    },
+                    {
+                        id: 'mercury__6',
+                        adviceNumber: 6,
+                        title: 'Colocar Etiqueta',
+                        content: 'Forma correcta de colocar una etiqueta en Venus o Mercury: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/etiqueta%20en%20venus.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        isException: false
+                    },
+                    {
+                        id: 'mercury__7',
+                        adviceNumber: 7,
+                        title: 'Ingresar Producto',
+                        content: 'Esta es la forma correcta de ingresar un objeto para evitar problemas de cerrado del mailer: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/ingresar%20un%20producto.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        isException: false
+                    },
+                    {
+                        id: 'mercury__8',
+                        adviceNumber: 8,
+                        title: 'Quitar Adhesivo',
+                        content: 'Esta es la forma correcta de quitar la cinta adhesiva: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/quitar%20adesivo.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
                         isException: false
                     }
                 ]
@@ -480,7 +501,28 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'venus__5',
                         adviceNumber: 5,
                         title: 'Agarre de Bolsa',
-                        content: 'Esta es la forma correcta de agarrar la bolsa: <a href="https://youtube.com/shorts/qSYPOQYCaTw?feature=share" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        content: 'Esta es la forma correcta de agarrar la bolsa: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/agarre%20de%20bolsa%20blanca.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        isException: false
+                    },
+                    {
+                        id: 'venus__6',
+                        adviceNumber: 6,
+                        title: 'Colocar Etiqueta',
+                        content: 'Forma correcta de colocar una etiqueta en Venus o Mercury: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/etiqueta%20en%20venus.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        isException: false
+                    },
+                    {
+                        id: 'venus__7',
+                        adviceNumber: 7,
+                        title: 'Ingresar Producto',
+                        content: 'Esta es la forma correcta de ingresar un objeto para evitar problemas de cerrado del mailer: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/ingresar%20un%20producto.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        isException: false
+                    },
+                    {
+                        id: 'venus__8',
+                        adviceNumber: 8,
+                        title: 'Quitar Adhesivo',
+                        content: 'Esta es la forma correcta de quitar la cinta adhesiva: <a href="https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/quitar%20adesivo.mp4" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
                         isException: false
                     }
                 ]
