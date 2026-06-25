@@ -208,6 +208,21 @@ export default function TelemetryDashboard({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {(currentRobot?.advises ?? []).map((adv) => {
                             const isException = adv.isException;
+                            
+                            // Detect YouTube URLs and extract video ID
+                            const ytUrlRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+                            const match = adv.content.match(ytUrlRegex);
+                            let displayContent = adv.content;
+                            let youtubeId: string | null = null;
+                            
+                            if (match) {
+                                youtubeId = match[1];
+                                // Remove the link tags pointing to youtube
+                                displayContent = adv.content.replace(/<a\s+[^>]*href="[^"]*youtube[^"]*"[^>]*>.*?<\/a>/gi, '');
+                                // Clean up trailing colons or spaces
+                                displayContent = displayContent.trim().replace(/:\s*$/, '');
+                            }
+
                             return (
                                 <div
                                     key={adv.id}
@@ -243,11 +258,22 @@ export default function TelemetryDashboard({
                                                     : isDarkMode ? 'text-neutral-300 font-semibold' : 'text-neutral-800 font-semibold'
                                             }`}
                                             dangerouslySetInnerHTML={{
-                                                __html: adv.content
+                                                __html: displayContent
                                                     .replace(/"FAIL JOB"/g, '<strong class="font-extrabold text-rose-900 bg-rose-100 px-1 py-0.5 rounded">"FAIL JOB"</strong>')
                                                     .replace(/FAIL JOB/g, '<strong class="font-extrabold text-rose-900 bg-rose-100 px-1 py-0.5 rounded">FAIL JOB</strong>')
                                             }}
                                         />
+                                        {youtubeId && (
+                                            <div className="mt-3 aspect-video w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+                                                <iframe
+                                                    className="w-full h-full"
+                                                    src={`https://www.youtube.com/embed/${youtubeId}`}
+                                                    title="YouTube video player"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                    allowFullScreen
+                                                ></iframe>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

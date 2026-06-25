@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { TroubleshootingKnowledge } from '../../types/troubleshooting.types';
 import { CLIENTS_DATABASE } from '../../config/robots-db';
-import { Search, Info, X, AlertCircle, Wrench, ShieldAlert, Check, Settings, Server, Cpu, Layers, Lightbulb } from 'lucide-react';
+import { Search, Info, X, AlertCircle, Wrench, ShieldAlert, Check, Settings, Server, Cpu, Layers, Lightbulb, Mic, MicOff } from 'lucide-react';
 
 interface ExtendedTroubleshootingKnowledge extends TroubleshootingKnowledge {
   clientKey?: string;
@@ -29,6 +29,67 @@ export default function TroubleshootingSearch({
   const [searchTerm, setSearchTerm] = useState('');
   const [showAllFaults, setShowAllFaults] = useState(false);
   const [selectedItemForModal, setSelectedItemForModal] = useState<ExtendedTroubleshootingKnowledge | null>(null);
+
+  // Estados y refs para control por voz
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = React.useRef<any>(null);
+
+  const toggleListening = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('El reconocimiento de voz no está soportado en este navegador. Te recomendamos usar Google Chrome o Microsoft Edge.');
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+    } else {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setSearchTerm(transcript);
+          setShowAllFaults(false);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('Error en reconocimiento de voz:', event.error);
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (err) {
+        console.error('Error inicializando SpeechRecognition:', err);
+        setIsListening(false);
+      }
+    }
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
   
   // En Modo Experto arrancamos directo en búsqueda rápida
   const [searchMode, setSearchMode] = useState<'quick' | 'category'>(isExpert ? 'quick' : 'quick');
@@ -235,12 +296,26 @@ export default function TroubleshootingSearch({
                 setShowAllFaults(false); 
               }
             }}
-            className={`w-full border rounded-2xl py-3.5 pl-12 pr-4 text-sm placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-xs ${
+            className={`w-full border rounded-2xl py-3.5 pl-12 pr-12 text-sm placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-xs ${
               isDarkMode
                 ? 'bg-[#0f1015] border-neutral-700 text-neutral-100 placeholder-neutral-600'
                 : 'bg-white border-neutral-200 text-neutral-800'
             }`}
           />
+          <button
+            type="button"
+            onClick={toggleListening}
+            title={isListening ? "Detener dictado por voz" : "Dictar falla por voz"}
+            className={`absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all active:scale-95 ${
+              isListening
+                ? 'bg-rose-500 text-white animate-pulse'
+                : isDarkMode
+                  ? 'hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200'
+                  : 'hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800'
+            }`}
+          >
+            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
