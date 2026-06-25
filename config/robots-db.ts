@@ -432,6 +432,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         title: 'Posición y Movilidad',
                         content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
                         isException: false
+                    },
+                    {
+                        id: 'mercury__5',
+                        adviceNumber: 5,
+                        title: 'Agarre de Bolsa',
+                        content: 'Esta es la forma correcta de agarrar la bolsa: <a href="https://youtube.com/shorts/qSYPOQYCaTw?feature=share" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
+                        isException: false
                     }
                 ]
             },
@@ -467,6 +474,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         adviceNumber: 4,
                         title: 'Posición y Movilidad',
                         content: 'Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot. Los movimientos que se hacen deben de ser fluidos, constantes y verificando la movilidad para no dañar el robot.',
+                        isException: false
+                    },
+                    {
+                        id: 'venus__5',
+                        adviceNumber: 5,
+                        title: 'Agarre de Bolsa',
+                        content: 'Esta es la forma correcta de agarrar la bolsa: <a href="https://youtube.com/shorts/qSYPOQYCaTw?feature=share" target="_blank" class="text-[#ff4f00] hover:underline font-extrabold">Ver video 🎥</a>',
                         isException: false
                     }
                 ]
