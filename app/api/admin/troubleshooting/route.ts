@@ -21,9 +21,9 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { id, category, symptom, root_cause, severity, resolution_protocol, sop_reference, video_url } = body;
+        const { id, category, symptom, resolution_protocol, sop_reference, video_url } = body;
 
-        if (!id || !category || !symptom || !root_cause || !severity || !resolution_protocol || !sop_reference) {
+        if (!id || !category || !symptom || !resolution_protocol || !sop_reference) {
             return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
         }
 
@@ -33,8 +33,6 @@ export async function POST(req: NextRequest) {
                 id,
                 category,
                 symptom,
-                root_cause,
-                severity,
                 resolution_protocol,
                 sop_reference,
                 video_url: video_url || null,

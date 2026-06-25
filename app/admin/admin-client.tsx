@@ -87,8 +87,6 @@ export default function AdminClient() {
         id: '',
         category: 'Problemas con el robot',
         symptom: '',
-        root_cause: '',
-        severity: 'LOW',
         resolution_protocol: '',
         sop_reference: '',
         video_url: ''
@@ -1090,8 +1088,6 @@ export default function AdminClient() {
                                             id: '',
                                             category: 'Problemas con el robot',
                                             symptom: '',
-                                            root_cause: '',
-                                            severity: 'LOW',
                                             resolution_protocol: '',
                                             sop_reference: '',
                                             video_url: ''
@@ -1156,8 +1152,6 @@ export default function AdminClient() {
                                                     <th className="p-4">ID</th>
                                                     <th className="p-4">Categoría</th>
                                                     <th className="p-4">Síntoma</th>
-                                                    <th className="p-4">Causa Raíz</th>
-                                                    <th className="p-4 text-center">Severidad</th>
                                                     <th className="p-4">SOP Ref</th>
                                                     <th className="p-4 text-center">Acciones</th>
                                                 </tr>
@@ -1168,17 +1162,6 @@ export default function AdminClient() {
                                                         <td className="p-4 font-mono font-semibold text-gray-300">{f.id}</td>
                                                         <td className="p-4 text-gray-400 font-medium">{f.category}</td>
                                                         <td className="p-4 text-white font-medium max-w-[200px] truncate" title={f.symptom}>{f.symptom}</td>
-                                                        <td className="p-4 text-gray-400 max-w-[200px] truncate" title={f.root_cause}>{f.root_cause}</td>
-                                                        <td className="p-4 text-center">
-                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
-                                                                f.severity === 'CRITICAL' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                                                f.severity === 'HIGH' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
-                                                                f.severity === 'MEDIUM' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                                                'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                                            }`}>
-                                                                {f.severity}
-                                                            </span>
-                                                        </td>
                                                         <td className="p-4 text-gray-400 font-medium">{f.sop_reference}</td>
                                                         <td className="p-4 text-center">
                                                             <div className="flex items-center justify-center gap-2">
@@ -1189,8 +1172,6 @@ export default function AdminClient() {
                                                                             id: f.id,
                                                                             category: f.category,
                                                                             symptom: f.symptom,
-                                                                            root_cause: f.root_cause,
-                                                                            severity: f.severity,
                                                                             resolution_protocol: f.resolution_protocol,
                                                                             sop_reference: f.sop_reference,
                                                                             video_url: f.video_url || ''
@@ -1309,33 +1290,18 @@ export default function AdminClient() {
                                     className="bg-[#14151f] border border-white/[0.07] disabled:bg-neutral-900 disabled:text-gray-500 focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Categoría</label>
-                                    <select
-                                        value={faultForm.category}
-                                        onChange={e => setFaultForm({ ...faultForm, category: e.target.value })}
-                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors cursor-pointer"
-                                    >
-                                        <option value="Problemas con el robot">Problemas con el robot</option>
-                                        <option value="Error de Calibración">Error de Calibración</option>
-                                        <option value="Falla de Alimentación">Falla de Alimentación</option>
-                                        <option value="Fallo de Software">Fallo de Software</option>
-                                    </select>
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Severidad</label>
-                                    <select
-                                        value={faultForm.severity}
-                                        onChange={e => setFaultForm({ ...faultForm, severity: e.target.value })}
-                                        className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors cursor-pointer"
-                                    >
-                                        <option value="CRITICAL">CRITICAL</option>
-                                        <option value="HIGH">HIGH</option>
-                                        <option value="MEDIUM">MEDIUM</option>
-                                        <option value="LOW">LOW</option>
-                                    </select>
-                                </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Categoría</label>
+                                <select
+                                    value={faultForm.category}
+                                    onChange={e => setFaultForm({ ...faultForm, category: e.target.value })}
+                                    className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors cursor-pointer"
+                                >
+                                    <option value="Problemas con el robot">Problemas con el robot</option>
+                                    <option value="Error de Calibración">Error de Calibración</option>
+                                    <option value="Falla de Alimentación">Falla de Alimentación</option>
+                                    <option value="Fallo de Software">Fallo de Software</option>
+                                </select>
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Síntoma</label>
@@ -1348,17 +1314,7 @@ export default function AdminClient() {
                                     className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors resize-none font-medium"
                                 />
                             </div>
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Causa Raíz</label>
-                                <textarea
-                                    required
-                                    rows={2}
-                                    placeholder="¿Por qué sucede este problema?"
-                                    value={faultForm.root_cause}
-                                    onChange={e => setFaultForm({ ...faultForm, root_cause: e.target.value })}
-                                    className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-2 text-white focus:outline-none transition-colors resize-none font-medium"
-                                />
-                            </div>
+
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Protocolo de Resolución</label>
                                 <textarea

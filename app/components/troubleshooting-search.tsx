@@ -84,8 +84,6 @@ export default function TroubleshootingSearch({
               id: advice.id,
               category: "Consejos Operativos",
               symptom: `Consejo Operativo: ${advice.content.substring(0, 80)}${advice.content.length > 80 ? '...' : ''}`,
-              root_cause: `Recomendación operativa configurada para la unidad ${robot.name} del cliente ${client.name}.`,
-              severity: "LOW",
               resolution_protocol: advice.content,
               sop_reference: `Consejo Operativo - ${robot.name}`,
               clientKey: client.id,
@@ -292,7 +290,6 @@ export default function TroubleshootingSearch({
     if (searchWords.length > 0) {
       const scoredItems = combinedKnowledgeBase.map(item => {
         const normSymptom = normalizeForSearch(item.symptom);
-        const normRootCause = normalizeForSearch(item.root_cause);
         const normProtocol = normalizeForSearch(item.resolution_protocol);
         const normId = normalizeForSearch(item.id);
 
@@ -301,7 +298,6 @@ export default function TroubleshootingSearch({
           let matches = 0;
           if (normSymptom.includes(word)) matches += 10;
           if (normId.includes(word)) matches += 8;
-          if (normRootCause.includes(word)) matches += 3;
           if (normProtocol.includes(word)) matches += 1;
 
           score += matches;
@@ -426,7 +422,6 @@ export default function TroubleshootingSearch({
     // Calcular relevancia por coincidencia de palabras clave
     const scoredItems = combinedKnowledgeBase.map(item => {
       const normSymptom = normalizeForSearch(item.symptom);
-      const normRootCause = normalizeForSearch(item.root_cause);
       const normProtocol = normalizeForSearch(item.resolution_protocol);
       const normId = normalizeForSearch(item.id);
 
@@ -435,7 +430,6 @@ export default function TroubleshootingSearch({
         let matches = 0;
         if (normSymptom.includes(word)) matches += 10; // Síntoma tiene máxima prioridad
         if (normId.includes(word)) matches += 8;       // Código de error es muy relevante
-        if (normRootCause.includes(word)) matches += 3;
         if (normProtocol.includes(word)) matches += 1;
 
         score += matches;
@@ -487,14 +481,13 @@ export default function TroubleshootingSearch({
     }
 
     const cleanSymptom = item.symptom.replace(/Qué hacer en caso de que/gi, '').replace(/\(ID:.*?\)/gi, '').trim();
-    const cleanRootCause = item.root_cause.trim();
     const cleanProtocol = item.resolution_protocol
       .replace(/\\n/g, ' ')
       .replace(/\n/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
-    const textToSpeak = `${prefix}Detalle de la falla: ${cleanSymptom}. Causa raíz: ${cleanRootCause}. Protocolo de resolución: ${cleanProtocol}`;
+    const textToSpeak = `${prefix}Detalle de la falla: ${cleanSymptom}. Protocolo de resolución: ${cleanProtocol}`;
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'es-ES';
@@ -956,13 +949,7 @@ export default function TroubleshootingSearch({
                 </div>
               )}
 
-              {/* Causa Raíz */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-mono text-neutral-400 font-bold tracking-widest uppercase">Causa Raíz / Contexto</span>
-                <p className="text-neutral-600 text-sm leading-relaxed bg-neutral-50 p-4 rounded-xl border border-neutral-100">
-                  {selectedItemForModal.root_cause}
-                </p>
-              </div>
+
 
               {/* Protocolo de Resolución */}
               <div className="space-y-3">
