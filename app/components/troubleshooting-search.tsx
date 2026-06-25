@@ -184,11 +184,18 @@ export default function TroubleshootingSearch({
 
   // Búsqueda global
   const filteredKnowledge = useMemo(() => {
+    // Lista de palabras vacías (stop words) en español y términos genéricos de voz a omitir
+    const stopWords = new Set([
+      'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 
+      'de', 'del', 'en', 'para', 'con', 'por', 'que', 'y', 'o', 'a',
+      'falla', 'fallas', 'error', 'errores', 'problema', 'problemas', 'fe'
+    ]);
+
     const searchWords = searchTerm
       .trim()
       .split(/\s+/)
       .map(w => normalizeForSearch(w))
-      .filter(Boolean);
+      .filter(w => w && !stopWords.has(w));
 
     if (searchWords.length === 0) return [];
 
