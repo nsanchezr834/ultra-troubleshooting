@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
                 id,
                 category,
                 symptom,
+                root_cause: '',
+                severity: 'LOW',
                 resolution_protocol,
                 sop_reference,
                 video_url: video_url || null,

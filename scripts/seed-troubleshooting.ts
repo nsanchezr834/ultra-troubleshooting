@@ -32,6 +32,8 @@ async function seed() {
       id: item.id,
       category: category,
       symptom: item.symptom,
+      root_cause: root_cause,
+      severity: severity,
       resolution_protocol: item.resolution_protocol,
       sop_reference: item.sop_reference || 'SOP N/A',
       video_url: item.video_url || null
