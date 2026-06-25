@@ -427,15 +427,46 @@ export default function TroubleshootingSearch({
     return `${baseText} Al momento de enviar el fault, automáticamente el robot entra en fase de autorrecuperación y se reiniciará el módulo reportado. Posteriormente, debe pasarse a posición de HOME e iniciar nuevamente la operación. Si el robot no se recupera tras esto, se enviará de forma automática un mensaje en el canal de Slack notificando que sigue en espera de intervención.`;
   };
 
+  // Función para leer por voz el detalle de la falla seleccionada
+  const speakItemDetails = (item: ExtendedTroubleshootingKnowledge) => {
+    if (typeof window === 'undefined') return;
+
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+
+    synth.cancel();
+
+    const cleanSymptom = item.symptom.replace(/Qué hacer en caso de que/gi, '').replace(/\(ID:.*?\)/gi, '').trim();
+    const cleanRootCause = item.root_cause.trim();
+    const cleanProtocol = item.resolution_protocol
+      .replace(/\\n/g, ' ')
+      .replace(/\n/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const textToSpeak = `Detalle de la falla: ${cleanSymptom}. Causa raíz: ${cleanRootCause}. Protocolo de resolución: ${cleanProtocol}`;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'es-ES';
+    utterance.rate = 1.05;
+    synth.speak(utterance);
+  };
+
   const handleOpenModal = (item: ExtendedTroubleshootingKnowledge) => {
     setSelectedItemForModal(item);
     setIsSpecificOpen(false);
     setSelectedError('');
     setSelectedRobot('');
+    // Leer en voz alta el protocolo y detalle de la falla seleccionada
+    speakItemDetails(item);
   };
 
   const handleCloseModal = () => {
     setSelectedItemForModal(null);
+    // Detener la lectura de voz inmediatamente si se cierra la ventana
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
   };
 
   return (
