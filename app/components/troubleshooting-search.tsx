@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { TroubleshootingKnowledge } from '../../types/troubleshooting.types';
 import { CLIENTS_DATABASE } from '../../config/robots-db';
 import { Search, Info, X, AlertCircle, Wrench, ShieldAlert, Check, Settings, Server, Cpu, Layers, Lightbulb, Mic, MicOff } from 'lucide-react';
+import SpeechAgent from './SpeechAgent';
 
 interface ExtendedTroubleshootingKnowledge extends TroubleshootingKnowledge {
   clientKey?: string;
@@ -80,10 +81,11 @@ export default function TroubleshootingSearch({
       client.robots.forEach(robot => {
         if (robot.advises) {
           robot.advises.forEach(advice => {
+            const cleanContent = advice.content.replace(/<[^>]*>/g, '');
             advices.push({
               id: advice.id,
               category: "Consejos Operativos",
-              symptom: `Consejo Operativo: ${advice.content.substring(0, 80)}${advice.content.length > 80 ? '...' : ''}`,
+              symptom: `Consejo Operativo: ${cleanContent.substring(0, 80)}${cleanContent.length > 80 ? '...' : ''}`,
               resolution_protocol: advice.content,
               sop_reference: `Consejo Operativo - ${robot.name}`,
               clientKey: client.id,
@@ -544,50 +546,51 @@ export default function TroubleshootingSearch({
     }`}>
       
       {/* Cabecera */}
-      <div className={`p-6 border-b ${isDarkMode ? 'border-neutral-800 bg-[#1a1b24]/60' : 'border-neutral-100 bg-neutral-50/50'}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div className={`p-6 border-b flex flex-col gap-4 ${isDarkMode ? 'border-neutral-800 bg-[#1a1b24]/60' : 'border-neutral-100 bg-neutral-50/50'}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h3 className={`text-xs font-black tracking-widest flex items-center gap-2 uppercase ${isDarkMode ? 'text-neutral-400' : 'text-neutral-400'}`}>
             <Search className="w-4 h-4 text-ultra-orange" />
             Buscador de Resolución
           </h3>
           
           {/* Selector de Modo de Búsqueda */}
-          {/* Selector de Modo de Búsqueda — oculto en Modo Experto */}
           {!isExpert && (
-          <div className={`flex p-1 rounded-xl self-start sm:self-auto ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200/60'}`}>
-            <button
-              onClick={() => {
-                setSearchMode('quick');
-                onCategorySelect(null);
-              }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
-                searchMode === 'quick' 
-                  ? isDarkMode ? 'bg-neutral-700 text-neutral-100 shadow-sm' : 'bg-white text-neutral-900 shadow-xs'
-                  : isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Búsqueda Rápida
-            </button>
-            <button
-              onClick={() => {
-                setSearchMode('category');
-                setSearchTerm('');
-              }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
-                searchMode === 'category' 
-                  ? isDarkMode ? 'bg-neutral-700 text-neutral-100 shadow-sm' : 'bg-white text-neutral-900 shadow-xs'
-                  : isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              Buscar por Categorías
-            </button>
-          </div>
+            <div className={`flex p-1 rounded-xl self-start sm:self-auto ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200/60'}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchMode('quick');
+                  onCategorySelect(null);
+                }}
+                className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
+                  searchMode === 'quick' 
+                    ? isDarkMode ? 'bg-neutral-700 text-neutral-100 shadow-sm' : 'bg-white text-neutral-900 shadow-xs'
+                    : isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Búsqueda Rápida
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchMode('category');
+                  setSearchTerm('');
+                }}
+                className={`px-4 py-1.5 rounded-lg text-xs font-black tracking-wide transition-all ${
+                  searchMode === 'category' 
+                    ? isDarkMode ? 'bg-neutral-700 text-neutral-100 shadow-sm' : 'bg-white text-neutral-900 shadow-xs'
+                    : isDarkMode ? 'text-neutral-500 hover:text-neutral-300' : 'text-neutral-500 hover:text-neutral-800'
+                }`}
+              >
+                Buscar por Categorías
+              </button>
+            </div>
           )}
         </div>
-        
+
         {/* Input de búsqueda */}
         <div className="relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-neutral-400" />
           <input 
             ref={inputRef}
             type="text" 
@@ -605,30 +608,25 @@ export default function TroubleshootingSearch({
                 setShowAllFaults(false); 
               }
             }}
-            className={`w-full border rounded-2xl py-3.5 pl-12 pr-12 text-sm placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-xs ${
+            className={`w-full border rounded-2xl py-5 pl-14 pr-64 text-base placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-md ${
               isDarkMode
                 ? 'bg-[#0f1015] border-neutral-700 text-neutral-100 placeholder-neutral-600'
                 : 'bg-white border-neutral-200 text-neutral-800'
             }`}
           />
-          <button
-            type="button"
-            onClick={toggleListening}
-            title={isListening ? "Detener dictado por voz" : "Dictar falla por voz"}
-            className={`absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all active:scale-95 ${
-              isListening
-                ? 'bg-rose-500 text-white animate-pulse'
-                : isDarkMode
-                  ? 'hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200'
-                  : 'hover:bg-neutral-100 text-neutral-500 hover:text-neutral-800'
-            }`}
-          >
-            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </button>
+          <SpeechAgent 
+            isDarkMode={isDarkMode}
+            onMatchFault={(symptom) => {
+              setSearchTerm(symptom);
+              const matchedItem = combinedKnowledgeBase.find(item => item.symptom === symptom);
+              if (matchedItem) {
+                handleOpenModal(matchedItem);
+              }
+            }}
+          />
         </div>
       </div>
 
-      {/* Contenedor de Resultados */}
       <div className={`flex-1 overflow-y-auto p-6 flex flex-col justify-between transition-all duration-300 ${
         searchMode === 'quick' && searchTerm.trim() === '' ? 'min-h-[50px] p-0' : 'min-h-[300px]'
       } ${isDarkMode ? 'bg-[#0f1015]' : 'bg-white'}`}>
@@ -967,17 +965,13 @@ export default function TroubleshootingSearch({
                             <span className="w-6 h-6 rounded-full bg-[#FF6A00] text-white flex items-center justify-center text-[11px] font-black shrink-0 shadow-sm shadow-orange-500/20">
                               {stepNum}
                             </span>
-                            <p className="text-neutral-700 text-sm leading-relaxed font-semibold pt-0.5">
-                              {stepDesc}
-                            </p>
+                            <p className="text-neutral-700 text-sm leading-relaxed font-semibold pt-0.5" dangerouslySetInnerHTML={{ __html: stepDesc }} />
                           </div>
                         );
                       }
                       
                       return (
-                        <p key={stepIdx} className="text-neutral-850 text-sm leading-relaxed font-semibold">
-                          {stepText}
-                        </p>
+                        <p key={stepIdx} className="text-neutral-850 text-sm leading-relaxed font-semibold" dangerouslySetInnerHTML={{ __html: stepText }} />
                       );
                     })}
                   </div>

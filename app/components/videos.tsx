@@ -97,13 +97,13 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
         ],
     },
     'monty': {
-        layout: 'carousel',
+        layout: 'grid',
         videos: [
             {
                 title: 'Proceso Completo — Monty',
                 description:
                     'Recorrido operativo completo del ciclo de trabajo del robot Monty con prueba interactiva.',
-                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_monty.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_montyf.mp4',
                 badge: 'INTERACTIVO',
                 badgeColor: 'blue',
                 interactions: [
@@ -124,6 +124,13 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                         feedbackMessage: 'Recuerda que el sistema necesita registrar el artículo mediante el escáner.'
                     }
                 ]
+            },
+            {
+                title: 'Proceso Fallido — Monty',
+                description: 'La bolsa sale sin etiqueta',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/falla_monty.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
             },
         ],
     },
@@ -151,7 +158,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 badgeColor: 'emerald',
             },
             {
-                title: 'Falla en Mercury',
+                title: 'Proceso Fallido — Mercury',
                 description: 'Caso de estudio que muestra una falla operativa en el robot Mercury.',
                 src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/Falla%20En%20Mercury.mp4',
                 badge: 'ERROR',
@@ -160,7 +167,7 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
         ],
     },
     'mabel': {
-        layout: 'carousel',
+        layout: 'grid',
         videos: [
             {
                 title: 'Proceso Completo — Mabel',
@@ -169,6 +176,13 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
                 src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/mabel_proceso_completo.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
+            },
+            {
+                title: 'Proceso Fallido — Mabel',
+                description: 'En el video se puede observar que al momento que va a sacar una bolsa la maquina expendedora queda atorada.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/falla_mabel.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
             },
         ],
     },
@@ -252,12 +266,19 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
         layout: 'grid',
         videos: [
             {
-                title: 'Proceso Completo',
+                title: 'Proceso Correcto — Bagger Label',
                 description:
                     'Proceso correcto de cómo hacer el laboratorio del robot Bagger Label.',
-                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_bagger_label.mp4',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/bagger_label.mp4',
                 badge: 'OPERATIVO',
                 badgeColor: 'emerald',
+            },
+            {
+                title: 'Proceso Fallido — Bagger Label',
+                description: 'La bagger no dispensa la bolsa.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/error_bagger.mp4',
+                badge: 'ERROR',
+                badgeColor: 'red',
             },
         ],
     },

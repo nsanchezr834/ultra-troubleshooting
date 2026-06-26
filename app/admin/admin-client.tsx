@@ -74,12 +74,14 @@ export default function AdminClient() {
 
     // Estados del Gestor de Contenidos (Fallas y Consejos)
     const [view, setView] = useState<'analytics' | 'editor'>('analytics');
-    const [editorTab, setEditorTab] = useState<'faults' | 'advises'>('faults');
+    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry'>('faults');
     
     const [editorRobots, setEditorRobots] = useState<any[]>([]);
     const [selectedEditorRobotId, setSelectedEditorRobotId] = useState<string>('');
     const [editorFaults, setEditorFaults] = useState<any[]>([]);
     const [editorAdvises, setEditorAdvises] = useState<any[]>([]);
+    const [telemetryList, setTelemetryList] = useState<any[]>([]);
+    const [loadingTelemetry, setLoadingTelemetry] = useState(false);
     const [loadingEditor, setLoadingEditor] = useState(false);
     
     const [faultModalOpen, setFaultModalOpen] = useState(false);
@@ -141,11 +143,27 @@ export default function AdminClient() {
         if (advisesData) setEditorAdvises(advisesData);
     }, [selectedEditorRobotId]);
 
+    const fetchTelemetry = useCallback(async () => {
+        setLoadingTelemetry(true);
+        try {
+            const res = await fetch('/api/telemetry');
+            if (res.ok) {
+                const json = await res.json();
+                setTelemetryList(json.data || []);
+            }
+        } catch (err) {
+            console.error('Error fetching telemetry:', err);
+        } finally {
+            setLoadingTelemetry(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (view === 'editor') {
             fetchEditorData();
+            fetchTelemetry();
         }
-    }, [view, fetchEditorData]);
+    }, [view, fetchEditorData, fetchTelemetry]);
 
     useEffect(() => {
         if (view === 'editor' && selectedEditorRobotId) {
@@ -1080,6 +1098,16 @@ export default function AdminClient() {
                                     >
                                         Consejos de Operación (Advises)
                                     </button>
+                                    <button
+                                        onClick={() => setEditorTab('telemetry')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all border ${
+                                            editorTab === 'telemetry'
+                                                ? 'bg-[#FF5A00] text-white border-[#FF5A00]'
+                                                : 'bg-[#14151f] text-gray-400 border-white/[0.05] hover:text-white'
+                                        }`}
+                                    >
+                                        Consultas de Voz (IA)
+                                    </button>
                                 </div>
                             </div>
                             
@@ -1202,7 +1230,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : editorTab === 'advises' ? (
                             <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col">
                                 <div className="overflow-hidden rounded-xl border border-white/[0.05]">
                                     <div className="overflow-x-auto">
@@ -1257,6 +1285,118 @@ export default function AdminClient() {
                                                         </td>
                                                     </tr>
                                                 ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            /* TELEMETRIA DE VOZ */
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col">
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h3 className="text-xs font-bold text-white uppercase tracking-widest">
+                                        Historial de consultas de voz analizadas por IA
+                                    </h3>
+                                    <button 
+                                        onClick={fetchTelemetry}
+                                        className="text-gray-400 hover:text-white flex items-center gap-1 text-[11px]"
+                                    >
+                                        <RefreshCw className={`w-3 h-3 ${loadingTelemetry ? 'animate-spin' : ''}`} />
+                                        Actualizar
+                                    </button>
+                                </div>
+                                <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-xs">
+                                            <thead>
+                                                <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                    <th className="p-4">Fecha</th>
+                                                    <th className="p-4">Consulta del Operador</th>
+                                                    <th className="p-4 text-center">Coincidencias</th>
+                                                    <th className="p-4">Selección Realizada</th>
+                                                    <th className="p-4 text-center">Estatus</th>
+                                                    <th className="p-4 text-center">Tiempo Lector</th>
+                                                    <th className="p-4 text-center">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/[0.03]">
+                                                {loadingTelemetry ? (
+                                                    <tr>
+                                                        <td colSpan={7} className="p-8 text-center text-gray-500">
+                                                            Cargando datos de telemetría...
+                                                        </td>
+                                                    </tr>
+                                                ) : telemetryList.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={7} className="p-8 text-center text-gray-500">
+                                                            No se han registrado consultas de voz aún.
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    telemetryList.map((item) => (
+                                                        <tr key={item.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                            <td className="p-4 text-gray-400 font-medium whitespace-nowrap">
+                                                                {formatDate(item.timestamp)}
+                                                            </td>
+                                                            <td className="p-4 text-white font-bold max-w-xs truncate" title={item.query}>
+                                                                "{item.query}"
+                                                            </td>
+                                                            <td className="p-4 text-center font-bold text-gray-300">
+                                                                {item.matches_count}
+                                                            </td>
+                                                            <td className="p-4 text-gray-400 truncate max-w-[180px]" title={item.selected_option || 'Ninguna'}>
+                                                                {item.selected_option || <span className="text-gray-600">—</span>}
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                {item.status === 'resolved' && (
+                                                                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                                        RESUELTO
+                                                                    </span>
+                                                                )}
+                                                                {item.status === 'no_matches' && (
+                                                                    <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                                        SIN SOLUCIÓN
+                                                                    </span>
+                                                                )}
+                                                                {item.status === 'abandoned' && (
+                                                                    <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                                        ABANDONADO
+                                                                    </span>
+                                                                )}
+                                                                {item.status === 'retried' && (
+                                                                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                                        REINTENTADO
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-4 text-center font-mono text-gray-400">
+                                                                {item.time_spent_seconds ? `${item.time_spent_seconds}s` : '—'}
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                {(item.status === 'no_matches' || item.status === 'abandoned') && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedFault(null);
+                                                                            setFaultForm({
+                                                                                id: `ERR-VOICE-${Math.floor(Math.random() * 900 + 100)}`,
+                                                                                category: 'Problemas con el robot',
+                                                                                symptom: item.query,
+                                                                                resolution_protocol: '',
+                                                                                sop_reference: '',
+                                                                                video_url: ''
+                                                                            });
+                                                                            setFaultModalOpen(true);
+                                                                        }}
+                                                                        className="bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 px-2 py-1 rounded text-[10px] font-bold transition-all"
+                                                                        title="Añadir esta falla a la base de conocimiento"
+                                                                    >
+                                                                        Añadir Falla
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
