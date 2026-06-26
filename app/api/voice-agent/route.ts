@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
 
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey || apiKey === 'tu_api_key_aqui') {
-            // Fallback elegante si la API Key no está configurada, devolviendo coincidencias locales básicas por palabras clave.
             console.warn('[VoiceAgent API] GEMINI_API_KEY no configurada. Usando búsqueda local básica.');
             const words = symptom.toLowerCase().split(/\s+/);
             const matches = TROUBLESHOOTING_DATABASE
@@ -22,21 +21,35 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ coincidencias: matches });
         }
 
-        // Obtener la lista de síntomas del catálogo local para proveer al modelo
         const catalogList = TROUBLESHOOTING_DATABASE.map(t => t.symptom);
 
-        const prompt = `Analiza la siguiente descripción de falla del operador: "${symptom}".
-Compara esta descripción con el siguiente catálogo de fallas de la celda de trabajo y devuelve un array JSON únicamente con los títulos/síntomas exactos que coincidan (máximo 3).
+        const prompt = `Actúas como un validador semántico determinista de fallas para celdas robóticas industriales.
+Tu única tarea es recibir una frase de un operario y relacionarla con síntomas exactos del catálogo provisto.
 
-Catálogo de fallas:
+REGLAS DE EMPAREJAMIENTO CRÍTICAS:
+1. NO ALUCINES NI INFUTAS. Si el operario menciona un componente, pieza o acción que NO tiene una relación directa, causal y unívoca con los síntomas del catálogo, NO debes hacer match.
+2. IGNORA PALABRAS GENÉRICAS. Frases que usen verbos como "funciona", "falla", "ayuda", "máquina" o "sistema" pero se refieran a objetos ajenos al catálogo (ej: "pedales", "perro", "silla") NO deben emparejarse con ninguna falla existente. Es preferible devolver un array vacío antes que un falso positivo.
+3. El match debe basarse en la coincidencia del componente clave afectado (ej. Bagger, Etiqueta/Printer, Brazos/Robot, Gripper, Contenedor/Bin, Cámaras, Conectividad/Red/Latencia, Productos/Lote/Trabajo).
+4. TRADUCCIÓN Y SINÓNIMOS LOGÍSTICOS: Identifica y traduce términos comunes de almacén en inglés o tecnicismos industriales (ej: "no job available" o "no active batch" equivalen semánticamente a "Falta de productos en la zona de alimentación (Out of Product) - Global", "bag jam" equivale a "Bolsa atascada en Bagger", "bad seal" a "Bolsa arrugada, quemada o mal sellada") y realiza la coincidencia con el síntoma en español correspondiente.
+
+EJEMPLOS DE ENTRENAMIENTO (FEW-SHOT):
+- Operario: "mis pedales no funcionan" -> Catálogo contiene fallas de brazos, grippers, bagger, etc. Ninguno menciona pedales ni se relaciona con la operación de la celda. -> {"coincidencias": []}
+- Operario: "no job available" -> Equivale a sin lote cargado en el sistema, lo cual corresponde a "Falta de productos en la zona de alimentación (Out of Product) - Global". -> {"coincidencias": ["Falta de productos en la zona de alimentación (Out of Product) - Global"]}
+- Operario: "se escapó mi perro" -> Fuera de dominio. -> {"coincidencias": []}
+- Operario: "la impresora no saca la etiqueta" -> Coincidencia exacta de componente (etiqueta/impresora). -> {"coincidencias": ["Qué hacer en caso de que no imprima la etiqueta (Bagger / Impresora Integrada)", "Qué hacer en caso de que la impresora de etiquetas (pegado manual) no saque la etiqueta"]}
+- Operario: "brazo congelado" -> Coincidencia directa de componente (brazos). -> {"coincidencias": ["Falla de brazos: Uno o ambos brazos del robot se quedan congelados, no responden a comandos o se mueven de forma errática."]}
+
+Catálogo de fallas válidas (Títulos Exactos):
 ${JSON.stringify(catalogList, null, 2)}
+
+Descripción del operario a analizar: "${symptom}"
 
 INSTRUCCIÓN CRÍTICA DE FORMATO:
 Responde única y exclusivamente en formato JSON estructurado sin formato markdown (sin bloques de código \`\`\`json) siguiendo este esquema exacto:
 {
   "coincidencias": ["Título exacto 1", "Título exacto 2"]
 }
-Si no encuentras ninguna coincidencia, devuelve el array vacío.`;
+Si no encuentras ninguna coincidencia estricta y segura, devuelve el array vacío: {"coincidencias": []}.`;
 
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         const response = await fetch(geminiUrl, {
@@ -50,7 +63,7 @@ Si no encuentras ninguna coincidencia, devuelve el array vacío.`;
                 }],
                 generationConfig: {
                     responseMimeType: 'application/json',
-                    temperature: 0.1
+                    temperature: 0.0
                 }
             })
         });

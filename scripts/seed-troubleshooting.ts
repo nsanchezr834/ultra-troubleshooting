@@ -21,10 +21,6 @@ async function seed() {
 
   // Formatear los registros para asegurar compatibilidad con la base de datos
   const payload = TROUBLESHOOTING_DATABASE.map(item => {
-    // Normalizar severidad a mayúsculas por si acaso
-    const severity = (item.severity || 'LOW').toUpperCase();
-    const root_cause = item.root_cause || '';
-    
     // Asegurar que la categoría no esté vacía
     const category = item.category || 'General';
 
@@ -32,8 +28,8 @@ async function seed() {
       id: item.id,
       category: category,
       symptom: item.symptom,
-      root_cause: root_cause,
-      severity: severity,
+      root_cause: '',
+      severity: 'LOW',
       resolution_protocol: item.resolution_protocol,
       sop_reference: item.sop_reference || 'SOP N/A',
       video_url: item.video_url || null

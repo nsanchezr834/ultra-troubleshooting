@@ -9,9 +9,24 @@ const supabaseAdmin = createClient(
 );
 
 async function checkAdminAuth(): Promise<boolean> {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('admin_session_id')?.value;
-    return verifySessionToken(token, 'admin');
+    try {
+        const cookieStore = await cookies();
+        const adminToken = cookieStore.get('admin_session_id')?.value;
+        const trainerToken = cookieStore.get('trainer_session_id')?.value;
+
+        if (adminToken && verifySessionToken(adminToken, 'admin')) {
+            return true;
+        }
+        if (trainerToken && verifySessionToken(trainerToken, 'trainer')) {
+            return true;
+        }
+
+        console.warn('⚠️ Authentication failed: No valid admin or trainer token found.');
+        return false;
+    } catch (err) {
+        console.error('Error during admin auth check:', err);
+        return false;
+    }
 }
 
 export async function POST(req: NextRequest) {
