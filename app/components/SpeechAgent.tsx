@@ -416,6 +416,15 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
         </button>
       </div>
 
+      {/* Mobile Badge / Legend (visible only on mobile, placed below the search input) */}
+      {!isActive && (
+        <div className="sm:hidden absolute left-1/2 -translate-x-1/2 top-[calc(100%+12px)] flex items-center gap-1.5 pointer-events-none select-none w-max z-10">
+          <img src="/autoryx_badge_v2.svg" alt="Autoryx Logo" className="w-4 h-4 object-contain" />
+          <span className="text-[8px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">powered by</span>
+          <span className="text-[10px] font-black text-ultra-orange uppercase tracking-widest">Autoryx AI</span>
+        </div>
+      )}
+
       {/* Panel flotante de estado y opciones (Glassmorphism) */}
       {isActive && (
         <div className={`absolute left-0 right-0 top-full mt-3 z-50 rounded-2xl p-5 shadow-2xl border backdrop-blur-md transition-all duration-300 ${
