@@ -2,6 +2,7 @@ export interface TroubleshootingKnowledge {
   id: string;
   category: string;
   symptom: string;
+  keywords?: string;
   resolution_protocol: string;
   sop_reference: string;
   video_url?: string;

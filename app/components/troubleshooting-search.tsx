@@ -261,7 +261,7 @@ export default function TroubleshootingSearch({
         isWaitingForSelectionRef.current = false;
 
         // Abrir el modal y leer con el prefijo de confirmación
-        handleOpenModal(item, `Abriendo la opción ${selectedIndex + 1}. `);
+        handleOpenModal(item, `Abriendo la opción ${selectedIndex + 1}. `, true);
         return;
       }
     }
@@ -523,13 +523,15 @@ export default function TroubleshootingSearch({
     }, 1500);
   };
 
-  const handleOpenModal = (item: ExtendedTroubleshootingKnowledge, prefix: string = '') => {
+  const handleOpenModal = (item: ExtendedTroubleshootingKnowledge, prefix: string = '', readAloud: boolean = false) => {
     setSelectedItemForModal(item);
     setIsSpecificOpen(false);
     setSelectedError('');
     setSelectedRobot('');
-    // Leer en voz alta el protocolo y detalle de la falla seleccionada
-    speakItemDetails(item, prefix);
+    // Leer en voz alta el protocolo y detalle de la falla seleccionada solo si se solicitó explícitamente (micrófono / manos libres)
+    if (readAloud) {
+      speakItemDetails(item, prefix);
+    }
   };
 
   const handleCloseModal = () => {

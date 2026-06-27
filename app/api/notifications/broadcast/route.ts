@@ -1,139 +1,128 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import webpush from 'web-push';
-
-export const dynamic = 'force-dynamic';
-
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
-const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:support@autoryx.com';
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'SUPER_SECRET_WEBHOOK_TOKEN';
+import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
 
 export async function POST(req: NextRequest) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-        return NextResponse.json({ error: 'Supabase credentials missing' }, { status: 500 });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-        try {
-            webpush.setVapidDetails(
-                VAPID_EMAIL,
-                VAPID_PUBLIC_KEY,
-                VAPID_PRIVATE_KEY
-            );
-        } catch (err: any) {
-            console.error('Error setting VAPID details:', err.message);
-        }
-    }
-
     try {
-        // 1. Validar autenticación del Webhook
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader || authHeader !== `Bearer ${WEBHOOK_SECRET}`) {
-            return NextResponse.json({ error: 'Unauthorized Webhook request' }, { status: 401 });
+        const { symptom } = await req.json();
+
+        if (!symptom || typeof symptom !== 'string') {
+            return NextResponse.json(
+                { error: 'Symptom is required and must be a string' },
+                { status: 400 }
+            );
         }
 
-        // 2. Extraer Payload
-        const payload = await req.json();
-        let title = payload.title;
-        let body = payload.body;
-        let url = payload.url;
+        const apiKey = process.env.GEMINI_API_KEY;
 
-        if (payload.record) {
-            const record = payload.record;
-            if (payload.table === 'casos_estudio') {
-                title = 'Nuevo Caso de Seguridad 🛡️';
-                body = record.titulo || record.label_corto || 'Un nuevo caso de estudio ha sido publicado.';
-                url = `/cases/${record.id}`;
-            } else if (payload.table === 'troubleshooting_knowledge') {
-                const categoryLabel = record.category ? ` (${record.category.toUpperCase()})` : '';
-                title = `Nueva Falla${categoryLabel} ⚠️`;
-                body = record.symptom || 'Se ha registrado una nueva falla en el sistema.';
-                url = `/troubleshooting?search=${record.id}`;
-            } else if (payload.table === 'advises') {
-                const robotLabel = record.robot_id ? ` (${record.robot_id.toUpperCase()})` : '';
-                title = `Nuevo Consejo${robotLabel} 💡`;
-                body = record.content || 'Se ha registrado un nuevo consejo operativo.';
-                url = `/`;
-            }
+        // ── Fallback sin API key ──────────────────────────────────────────────────
+        if (!apiKey || apiKey === 'tu_api_key_aqui') {
+            console.warn('[VoiceAgent] GEMINI_API_KEY no configurada. Búsqueda local básica.');
+            const words = symptom.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+            const matches = TROUBLESHOOTING_DATABASE
+                .filter(t => {
+                    const haystack = (t.symptom + ' ' + ((t as any).keywords || '')).toLowerCase();
+                    return words.some(w => haystack.includes(w));
+                })
+                .slice(0, 3)
+                .map(t => t.symptom);
+            return NextResponse.json({ coincidencias: matches });
         }
 
-        if (!title || !body || !url) {
-            return NextResponse.json({ error: 'Missing notification payload fields (title, body, url)' }, { status: 400 });
+        // ── Catálogo para Gemini: título + keywords de cada falla ────────────────
+        // Le damos a Gemini los sinónimos operativos reales para que pueda hacer
+        // el matching semántico sin alucinar. Más contexto = mejor precisión.
+        const catalogForGemini = TROUBLESHOOTING_DATABASE.map(t => ({
+            titulo: t.symptom,
+            sinonimos: (t as any).keywords || '',
+        }));
+
+        // ── Prompt mejorado con few-shot de tu catálogo real ────────────────────
+        const prompt = `Eres un asistente de diagnóstico para operarios de celdas robóticas industriales.
+Tu tarea es recibir la descripción en voz natural de un operario y encontrar las fallas del catálogo que mejor coincidan.
+
+REGLAS:
+1. El operario habla en lenguaje coloquial. Traduce sus palabras al componente técnico afectado.
+2. Usa los SINÓNIMOS del catálogo para hacer el match, no solo el título.
+3. Devuelve entre 1 y 3 coincidencias ordenadas de mayor a menor relevancia.
+4. Si ninguna falla tiene relación directa con lo descrito, devuelve array vacío.
+5. NUNCA inventes títulos. Solo usa los títulos exactos del catálogo.
+
+EJEMPLOS DE TRADUCCIÓN (lo que dice el operario → componente real):
+- "no quiere sacar bolsas" / "se acabaron las bolsas" / "bagger no dispensa" → Bagger / Out of Bags
+- "bolsa trabada" / "se atoró la bolsa" / "bag jam" → Bag Jam en Bagger
+- "bolsa quemada" / "sello feo" / "mal sellado" / "bad seal" → Bad Seal
+- "brazo congelado" / "brazo no mueve" / "arm frozen" → Falla de brazos
+- "pinza no agarra" / "gripper flojo" / "no cierra" → Falla de grippers
+- "sin video" / "cámara negra" / "perdí la imagen" → Falla de cámaras
+- "cuello trabado" / "no voltea" / "neck frozen" → Falla de cuello
+- "pecho congelado" / "torso no gira" / "chest frozen" → Falla en chest
+- "no hay producto" / "banda vacía" / "no job available" / "sin lote" → Out of Product
+- "bin equivocado" / "paquete en lugar incorrecto" → Package Dropped in Wrong Bin
+- "bin lleno" / "contenedor lleno" → Package Bin Full o Hospital Bin Full
+- "etiqueta no sale" / "no imprime" / "out of labels" → Falla de etiqueta/impresora
+- "internet lento" / "cámara congelada por red" / "latencia" → Alta latencia / red
+- "no me muevo en manual" / "teleop no funciona" → Robot no se mueve en teleop
+- "app se cerró" / "headset congelado" → App Not Working
+- "pedales no aparecen" / "sin pedales" → No aparece el botón de los pedales
+- "no escanea" / "producto no encontrado" / "skip" → El workflow solicita escanear
+
+CATÁLOGO DE FALLAS (título exacto + sinónimos):
+${JSON.stringify(catalogForGemini, null, 2)}
+
+DESCRIPCIÓN DEL OPERARIO: "${symptom}"
+
+RESPONDE ÚNICAMENTE con este JSON (sin markdown, sin texto extra):
+{"coincidencias": ["Título exacto de la falla 1", "Título exacto de la falla 2"]}
+
+Si no hay coincidencias: {"coincidencias": []}`;
+
+        // ── Llamada a Gemini ─────────────────────────────────────────────────────
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+        const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: 'application/json',
+                    temperature: 0.1,    // era 0.0 → 0.1 da flexibilidad semántica sin alucinar
+                    maxOutputTokens: 256, // respuesta corta garantizada, ahorro de tokens
+                },
+            }),
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Gemini API error: ${response.status} - ${errText}`);
         }
 
-        // 3. Obtener suscripciones activas
-        const { data: subscriptions, error: fetchError } = await supabase
-            .from('push_subscriptions')
-            .select('id, endpoint, p256dh, auth');
+        const resData = await response.json();
+        const textResponse =
+            resData.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
 
-        if (fetchError) {
-            return NextResponse.json({ error: `Database fetch error: ${fetchError.message}` }, { status: 500 });
+        try {
+            // Limpiar posibles backticks por si Gemini los añade de todas formas
+            const cleaned = textResponse.replace(/```json|```/g, '').trim();
+            const parsed = JSON.parse(cleaned);
+
+            // Validar que los títulos devueltos existen en el catálogo real
+            // (previene alucinaciones parciales aunque sean raras con temperature 0.1)
+            const validTitles = TROUBLESHOOTING_DATABASE.map(t => t.symptom);
+            const safeMatches = (parsed.coincidencias || []).filter(
+                (title: string) => validTitles.includes(title)
+            );
+
+            return NextResponse.json({ coincidencias: safeMatches });
+        } catch (jsonErr) {
+            console.error('[VoiceAgent] Error parsing Gemini JSON:', textResponse, jsonErr);
+            return NextResponse.json({ coincidencias: [] });
         }
-
-        if (!subscriptions || subscriptions.length === 0) {
-            return NextResponse.json({ message: 'No active subscriptions found' }, { status: 200 });
-        }
-
-        // 4. Enviar notificaciones con TTL y urgency
-        const notificationPayload = JSON.stringify({ title, body, url });
-
-        const results = await Promise.all(
-            subscriptions.map(async (sub) => {
-                const pushSubscription = {
-                    endpoint: sub.endpoint,
-                    keys: {
-                        p256dh: sub.p256dh,
-                        auth: sub.auth,
-                    },
-                };
-
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Push notification timeout')), 3000)
-                );
-
-                try {
-                    await Promise.race([
-                        webpush.sendNotification(pushSubscription, notificationPayload, {
-                            TTL: 86400,       // 24 horas — tiempo máximo para entregar si el dispositivo está offline
-                            urgency: 'high',  // Prioridad alta — entrega inmediata en Android y iOS
-                        }),
-                        timeoutPromise
-                    ]);
-                    return { success: true, id: sub.id };
-                } catch (err: any) {
-                    console.error(`Error sending push to subscription ${sub.id}:`, err.message);
-                    if (err.statusCode === 410 || err.statusCode === 404 || err.message.includes('timeout')) {
-                        await supabase
-                            .from('push_subscriptions')
-                            .delete()
-                            .eq('id', sub.id);
-                        return { success: false, expired: true, id: sub.id };
-                    }
-                    return { success: false, error: `${err.statusCode || 'NO_STATUS'}: ${err.message}`, body: err.body, id: sub.id };
-                }
-            })
-        );
-
-        const succeeded = results.filter(r => r.success).length;
-        const expired = results.filter(r => r.expired).length;
-        const failed = results.filter(r => !r.success && !r.expired);
-
-        return NextResponse.json({
-            message: 'Broadcast completed',
-            total: subscriptions.length,
-            sent: succeeded,
-            cleaned: expired,
-            errors: failed.map(f => ({ id: f.id, error: f.error })),
-            vapid_configured: !!(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY),
-        }, { status: 200 });
-
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[VoiceAgent API] Error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Internal Server Error' },
+            { status: 500 }
+        );
     }
 }

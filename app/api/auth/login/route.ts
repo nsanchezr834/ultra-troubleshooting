@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { secureCompare, createSessionToken, rateLimiter } from '../../../lib/security';
 
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_KEY || 'placeholder'
+);
 
 export async function POST(request: NextRequest) {
   // 1. Obtener la IP del cliente para el rate limiting
@@ -21,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { password, csrfToken } = body;
+    const { password, csrfToken, fullName } = body;
 
     // 3. Validación de Token CSRF (Double-Submit Cookie Pattern)
     const cookieStore = await cookies();
@@ -38,6 +43,13 @@ export async function POST(request: NextRequest) {
     if (typeof password !== 'string' || password.length === 0) {
       return NextResponse.json(
         { error: "La contraseña es requerida." },
+        { status: 400 }
+      );
+    }
+
+    if (!fullName || typeof fullName !== 'string' || fullName.trim().length === 0) {
+      return NextResponse.json(
+        { error: "El nombre completo es requerido." },
         { status: 400 }
       );
     }
@@ -76,6 +88,50 @@ export async function POST(request: NextRequest) {
     // 6. Autenticación Exitosa
     rateLimiter.reset(ip);
     
+    // Registrar acceso en Supabase
+    try {
+      let location = 'Desconocido';
+      const city = request.headers.get('x-vercel-ip-city');
+      const region = request.headers.get('x-vercel-ip-country-region');
+      const country = request.headers.get('x-vercel-ip-country');
+      
+      if (city || region || country) {
+        const parts = [];
+        if (city) parts.push(decodeURIComponent(city));
+        if (region) parts.push(region);
+        if (country) parts.push(country);
+        location = parts.join(', ');
+      } else if (ip !== '127.0.0.1' && ip !== '::1') {
+        try {
+          const geoRes = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,country,regionName,city`);
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData.status === 'success') {
+              const parts = [];
+              if (geoData.city) parts.push(geoData.city);
+              if (geoData.regionName) parts.push(geoData.regionName);
+              if (geoData.country) parts.push(geoData.country);
+              location = parts.join(', ');
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching geolocation from ip-api:', err);
+        }
+      } else {
+        location = 'Localhost (Desarrollo)';
+      }
+
+      await supabaseAdmin.from('user_access_logs').insert([
+        {
+          full_name: fullName.trim(),
+          ip_address: ip,
+          location: location
+        }
+      ]);
+    } catch (dbErr) {
+      console.error('Error logging user access to Supabase:', dbErr);
+    }
+
     // Generar sesión criptográfica sin estado
     const sessionToken = createSessionToken();
 

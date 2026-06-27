@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import {
     Users, TrendingUp, BookOpenCheck, LogOut,
@@ -74,14 +74,16 @@ export default function AdminClient() {
 
     // Estados del Gestor de Contenidos (Fallas y Consejos)
     const [view, setView] = useState<'analytics' | 'editor'>('analytics');
-    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry'>('faults');
+    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry' | 'access'>('faults');
     
     const [editorRobots, setEditorRobots] = useState<any[]>([]);
     const [selectedEditorRobotId, setSelectedEditorRobotId] = useState<string>('');
     const [editorFaults, setEditorFaults] = useState<any[]>([]);
     const [editorAdvises, setEditorAdvises] = useState<any[]>([]);
     const [telemetryList, setTelemetryList] = useState<any[]>([]);
+    const [accessLogsList, setAccessLogsList] = useState<any[]>([]);
     const [loadingTelemetry, setLoadingTelemetry] = useState(false);
+    const [loadingAccessLogs, setLoadingAccessLogs] = useState(false);
     const [loadingEditor, setLoadingEditor] = useState(false);
     
     const [faultModalOpen, setFaultModalOpen] = useState(false);
@@ -158,12 +160,59 @@ export default function AdminClient() {
         }
     }, []);
 
+    const fetchAccessLogs = useCallback(async () => {
+        setLoadingAccessLogs(true);
+        try {
+            const { data, error } = await supabase
+                .from('user_access_logs')
+                .select('*')
+                .order('accessed_at', { ascending: false });
+            if (data) {
+                setAccessLogsList(data);
+            } else if (error) {
+                console.error('Error fetching access logs:', error);
+            }
+        } catch (err) {
+            console.error('Error fetching access logs:', err);
+        } finally {
+            setLoadingAccessLogs(false);
+        }
+    }, []);
+
+    const todayAccessCount = useMemo(() => {
+        const todayStr = new Date().toDateString();
+        return accessLogsList.filter(log => log.accessed_at && new Date(log.accessed_at).toDateString() === todayStr).length;
+    }, [accessLogsList]);
+
+    const uniqueUsersCount = useMemo(() => {
+        const users = new Set(accessLogsList.map(log => log.full_name));
+        return users.size;
+    }, [accessLogsList]);
+
+    const dailyAccessStats = useMemo(() => {
+        const stats: Record<string, number> = {};
+        accessLogsList.forEach(log => {
+            if (!log.accessed_at) return;
+            const dateStr = new Date(log.accessed_at).toLocaleDateString('es-MX', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            stats[dateStr] = (stats[dateStr] || 0) + 1;
+        });
+        return Object.entries(stats)
+            .map(([date, count]) => ({ date, count }))
+            .sort((a, b) => b.date.localeCompare(a.date));
+    }, [accessLogsList]);
+
+
     useEffect(() => {
         if (view === 'editor') {
             fetchEditorData();
             fetchTelemetry();
+            fetchAccessLogs();
         }
-    }, [view, fetchEditorData, fetchTelemetry]);
+    }, [view, fetchEditorData, fetchTelemetry, fetchAccessLogs]);
 
     useEffect(() => {
         if (view === 'editor' && selectedEditorRobotId) {
@@ -1108,6 +1157,16 @@ export default function AdminClient() {
                                     >
                                         Consultas de Voz (IA)
                                     </button>
+                                    <button
+                                        onClick={() => setEditorTab('access')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all border ${
+                                            editorTab === 'access'
+                                                ? 'bg-[#FF5A00] text-white border-[#FF5A00]'
+                                                : 'bg-[#14151f] text-gray-400 border-white/[0.05] hover:text-white'
+                                        }`}
+                                    >
+                                        Accesos de Usuarios
+                                    </button>
                                 </div>
                             </div>
                             
@@ -1129,7 +1188,7 @@ export default function AdminClient() {
                                 >
                                     <Plus className="w-3.5 h-3.5" /> Agregar Nueva Falla
                                 </button>
-                            ) : (
+                            ) : editorTab === 'advises' ? (
                                 <div className="flex items-center gap-3">
                                     <span className="text-xs text-gray-400 font-semibold">Seleccionar Robot:</span>
                                     <div className="relative">
@@ -1164,7 +1223,14 @@ export default function AdminClient() {
                                         <Plus className="w-3.5 h-3.5" /> Agregar Consejo
                                     </button>
                                 </div>
-                            )}
+                            ) : editorTab === 'access' ? (
+                                <button 
+                                    onClick={fetchAccessLogs}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]"
+                                >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${loadingAccessLogs ? 'animate-spin' : ''}`} /> Actualizar Accesos
+                                </button>
+                            ) : null}
                         </div>
 
                         {/* Listados de Contenido */}
@@ -1290,7 +1356,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : editorTab === 'telemetry' ? (
                             /* TELEMETRIA DE VOZ */
                             <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col">
                                 <div className="mb-4 flex items-center justify-between">
@@ -1399,6 +1465,111 @@ export default function AdminClient() {
                                                 )}
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            /* ACCESOS DE USUARIOS */
+                            <div className="flex flex-col gap-6 w-full text-left">
+                                {/* Tarjetas de Métricas */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-xl p-5 flex flex-col shadow-lg">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Accesos Hoy</span>
+                                        <span className="text-3xl font-black text-[#FF5A00]">{todayAccessCount}</span>
+                                    </div>
+                                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-xl p-5 flex flex-col shadow-lg">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Accesos Totales</span>
+                                        <span className="text-3xl font-black text-[#00A8FC]">{accessLogsList.length}</span>
+                                    </div>
+                                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-xl p-5 flex flex-col shadow-lg">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Usuarios Distintos</span>
+                                        <span className="text-3xl font-black text-emerald-400">{uniqueUsersCount}</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                                    {/* Lista de Registros Detallada (8 columnas) */}
+                                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col lg:col-span-8">
+                                        <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4">
+                                            Historial de Accesos Recientes
+                                        </h4>
+                                        <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-xs">
+                                                    <thead>
+                                                        <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                            <th className="p-4">Usuario</th>
+                                                            <th className="p-4">Ubicación</th>
+                                                            <th className="p-4">Dirección IP</th>
+                                                            <th className="p-4">Fecha y Hora</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-white/[0.03]">
+                                                        {loadingAccessLogs ? (
+                                                            <tr>
+                                                                <td colSpan={4} className="p-8 text-center text-gray-500">
+                                                                    Cargando historial de accesos...
+                                                                </td>
+                                                            </tr>
+                                                        ) : accessLogsList.length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={4} className="p-8 text-center text-gray-500">
+                                                                    No se han registrado accesos aún.
+                                                                </td>
+                                                            </tr>
+                                                        ) : (
+                                                            accessLogsList.map((log) => (
+                                                                <tr key={log.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                                    <td className="p-4 text-white font-bold">{log.full_name}</td>
+                                                                    <td className="p-4 text-gray-300 font-medium">{log.location || 'Desconocido'}</td>
+                                                                    <td className="p-4 text-gray-400 font-mono">{log.ip_address}</td>
+                                                                    <td className="p-4 text-gray-400 whitespace-nowrap">{formatDate(log.accessed_at)}</td>
+                                                                </tr>
+                                                            ))
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Accesos por Día (4 columnas) */}
+                                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col lg:col-span-4">
+                                        <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4">
+                                            Accesos Diarios
+                                        </h4>
+                                        <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                            <table className="w-full text-left text-xs">
+                                                <thead>
+                                                    <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                        <th className="p-4">Día</th>
+                                                        <th className="p-4 text-center">Cantidad</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/[0.03]">
+                                                    {loadingAccessLogs ? (
+                                                        <tr>
+                                                            <td colSpan={2} className="p-6 text-center text-gray-500">
+                                                                Cargando...
+                                                            </td>
+                                                        </tr>
+                                                    ) : dailyAccessStats.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={2} className="p-6 text-center text-gray-500">
+                                                                Sin registros.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        dailyAccessStats.map((stat) => (
+                                                            <tr key={stat.date} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                                <td className="p-4 text-white font-bold">{stat.date}</td>
+                                                                <td className="p-4 text-center text-[#FF5A00] font-black text-sm">{stat.count}</td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

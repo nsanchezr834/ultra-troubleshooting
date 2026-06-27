@@ -11,6 +11,7 @@ export default function StartingPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [fullName, setFullName] = useState("");
 
   // Obtener el token CSRF al montar el componente
   useEffect(() => {
@@ -44,19 +45,25 @@ export default function StartingPage() {
       return;
     }
 
+    if (!isAdminMode && !fullName.trim()) {
+      setError("El nombre completo es requerido.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const endpoint = isAdminMode ? "/api/auth/admin-login" : "/api/auth/login";
+      const payload = isAdminMode 
+        ? { password, csrfToken }
+        : { password, csrfToken, fullName: fullName.trim() };
+
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          password,
-          csrfToken,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -120,6 +127,28 @@ export default function StartingPage() {
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
+            {/* Campo de Nombre Completo (solo en modo no-admin) */}
+            {!isAdminMode && (
+              <div className="flex flex-col gap-2">
+                <label 
+                  htmlFor="fullName" 
+                  className="text-xs font-medium text-gray-300 tracking-wider uppercase pl-0.5"
+                >
+                  Nombre Completo
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={loading || success}
+                  required
+                  placeholder="Ej. Juan Pérez"
+                  className="w-full bg-[#0d0e12]/80 border border-white/[0.08] focus:border-[#FF5A00]/70 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none transition-all duration-300 shadow-inner shadow-black/40"
+                />
+              </div>
+            )}
+
             {/* Campo de Contraseña */}
             <div className="flex flex-col gap-2">
               <label 

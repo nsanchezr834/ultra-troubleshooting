@@ -59,13 +59,32 @@ create table if not exists public.advises (
     created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Tabla de Logs de Acceso de Usuarios
+create table if not exists public.user_access_logs (
+    id uuid default gen_random_uuid() primary key,
+    full_name varchar(100) not null,
+    ip_address varchar(45) not null,
+    location text,
+    accessed_at timestamptz default now()
+);
+
 -- Habilitar RLS en tablas creadas
 alter table public.push_subscriptions enable row level security;
 alter table public.casos_estudio enable row level security;
 alter table public.troubleshooting_knowledge enable row level security;
 alter table public.advises enable row level security;
+alter table public.user_access_logs enable row level security;
 
 -- Políticas de RLS
+drop policy if exists "Permitir lectura pública de user_access_logs" on public.user_access_logs;
+create policy "Permitir lectura pública de user_access_logs"
+    on public.user_access_logs for select
+    using (true);
+
+drop policy if exists "Permitir inserción pública de user_access_logs" on public.user_access_logs;
+create policy "Permitir inserción pública de user_access_logs"
+    on public.user_access_logs for insert
+    with check (true);
 drop policy if exists "Permitir inserción pública de suscripciones" on public.push_subscriptions;
 create policy "Permitir inserción pública de suscripciones" 
     on public.push_subscriptions for insert 
