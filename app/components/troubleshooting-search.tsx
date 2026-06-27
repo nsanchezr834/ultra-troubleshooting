@@ -58,11 +58,6 @@ export default function TroubleshootingSearch({
     }
   }, [selectedCategory]);
 
-  // Estados para panel de especificidad (ERR-MEC-014)
-  const [isSpecificOpen, setIsSpecificOpen] = useState(false);
-  const [selectedError, setSelectedError] = useState('');
-  const [selectedRobot, setSelectedRobot] = useState('');
-
   // Obtener logo local o dinámico por llave de cliente
   const getClientLogoSrc = (key: string): string => {
     const logoMap: Record<string, string> = {
@@ -453,23 +448,6 @@ export default function TroubleshootingSearch({
     return combinedKnowledgeBase.filter(item => item.category === selectedCategory);
   }, [combinedKnowledgeBase, selectedCategory]);
 
-  const getSpecificInstruction = () => {
-    if (!selectedError || !selectedRobot) {
-      return "Por favor, selecciona tanto el tipo de error como el robot afectado para generar las instrucciones específicas.";
-    }
-
-    let baseText = "";
-    if (selectedError === "jam") {
-      baseText = `Abrir la cubierta de la impresora del robot ${selectedRobot}, retirar con sumo cuidado la etiqueta atorada en el rodillo alimentador asegurando no rayar el cabezal térmico. Alinear nuevamente el rollo y presionar el botón FEED para calibrar.`;
-    } else if (selectedError === "empty") {
-      baseText = `Colocar un rollo nuevo de etiquetas térmicas de 4x6 en la impresora de ${selectedRobot}. Asegurar que el papel pase por debajo de las guías verdes de alineación. Cerrar la tapa firmemente y presionar FEED para auto-ajustar.`;
-    } else if (selectedError === "power") {
-      baseText = `Verificar físicamente el cable de alimentación AC y el cable USB de la impresora térmica ubicados detrás de la celda de ${selectedRobot}. Asegurar que el interruptor de encendido esté en la posición 'I'. Si la pantalla integrada sigue apagada, reportar hardware defectuoso.`;
-    }
-
-    return `${baseText} Al momento de enviar el fault, automáticamente el robot entra en fase de autorrecuperación y se reiniciará el módulo reportado. Posteriormente, debe pasarse a posición de HOME e iniciar nuevamente la operación. Si el robot no se recupera tras esto, se enviará de forma automática un mensaje en el canal de Slack notificando que sigue en espera de intervención.`;
-  };
-
   // Función para leer por voz el detalle de la falla seleccionada
   const speakItemDetails = (item: ExtendedTroubleshootingKnowledge, prefix: string = '') => {
     if (typeof window === 'undefined') return;
@@ -525,9 +503,6 @@ export default function TroubleshootingSearch({
 
   const handleOpenModal = (item: ExtendedTroubleshootingKnowledge, prefix: string = '', readAloud: boolean = false) => {
     setSelectedItemForModal(item);
-    setIsSpecificOpen(false);
-    setSelectedError('');
-    setSelectedRobot('');
     // Leer en voz alta el protocolo y detalle de la falla seleccionada solo si se solicitó explícitamente (micrófono / manos libres)
     if (readAloud) {
       speakItemDetails(item, prefix);
@@ -895,53 +870,62 @@ export default function TroubleshootingSearch({
           VENTANA EMERGENTE (MODAL DE SOLUCIÓN COMPLETA - TEMA CLARO PREMIUM)
           ===================================================================== */}
       {selectedItemForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white border border-neutral-200 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh] animate-scaleUp">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4 sm:p-6 animate-fadeIn">
+          <div className="bg-[#FCFCFC] border border-white/20 rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-[0_16px_64px_rgba(0,0,0,0.15)] ring-1 ring-black/5 relative flex flex-col max-h-[92vh] sm:max-h-[85vh] animate-scaleUp">
             
             {/* Cabezal del Modal */}
-            <div className="p-6 border-b border-neutral-150 flex justify-between items-start gap-4 bg-neutral-50/50">
-              <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-mono text-neutral-500 bg-neutral-200/80 px-2 py-1 rounded border border-neutral-300 font-bold">
-                    {selectedItemForModal.id}
-                  </span>
-                  <span className="text-[9px] uppercase tracking-wider text-ultra-orange font-black px-2.5 py-0.5 bg-ultra-orange/5 rounded-full border border-ultra-orange/15">
-                    {selectedItemForModal.category}
-                  </span>
+            <div className="px-5 py-5 sm:px-8 sm:py-7 border-b border-neutral-100 flex justify-between items-start gap-4 bg-white relative z-10">
+              <div className="flex-1 flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100/80 border border-neutral-200/60 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-md">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
+                    <span className="text-[10px] sm:text-[11px] font-mono text-neutral-600 font-bold tracking-widest uppercase">
+                      {selectedItemForModal.id}
+                    </span>
+                  </div>
+                  <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-ultra-orange/5 border border-ultra-orange/20 shadow-[0_2px_8px_rgba(255,106,0,0.04)] backdrop-blur-md">
+                    <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-ultra-orange font-black">
+                      {selectedItemForModal.category}
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-neutral-900 text-lg font-black leading-snug">
+                <h3 className="text-neutral-900 text-xl sm:text-[28px] font-black leading-tight sm:leading-tight tracking-tight">
                   {selectedItemForModal.symptom}
                 </h3>
               </div>
               <button 
                 onClick={handleCloseModal}
-                className="text-neutral-400 hover:text-neutral-700 bg-neutral-200/60 rounded-full p-2 transition-colors shrink-0"
+                className="text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 bg-neutral-50/80 border border-neutral-200/50 rounded-full p-2.5 transition-all duration-300 shrink-0 mt-1"
+                aria-label="Cerrar modal"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
             {/* Cuerpo del Modal */}
-            <div className="p-6 overflow-y-auto space-y-5 flex-1 bg-white">
+            <div className="p-5 sm:p-8 overflow-y-auto space-y-6 sm:space-y-8 flex-1 bg-[#FAFAFA]">
               
-              {/* Bloque Destacado de Ayuda Visual (Logo + Robot) para Consejos Operativos */}
+              {/* Bloque Destacado de Ayuda Visual */}
               {selectedItemForModal.category === "Consejos Operativos" && selectedItemForModal.clientKey && (
-                <div className="flex items-center gap-4 p-5 bg-amber-50/50 rounded-3xl border border-amber-200 shadow-xs animate-fadeIn">
-                  <div className="relative shrink-0">
-                    <img 
-                      src={getClientLogoSrc(selectedItemForModal.clientKey)} 
-                      alt="Logo del Cliente" 
-                      className="w-14 h-14 object-contain p-2 bg-white rounded-2xl border border-amber-200 shadow-xs" 
-                    />
-                    <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full p-1 border border-white">
-                      <Lightbulb className="w-3 h-3 fill-amber-100 text-white" />
+                <div className="flex items-center gap-4 p-4 sm:p-5 bg-white rounded-2xl border border-amber-200/60 shadow-[0_2px_12px_rgba(245,158,11,0.06)] relative overflow-hidden">
+                  <div className="absolute top-0 left-0 bottom-0 w-1 bg-amber-400"></div>
+                  <div className="relative shrink-0 ml-1">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl sm:rounded-2xl border border-amber-100 shadow-sm flex items-center justify-center p-2">
+                      <img 
+                        src={getClientLogoSrc(selectedItemForModal.clientKey)} 
+                        alt="Logo del Cliente" 
+                        className="w-full h-full object-contain" 
+                      />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full p-1 shadow-sm ring-2 ring-white">
+                      <Lightbulb className="w-3 h-3 fill-amber-100" />
                     </div>
                   </div>
                   <div>
-                    <span className="text-[10px] font-mono font-black text-amber-600 block uppercase tracking-widest mb-0.5">Cliente: {selectedItemForModal.clientKey.toUpperCase()}</span>
-                    <h4 className="text-xl font-black text-neutral-900 tracking-tight leading-none flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-amber-600/80 uppercase tracking-widest block mb-0.5">Entorno Cliente</span>
+                    <h4 className="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight flex items-center gap-2">
                       {selectedItemForModal.robotName}
-                      <span className="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold uppercase border border-amber-200/50">
+                      <span className="text-[9px] bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border border-amber-200/50">
                         Robot
                       </span>
                     </h4>
@@ -949,97 +933,43 @@ export default function TroubleshootingSearch({
                 </div>
               )}
 
-
-
               {/* Protocolo de Resolución */}
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono text-neutral-400 font-bold tracking-widest uppercase block">Guía de Resolución Estándar</span>
-                <div className="bg-neutral-50/50 p-5 rounded-3xl border border-neutral-200/80 relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FF6A00]"></div>
-                  <div className="space-y-3 pl-3">
-                    {selectedItemForModal.resolution_protocol.split('\n').map((stepText, stepIdx) => {
-                      const match = stepText.match(/^Paso\s+(\d+):\s*(.*)/i);
-                      if (match) {
-                        const stepNum = match[1];
-                        const stepDesc = match[2];
-                        return (
-                          <div key={stepIdx} className="flex gap-3 items-start bg-white p-3.5 rounded-2xl border border-neutral-150 shadow-2xs hover:border-[#FF6A00]/30 transition-all duration-200">
-                            <span className="w-6 h-6 rounded-full bg-[#FF6A00] text-white flex items-center justify-center text-[11px] font-black shrink-0 shadow-sm shadow-orange-500/20">
+              <div className="space-y-4">
+                <span className="text-[10px] font-bold text-neutral-400 tracking-widest uppercase ml-1 block">Pasos de Resolución</span>
+                
+                <div className="space-y-3 sm:space-y-4">
+                  {selectedItemForModal.resolution_protocol.split('\n').map((stepText, stepIdx) => {
+                    if (!stepText.trim()) return null;
+                    const match = stepText.match(/^Paso\s+(\d+):\s*(.*)/i);
+                    if (match) {
+                      const stepNum = match[1];
+                      const stepDesc = match[2];
+                      return (
+                        <div key={stepIdx} className="flex gap-4 items-start bg-white p-4 sm:p-5 rounded-[1.25rem] sm:rounded-2xl border border-neutral-200/60 shadow-[0_4px_16px_rgba(0,0,0,0.03)] relative overflow-hidden">
+                          <div className="flex flex-col items-center gap-2 pt-0.5 relative z-10">
+                            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FF6A00] text-white shadow-[0_2px_8px_rgba(255,106,0,0.3)] flex items-center justify-center text-[11px] sm:text-xs font-black shrink-0">
                               {stepNum}
                             </span>
-                            <p className="text-neutral-700 text-sm leading-relaxed font-semibold pt-0.5" dangerouslySetInnerHTML={{ __html: stepDesc }} />
                           </div>
-                        );
-                      }
-                      
-                      return (
-                        <p key={stepIdx} className="text-neutral-850 text-sm leading-relaxed font-semibold" dangerouslySetInnerHTML={{ __html: stepText }} />
+                          <p className="text-neutral-700 text-[14px] sm:text-[15px] leading-relaxed font-medium pt-1 relative z-10" dangerouslySetInnerHTML={{ __html: stepDesc }} />
+                        </div>
                       );
-                    })}
-                  </div>
+                    }
+                    
+                    return (
+                      <div key={stepIdx} className="bg-white p-4 sm:p-5 rounded-[1.25rem] sm:rounded-2xl border border-neutral-200/50 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                        <p className="text-neutral-600 text-sm sm:text-[15px] leading-relaxed font-medium" dangerouslySetInnerHTML={{ __html: stepText }} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Panel de "Ser más específicos" (Solo para ERR-MEC-014) */}
-              {selectedItemForModal.id === "ERR-MEC-014" && (
-                <div className="pt-3 border-t border-neutral-200">
-                  <button 
-                    onClick={() => setIsSpecificOpen(!isSpecificOpen)}
-                    className="text-xs bg-ultra-orange/10 border border-ultra-orange/25 text-ultra-orange font-black px-4 py-2 rounded-xl hover:bg-ultra-orange hover:text-white transition-colors uppercase tracking-wider block"
-                  >
-                    {isSpecificOpen ? "Ocultar panel específico" : "Ser más específicos"}
-                  </button>
-
-                  {isSpecificOpen && (
-                    <div className="mt-4 p-5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-4 animate-scaleUp">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold font-mono">Seleccionar Error Específico</label>
-                          <select 
-                            value={selectedError} 
-                            onChange={(e) => setSelectedError(e.target.value)}
-                            className="bg-white border border-neutral-200 rounded-lg px-3 py-2.5 text-xs text-neutral-700 focus:outline-none focus:border-ultra-orange"
-                          >
-                            <option value="">-- Seleccionar tipo de fallo --</option>
-                            <option value="jam">Atasco de papel / Jam de etiqueta</option>
-                            <option value="empty">Rollo vacío / Sin papel</option>
-                            <option value="power">Impresora desconectada / Sin corriente</option>
-                          </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold font-mono">Seleccionar Robot Específico</label>
-                          <select 
-                            value={selectedRobot} 
-                            onChange={(e) => setSelectedRobot(e.target.value)}
-                            className="bg-white border border-neutral-200 rounded-lg px-3 py-2.5 text-xs text-neutral-700 focus:outline-none focus:border-ultra-orange"
-                          >
-                            <option value="">-- Seleccionar robot --</option>
-                            <option value="Packie 2.0">Packie 2.0</option>
-                            <option value="Future 2.0">Future 2.0</option>
-                            <option value="Fleetwood Pack">Fleetwood Pack</option>
-                            <option value="Phil">Phil</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="mt-2 p-4 bg-white border border-neutral-200 rounded-xl relative overflow-hidden shadow-2xs">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
-                        <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-black font-mono block mb-1">PROTOCOLO PERSONALIZADO</span>
-                        <p className="text-neutral-800 text-xs leading-relaxed font-semibold">
-                          {getSpecificInstruction()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Video Demostrativo */}
               {selectedItemForModal.video_url && (
-                <div className="space-y-2 mt-3">
-                  <span className="text-[10px] font-mono text-neutral-400 font-bold tracking-widest uppercase block">Video Demostrativo</span>
-                  <div className="aspect-video w-full bg-neutral-950 rounded-2xl overflow-hidden relative border border-neutral-200">
+                <div className="space-y-4 pt-2">
+                  <span className="text-[10px] font-bold text-neutral-400 tracking-widest uppercase ml-1 block">Video Demostrativo</span>
+                  <div className="aspect-video w-full bg-neutral-900 rounded-[1.5rem] overflow-hidden relative shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-neutral-800">
                     <video
                       src={encodeURI(decodeURI(selectedItemForModal.video_url))}
                       controls
@@ -1052,20 +982,21 @@ export default function TroubleshootingSearch({
               )}
 
               {/* Referencia SOP */}
-              <div className="pt-2 flex items-center justify-between text-xs text-neutral-400">
-                <span className="font-mono">
-                  REF: <span className="text-neutral-550 font-bold">{selectedItemForModal.sop_reference}</span>
+              <div className="pt-6 border-t border-neutral-200/60 flex items-center justify-between text-[11px] text-neutral-400">
+                <span className="font-mono tracking-wider flex items-center gap-2">
+                  REFERENCIA
+                  <span className="text-neutral-700 font-bold bg-neutral-100 border border-neutral-200/60 px-2.5 py-1 rounded-md">{selectedItemForModal.sop_reference}</span>
                 </span>
               </div>
             </div>
 
             {/* Pie del Modal */}
-            <div className="p-5 border-t border-neutral-150 bg-neutral-50/50 flex justify-end">
+            <div className="p-4 sm:p-6 border-t border-neutral-100 bg-white relative z-10 flex justify-end">
               <button 
                 onClick={handleCloseModal}
-                className="bg-ultra-orange hover:bg-ultra-orange/90 text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#e65c00] text-white font-bold text-[14px] uppercase tracking-widest px-8 py-4 sm:py-3.5 rounded-2xl transition-all shadow-[0_4px_16px_rgba(255,106,0,0.25)] flex items-center justify-center gap-2.5"
               >
-                <Check className="w-4 h-4 stroke-[3]" />
+                <Check className="w-5 h-5 stroke-[2.5]" />
                 Entendido
               </button>
             </div>
