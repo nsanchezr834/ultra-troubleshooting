@@ -256,10 +256,16 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // ─────────────────────────────────────────────
   useEffect(() => {
     const wakeRec = wakeWordRecRef.current;
-    if (!wakeRec) return;
+    if (!wakeRec) {
+      console.log('⚠️ [WakeWord] wakeRec es null. No soportado?');
+      return;
+    }
+
+    console.log(`🔄 [WakeWord] Effect ejecutado. enabled: ${isWakeWordEnabled}, turn: ${turn}`);
 
     if (!isWakeWordEnabled || turn !== 'idle') {
-      try { wakeRec.abort(); } catch (_) { }
+      console.log('🛑 [WakeWord] Apagando escucha de fondo.');
+      try { wakeRec.abort(); } catch (e) { console.log('Error al abortar:', e); }
       return;
     }
 
@@ -280,22 +286,32 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     };
     
     wakeRec.onerror = (e: any) => {
-      console.log('❌ [WakeWord] Error:', e.error);
+      console.log('❌ [WakeWord] Error disparado:', e.error);
       if (e.error === 'not-allowed' || e.error === 'aborted') return;
       if (isWakeWordEnabled && turn === 'idle') {
-         try { wakeRec.start(); } catch (_) { }
+         console.log('🔄 [WakeWord] Reiniciando tras error no fatal...');
+         try { wakeRec.start(); } catch (err) { console.log('Error reiniciando:', err); }
       }
     };
 
     wakeRec.onend = () => {
+      console.log('🏁 [WakeWord] onend disparado (el micrófono se apagó).');
       if (isWakeWordEnabled && turn === 'idle') {
-         try { wakeRec.start(); } catch (_) { }
+         console.log('🔄 [WakeWord] Reiniciando escucha...');
+         try { wakeRec.start(); } catch (err) { console.log('Error reiniciando:', err); }
       }
     };
 
-    try { wakeRec.start(); } catch (_) { }
+    console.log('▶️ [WakeWord] Intentando iniciar micrófono...');
+    try { 
+      wakeRec.start(); 
+      console.log('✅ [WakeWord] Micrófono iniciado correctamente.');
+    } catch (err) { 
+      console.error('❌ [WakeWord] Excepción al hacer wakeRec.start():', err); 
+    }
 
     return () => {
+      console.log('🧹 [WakeWord] Limpiando efecto...');
       wakeRec.onresult = null;
       wakeRec.onerror = null;
       wakeRec.onend = null;
