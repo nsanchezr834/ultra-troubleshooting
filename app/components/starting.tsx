@@ -12,6 +12,7 @@ export default function StartingPage() {
   const [success, setSuccess] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [fullName, setFullName] = useState("");
+  const [confirmData, setConfirmData] = useState<{ matchedName: string; enteredName: string } | null>(null);
 
   // Obtener el token CSRF al montar el componente
   useEffect(() => {
@@ -77,6 +78,12 @@ export default function StartingPage() {
             window.location.reload();
           }
         }, 800);
+      } else if (data.confirmName) {
+        setConfirmData({
+          matchedName: data.matchedName,
+          enteredName: data.enteredName
+        });
+        setLoading(false);
       } else {
         setError(data.error || "Credenciales incorrectas.");
         setLoading(false);
@@ -84,6 +91,43 @@ export default function StartingPage() {
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
       setError("No se pudo conectar con el servidor.");
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmLogin = async (selectedName: string, forceVal: boolean) => {
+    if (loading) return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const endpoint = "/api/auth/login";
+      const payload = { password, csrfToken, fullName: selectedName, force: forceVal };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      } else {
+        setError(data.error || "Credenciales incorrectas.");
+        setConfirmData(null);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Error al confirmar inicio de sesión:", err);
+      setError("No se pudo conectar con el servidor.");
+      setConfirmData(null);
       setLoading(false);
     }
   };
@@ -125,99 +169,133 @@ export default function StartingPage() {
             </p>
           </div>
 
-          {/* Formulario */}
-          <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
-            {/* Campo de Nombre Completo (solo en modo no-admin) */}
-            {!isAdminMode && (
-              <div className="flex flex-col gap-2">
-                <label 
-                  htmlFor="fullName" 
-                  className="text-xs font-medium text-gray-300 tracking-wider uppercase pl-0.5"
-                >
-                  Nombre Completo
-                </label>
-                <input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={loading || success}
-                  required
-                  placeholder="Ej. Juan Pérez"
-                  className="w-full bg-[#0d0e12]/80 border border-white/[0.08] focus:border-[#FF5A00]/70 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none transition-all duration-300 shadow-inner shadow-black/40"
-                />
-              </div>
-            )}
-
-            {/* Campo de Contraseña */}
-            <div className="flex flex-col gap-2">
-              <label 
-                htmlFor="password" 
-                className="text-xs font-medium text-gray-300 tracking-wider uppercase pl-0.5"
-              >
-                {isAdminMode ? 'Contraseña Administrador' : 'Contraseña'}
-              </label>
+          {/* Formulario / Tarjeta de Confirmación de Nombre */}
+          {confirmData ? (
+            <div className="flex flex-col items-center text-center gap-5 w-full animate-fadeIn">
+              <ShieldAlert className="w-12 h-12 text-[#FF5A00] animate-pulse" />
+              <h3 className="text-base font-semibold text-white">¿Quisiste decir {confirmData.matchedName}?</h3>
+              <p className="text-xs text-gray-400 leading-relaxed px-2">
+                Detectamos que ya has ingresado anteriormente como <span className="text-[#FF5A00] font-bold">{confirmData.matchedName}</span>. 
+                ¿Deseas continuar con ese nombre para unificar tus registros de telemetría y entrenamiento?
+              </p>
               
-              <div className="relative w-full">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading || success}
-                  required
-                  placeholder="••••••••••••"
-                  className={`w-full bg-[#0d0e12]/80 border border-white/[0.08] ${isAdminMode ? 'focus:border-[#00A8FC]/70' : 'focus:border-[#FF5A00]/70'} rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none transition-all duration-300 pr-11 shadow-inner shadow-black/40`}
-                />
-                
-                {/* Botón Mostrar/Ocultar contraseña */}
+              <div className="flex flex-col gap-3 w-full mt-2">
                 <button
                   type="button"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors focus:outline-none"
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  onClick={() => handleConfirmLogin(confirmData.matchedName, true)}
+                  disabled={loading}
+                  className="w-full bg-[#FF5A00] hover:bg-[#E04F00] text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 active:scale-[0.98] shadow-md shadow-[#FF5A00]/10 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
+                  {loading ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    `Sí, ingresar como ${confirmData.matchedName}`
                   )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmLogin(confirmData.enteredName, true)}
+                  disabled={loading}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.08] text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 active:scale-[0.98] cursor-pointer"
+                >
+                  No, usar "{confirmData.enteredName}"
                 </button>
               </div>
             </div>
-
-            {/* Botón de Iniciar Sesión */}
-            <button
-              type="submit"
-              disabled={loading || success}
-              className={`relative overflow-hidden w-full ${isAdminMode ? 'bg-[#00A8FC] hover:bg-[#0086C9] shadow-[#00A8FC]/25' : 'bg-[#FF5A00] hover:bg-[#E04F00] shadow-[#FF5A00]/25'} active:scale-[0.98] disabled:active:scale-100 text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75 shadow-lg mt-2 flex items-center justify-center gap-2 group`}
-            >
-              {loading ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : success ? (
-                <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
-              ) : (
-                isAdminMode ? 'Entrar al Panel Admin' : 'Entrar'
+          ) : (
+            <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
+              {/* Campo de Nombre Completo (solo en modo no-admin) */}
+              {!isAdminMode && (
+                <div className="flex flex-col gap-2">
+                  <label 
+                    htmlFor="fullName" 
+                    className="text-xs font-medium text-gray-300 tracking-wider uppercase pl-0.5"
+                  >
+                    Nombre Completo
+                  </label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={loading || success}
+                    required
+                    placeholder="Ej. Juan Pérez"
+                    className="w-full bg-[#0d0e12]/80 border border-white/[0.08] focus:border-[#FF5A00]/70 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none transition-all duration-300 shadow-inner shadow-black/40"
+                  />
+                </div>
               )}
-              {success && <span>Acceso Autorizado</span>}
-            </button>
 
-            {/* Link para volver a modo operador */}
-            {isAdminMode && (
+              {/* Campo de Contraseña */}
+              <div className="flex flex-col gap-2">
+                <label 
+                  htmlFor="password" 
+                  className="text-xs font-medium text-gray-300 tracking-wider uppercase pl-0.5"
+                >
+                  {isAdminMode ? 'Contraseña Administrador' : 'Contraseña'}
+                </label>
+                
+                <div className="relative w-full">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading || success}
+                    required
+                    placeholder="••••••••••••"
+                    className={`w-full bg-[#0d0e12]/80 border border-white/[0.08] ${isAdminMode ? 'focus:border-[#00A8FC]/70' : 'focus:border-[#FF5A00]/70'} rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none transition-all duration-300 pr-11 shadow-inner shadow-black/40`}
+                  />
+                  
+                  {/* Botón Mostrar/Ocultar contraseña */}
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors focus:outline-none cursor-pointer"
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Botón de Iniciar Sesión */}
               <button
-                type="button"
-                onClick={() => {
-                  setIsAdminMode(false);
-                  setPassword("");
-                  setError("");
-                }}
-                className="mt-1 text-xs text-neutral-500 hover:text-[#00A8FC] transition-colors focus:outline-none text-center self-center"
+                type="submit"
+                disabled={loading || success}
+                className={`relative overflow-hidden w-full ${isAdminMode ? 'bg-[#00A8FC] hover:bg-[#0086C9] shadow-[#00A8FC]/25' : 'bg-[#FF5A00] hover:bg-[#E04F00] shadow-[#FF5A00]/25'} active:scale-[0.98] disabled:active:scale-100 text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75 shadow-lg mt-2 flex items-center justify-center gap-2 group`}
               >
-                ← Volver al acceso normal
+                {loading ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : success ? (
+                  <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
+                ) : (
+                  isAdminMode ? 'Entrar al Panel Admin' : 'Entrar'
+                )}
+                {success && <span>Acceso Autorizado</span>}
               </button>
-            )}
-          </form>
+
+              {/* Link para volver a modo operador */}
+              {isAdminMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdminMode(false);
+                    setPassword("");
+                    setError("");
+                  }}
+                  className="mt-1 text-xs text-neutral-500 hover:text-[#00A8FC] transition-colors focus:outline-none text-center self-center cursor-pointer"
+                >
+                  ← Volver al acceso normal
+                </button>
+              )}
+            </form>
+          )}
 
           {/* Espacio reservado para mensajes de error / notificaciones */}
           <div className="h-10 mt-4 flex items-center justify-center w-full">

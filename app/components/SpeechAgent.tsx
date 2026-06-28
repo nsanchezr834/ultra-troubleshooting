@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, Volume2, Loader2, AlertCircle, X } from 'lucide-react';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
+import { logSearch } from '../lib/telemetry';
 
 // ───────────────────────────────────────────────────────────────────
 // TÍTULOS CORTOS — mapa de ID → etiqueta breve para lectura en voz
@@ -117,6 +118,8 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
   // Telemetría ligera
   const lastQueryRef = useRef('');
+  const lastMatchesCountRef = useRef(0);
+  const currentVoiceSearchRef = useRef<any>(null);
 
   const setTurnSafe = (t: Turn) => { turnRef.current = t; setTurn(t); };
 
@@ -265,12 +268,21 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     }
 
     if (matches.length === 0) {
+      logSearch({
+        query: rawText,
+        matches_count: 0,
+        status: 'no_matches',
+        source: 'speech_agent'
+      });
+
       speak(
         'No encontré fallas relacionadas. Intenta describir el problema de otra forma.',
         () => listenOnce(processSymptom, '🎙️ Describe el problema...')
       );
       return;
     }
+
+    lastMatchesCountRef.current = matches.length;
 
     if (matches.length === 1) {
       // Una sola coincidencia: ir directo sin menú
@@ -308,6 +320,12 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
     // ¿Cancelar?
     if (['cancelar', 'parar', 'salir', 'stop', 'ninguna'].some(w => t.includes(w))) {
+      logSearch({
+        query: lastQueryRef.current,
+        matches_count: opts.length,
+        status: 'abandoned',
+        source: 'speech_agent'
+      });
       speak('De acuerdo, cancelado.', resetAgent);
       return;
     }
@@ -338,27 +356,6 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   }, [speak, listenOnce, resetAgent]);
 
   // ─────────────────────────────────────────────
-  // PASO 4 — leer resolución
-  // ─────────────────────────────────────────────
-  const readResolution = useCallback((entry: typeof TROUBLESHOOTING_DATABASE[0]) => {
-    setTurnSafe('machine-speaking');
-    setStatusText(`📋 ${getShortTitle(entry)}`);
-    onMatchFault?.(entry.symptom);
-    setOptionsMenu([]);
-    optionsRef.current = [];
-
-    // Leer solo los pasos, no el título completo (ya se mostró en pantalla)
-    const speech = entry.resolution_protocol.replace(/\n/g, '. ');
-
-    speak(speech, () => {
-      speak(
-        '¿Necesitas ayuda con otra falla?',
-        () => listenOnce(handlePostResolution, '🎙️ Di "sí" para otra falla o "no" para terminar...')
-      );
-    });
-  }, [speak, listenOnce, onMatchFault]);
-
-  // ─────────────────────────────────────────────
   // PASO 5 — post resolución: ¿otra falla o terminar?
   // ─────────────────────────────────────────────
   const handlePostResolution = useCallback((rawText: string) => {
@@ -382,6 +379,64 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       );
     }
   }, [speak, listenOnce, resetAgent, processSymptom]);
+
+  // ─────────────────────────────────────────────
+  // PASO 4.5 — procesar respuesta de feedback del usuario
+  // ─────────────────────────────────────────────
+  const handleFeedbackResponse = useCallback((rawText: string) => {
+    const t = sanitize(rawText);
+    const solved = ['si', 'sí', 'correcto', 'funciono', 'funciona', 'resuelto', 'bien', 'util', 'sirvio'].some(w => t.includes(w));
+    const notSolved = ['no', 'fallo', 'mal', 'incorrecto', 'tampoco', 'toda', 'nada', 'sirve'].some(w => t.includes(w));
+
+    if (currentVoiceSearchRef.current) {
+      const status = solved ? 'resolved' : 'no_matches';
+      logSearch({
+        ...currentVoiceSearchRef.current,
+        status: status
+      });
+    }
+
+    if (solved) {
+      speak(
+        'Excelente. ¿Necesitas ayuda con otra falla?',
+        () => listenOnce(handlePostResolution, '🎙️ Di "sí" para otra falla o "no" para terminar...')
+      );
+    } else {
+      speak(
+        'Entendido, marcaré la falla como no solucionada. ¿Necesitas ayuda con otra falla?',
+        () => listenOnce(handlePostResolution, '🎙️ Di "sí" para otra falla o "no" para terminar...')
+      );
+    }
+  }, [speak, listenOnce, handlePostResolution]);
+
+  // ─────────────────────────────────────────────
+  // PASO 4 — leer resolución
+  // ─────────────────────────────────────────────
+  const readResolution = useCallback((entry: typeof TROUBLESHOOTING_DATABASE[0]) => {
+    setTurnSafe('machine-speaking');
+    setStatusText(`📋 ${getShortTitle(entry)}`);
+    onMatchFault?.(entry.symptom);
+    setOptionsMenu([]);
+    optionsRef.current = [];
+
+    // Almacenar los parámetros de búsqueda temporalmente
+    currentVoiceSearchRef.current = {
+      query: lastQueryRef.current || entry.symptom,
+      matches_count: lastMatchesCountRef.current || 1,
+      selected_option: entry.symptom,
+      source: 'speech_agent'
+    };
+
+    // Leer solo los pasos, no el título completo (ya se mostró en pantalla)
+    const speech = entry.resolution_protocol.replace(/\n/g, '. ');
+
+    speak(speech, () => {
+      speak(
+        '¿Esta información resolvió tu problema? Di sí o no.',
+        () => listenOnce(handleFeedbackResponse, '🎙️ Di "sí" para solucionado o "no" para no solucionado...')
+      );
+    });
+  }, [speak, listenOnce, onMatchFault, handleFeedbackResponse]);
 
   // ─────────────────────────────────────────────
   // UI

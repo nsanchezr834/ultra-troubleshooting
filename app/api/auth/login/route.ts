@@ -8,6 +8,15 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_KEY || 'placeholder'
 );
 
+function cleanAndFormatName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export async function POST(request: NextRequest) {
   // 1. Obtener la IP del cliente para el rate limiting
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
@@ -26,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { password, csrfToken, fullName } = body;
+    const { password, csrfToken, fullName, force } = body;
 
     // 3. Validación de Token CSRF (Double-Submit Cookie Pattern)
     const cookieStore = await cookies();
@@ -52,6 +61,82 @@ export async function POST(request: NextRequest) {
         { error: "El nombre completo es requerido." },
         { status: 400 }
       );
+    }
+
+    // Sanitización de XSS y caracteres de inyección
+    const sanitizedName = fullName.replace(/<[^>]*>?/gm, '').trim();
+
+    // Validar formato para admitir solo caracteres seguros de nombres
+    const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.\'\,\(\)]+$/;
+    if (!nameRegex.test(sanitizedName)) {
+      return NextResponse.json(
+        { error: "El nombre contiene caracteres no permitidos." },
+        { status: 400 }
+      );
+    }
+
+    let finalName = cleanAndFormatName(sanitizedName);
+
+    // Verificación inteligente de nombres similares
+    if (!force) {
+      const cleanInput = sanitizedName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      const inputWords = cleanInput.split(/\s+/).filter(w => w.length > 2);
+
+      let matchedName: string | null = null;
+      let isExactCasingMatch = false;
+
+      // Obtener nombres históricos registrados para comparación
+      let allExistingNames: string[] = [];
+      try {
+        const [{ data: logsData }, { data: traineesData }] = await Promise.all([
+          supabaseAdmin.from('user_access_logs').select('full_name'),
+          supabaseAdmin.from('trainees').select('full_name')
+        ]);
+
+        const nameSet = new Set<string>();
+        if (logsData) logsData.forEach(d => nameSet.add(d.full_name));
+        if (traineesData) traineesData.forEach(d => nameSet.add(d.full_name));
+        allExistingNames = Array.from(nameSet);
+      } catch (dbErr) {
+        console.error('Error fetching names for similarity check:', dbErr);
+      }
+
+      for (const existingName of allExistingNames) {
+        const cleanExisting = existingName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        
+        // 1. Coincidencia exacta (ignorando mayúsculas/minúsculas/acentos)
+        if (cleanInput === cleanExisting) {
+          matchedName = existingName;
+          isExactCasingMatch = true;
+          break;
+        }
+
+        // 2. Coincidencia similar (ej: "Nahum Sanchez" vs "Nahum Sanchez Romero")
+        if (cleanExisting.includes(cleanInput) || cleanInput.includes(cleanExisting)) {
+          const existingWords = cleanExisting.split(/\s+/).filter(w => w.length > 2);
+          const intersection = inputWords.filter(w => existingWords.includes(w));
+          const minWords = Math.min(inputWords.length, existingWords.length);
+          
+          if (intersection.length >= Math.max(2, minWords)) {
+            matchedName = existingName;
+            break;
+          }
+        }
+      }
+
+      if (matchedName) {
+        if (isExactCasingMatch) {
+          // Si es el mismo en letras, corregimos mayúsculas en segundo plano
+          finalName = matchedName;
+        } else {
+          // Si varía en contenido, pedimos confirmación al usuario
+          return NextResponse.json({
+            confirmName: true,
+            matchedName: matchedName,
+            enteredName: finalName
+          });
+        }
+      }
     }
 
     if (password.length > 128) {
@@ -123,7 +208,7 @@ export async function POST(request: NextRequest) {
 
       await supabaseAdmin.from('user_access_logs').insert([
         {
-          full_name: fullName.trim(),
+          full_name: finalName,
           ip_address: ip,
           location: location
         }

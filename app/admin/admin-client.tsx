@@ -160,6 +160,25 @@ export default function AdminClient() {
         }
     }, []);
 
+    const handleDeleteTelemetry = useCallback(async (id: string) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar este registro de búsqueda de forma permanente?')) return;
+        try {
+            const res = await fetch(`/api/telemetry?id=${id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (res.ok) {
+                fetchTelemetry();
+                alert('Registro de búsqueda eliminado exitosamente');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Error deleting telemetry:', err);
+            alert('Error al intentar eliminar el registro de búsqueda');
+        }
+    }, [fetchTelemetry]);
+
     const fetchAccessLogs = useCallback(async () => {
         setLoadingAccessLogs(true);
         try {
@@ -185,8 +204,45 @@ export default function AdminClient() {
     }, [accessLogsList]);
 
     const uniqueUsersCount = useMemo(() => {
-        const users = new Set(accessLogsList.map(log => log.full_name));
-        return users.size;
+        const uniqueNames: string[] = [];
+        accessLogsList.forEach(log => {
+            if (!log.full_name) return;
+            
+            const cleanName = log.full_name.trim().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            
+            if (!cleanName) return;
+
+            const words = cleanName.split(/\s+/).filter((w: string) => w.length > 2);
+            
+            let foundSimilar = false;
+            for (const existingName of uniqueNames) {
+                const cleanExisting = existingName.trim().toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                
+                // 1. Coincidencia exacta insensible a mayúsculas/acentos
+                if (cleanName === cleanExisting) {
+                    foundSimilar = true;
+                    break;
+                }
+                
+                // 2. Coincidencia similar (ej: "Nahum Sanchez" y "Nahum Sanchez Romero")
+                if (cleanExisting.includes(cleanName) || cleanName.includes(cleanExisting)) {
+                    const existingWords = cleanExisting.split(/\s+/).filter((w: string) => w.length > 2);
+                    const intersection = words.filter((w: string) => existingWords.includes(w));
+                    const minWords = Math.min(words.length, existingWords.length);
+                    
+                    if (intersection.length >= Math.max(2, minWords)) {
+                        foundSimilar = true;
+                        break;
+                    }
+                }
+            }
+            if (!foundSimilar) {
+                uniqueNames.push(log.full_name);
+            }
+        });
+        return uniqueNames.length;
     }, [accessLogsList]);
 
     const dailyAccessStats = useMemo(() => {
@@ -1380,6 +1436,7 @@ export default function AdminClient() {
                                                     <th className="p-4">Consulta del Operador</th>
                                                     <th className="p-4 text-center">Coincidencias</th>
                                                     <th className="p-4">Selección Realizada</th>
+                                                    <th className="p-4 text-center">Origen</th>
                                                     <th className="p-4 text-center">Estatus</th>
                                                     <th className="p-4 text-center">Tiempo Lector</th>
                                                     <th className="p-4 text-center">Acciones</th>
@@ -1388,13 +1445,13 @@ export default function AdminClient() {
                                             <tbody className="divide-y divide-white/[0.03]">
                                                 {loadingTelemetry ? (
                                                     <tr>
-                                                        <td colSpan={7} className="p-8 text-center text-gray-500">
+                                                        <td colSpan={8} className="p-8 text-center text-gray-500">
                                                             Cargando datos de telemetría...
                                                         </td>
                                                     </tr>
                                                 ) : telemetryList.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={7} className="p-8 text-center text-gray-500">
+                                                        <td colSpan={8} className="p-8 text-center text-gray-500">
                                                             No se han registrado consultas de voz aún.
                                                         </td>
                                                     </tr>
@@ -1412,6 +1469,23 @@ export default function AdminClient() {
                                                             </td>
                                                             <td className="p-4 text-gray-400 truncate max-w-[180px]" title={item.selected_option || 'Ninguna'}>
                                                                 {item.selected_option || <span className="text-gray-600">—</span>}
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                {item.source === 'text' && (
+                                                                    <span className="bg-neutral-500/15 text-neutral-400 border border-neutral-500/30 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap">
+                                                                        📝 TEXTO
+                                                                    </span>
+                                                                )}
+                                                                {item.source === 'voice_inline' && (
+                                                                    <span className="bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap">
+                                                                        🎙️ VOZ
+                                                                    </span>
+                                                                )}
+                                                                {(item.source === 'speech_agent' || !item.source) && (
+                                                                    <span className="bg-orange-500/15 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap">
+                                                                        🤖 IA
+                                                                    </span>
+                                                                )}
                                                             </td>
                                                             <td className="p-4 text-center">
                                                                 {item.status === 'resolved' && (
@@ -1439,26 +1513,35 @@ export default function AdminClient() {
                                                                 {item.time_spent_seconds ? `${item.time_spent_seconds}s` : '—'}
                                                             </td>
                                                             <td className="p-4 text-center">
-                                                                {(item.status === 'no_matches' || item.status === 'abandoned') && (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setSelectedFault(null);
-                                                                            setFaultForm({
-                                                                                id: `ERR-VOICE-${Math.floor(Math.random() * 900 + 100)}`,
-                                                                                category: 'Problemas con el robot',
-                                                                                symptom: item.query,
-                                                                                resolution_protocol: '',
-                                                                                sop_reference: '',
-                                                                                video_url: ''
-                                                                            });
-                                                                            setFaultModalOpen(true);
-                                                                        }}
-                                                                        className="bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 px-2 py-1 rounded text-[10px] font-bold transition-all"
-                                                                        title="Añadir esta falla a la base de conocimiento"
-                                                                    >
-                                                                        Añadir Falla
-                                                                    </button>
-                                                                )}
+                                                                 <div className="flex items-center justify-center gap-2">
+                                                                     {(item.status === 'no_matches' || item.status === 'abandoned') && (
+                                                                         <button
+                                                                             onClick={() => {
+                                                                                 setSelectedFault(null);
+                                                                                 setFaultForm({
+                                                                                     id: `ERR-VOICE-${Math.floor(Math.random() * 900 + 100)}`,
+                                                                                     category: 'Problemas con el robot',
+                                                                                     symptom: item.query,
+                                                                                     resolution_protocol: '',
+                                                                                     sop_reference: '',
+                                                                                     video_url: ''
+                                                                                 });
+                                                                                 setFaultModalOpen(true);
+                                                                             }}
+                                                                             className="bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 px-2 py-1 rounded text-[10px] font-bold transition-all whitespace-nowrap"
+                                                                             title="Añadir esta falla a la base de conocimiento"
+                                                                         >
+                                                                             Añadir Falla
+                                                                         </button>
+                                                                     )}
+                                                                     <button
+                                                                         onClick={() => handleDeleteTelemetry(item.id)}
+                                                                         className="p-1 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded border border-transparent hover:border-red-500/20 transition-all cursor-pointer"
+                                                                         title="Eliminar este registro de búsqueda"
+                                                                     >
+                                                                         <Trash2 className="w-4 h-4" />
+                                                                     </button>
+                                                                 </div>
                                                             </td>
                                                         </tr>
                                                     ))

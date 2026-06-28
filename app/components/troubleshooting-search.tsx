@@ -5,6 +5,7 @@ import { TroubleshootingKnowledge } from '../../types/troubleshooting.types';
 import { CLIENTS_DATABASE } from '../../config/robots-db';
 import { Search, Info, X, AlertCircle, Wrench, ShieldAlert, Check, Settings, Server, Cpu, Layers, Lightbulb, Mic, MicOff } from 'lucide-react';
 import SpeechAgent from './SpeechAgent';
+import { logSearch } from '../lib/telemetry';
 
 interface ExtendedTroubleshootingKnowledge extends TroubleshootingKnowledge {
   clientKey?: string;
@@ -30,6 +31,8 @@ export default function TroubleshootingSearch({
   const [searchTerm, setSearchTerm] = useState('');
   const [showAllFaults, setShowAllFaults] = useState(false);
   const [selectedItemForModal, setSelectedItemForModal] = useState<ExtendedTroubleshootingKnowledge | null>(null);
+  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
+  const currentSearchRef = React.useRef<any>(null);
 
   // Estados y refs para control por voz
   const [isListening, setIsListening] = useState(false);
@@ -39,6 +42,8 @@ export default function TroubleshootingSearch({
   
   // En Modo Experto arrancamos directo en búsqueda rápida
   const [searchMode, setSearchMode] = useState<'quick' | 'category'>(isExpert ? 'quick' : 'quick');
+
+  const lastSearchTypeRef = React.useRef<'text' | 'voice_inline'>('text');
 
   // Ref para autofocus en Modo Experto
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -229,7 +234,7 @@ export default function TroubleshootingSearch({
     // Comandos de control para cerrar el modal por voz (ejecutado de inmediato)
     if (normalized.includes('entendido') || normalized.includes('cerrar') || normalized.includes('listo') || normalized.includes('salir') || normalized.includes('regresar') || normalized.includes('atras')) {
       if (recognitionRef.current) recognitionRef.current.stop();
-      handleCloseModal();
+      handleCloseModalAttempt();
       return;
     }
 
@@ -271,6 +276,7 @@ export default function TroubleshootingSearch({
     setSearchTerm(transcript);
     setShowAllFaults(false);
     isWaitingForSelectionRef.current = false;
+    lastSearchTypeRef.current = 'voice_inline';
 
     const stopWords = new Set([
       'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 
@@ -289,11 +295,13 @@ export default function TroubleshootingSearch({
         const normSymptom = normalizeForSearch(item.symptom);
         const normProtocol = normalizeForSearch(item.resolution_protocol);
         const normId = normalizeForSearch(item.id);
+        const normKeywords = normalizeForSearch((item as any).keywords || '');
 
         let score = 0;
         searchWords.forEach((word: string) => {
           let matches = 0;
           if (normSymptom.includes(word)) matches += 10;
+          if (normKeywords.includes(word)) matches += 10;
           if (normId.includes(word)) matches += 8;
           if (normProtocol.includes(word)) matches += 1;
 
@@ -309,8 +317,22 @@ export default function TroubleshootingSearch({
         .map(x => x.item);
 
       speakResults(results);
+      if (results.length === 0) {
+        logSearch({
+          query: transcript,
+          matches_count: 0,
+          status: 'no_matches',
+          source: 'voice_inline'
+        });
+      }
     } else {
       speakResults([]);
+      logSearch({
+        query: transcript,
+        matches_count: 0,
+        status: 'no_matches',
+        source: 'voice_inline'
+      });
     }
   };
 
@@ -421,11 +443,13 @@ export default function TroubleshootingSearch({
       const normSymptom = normalizeForSearch(item.symptom);
       const normProtocol = normalizeForSearch(item.resolution_protocol);
       const normId = normalizeForSearch(item.id);
+      const normKeywords = normalizeForSearch((item as any).keywords || '');
 
       let score = 0;
       searchWords.forEach(word => {
         let matches = 0;
         if (normSymptom.includes(word)) matches += 10; // Síntoma tiene máxima prioridad
+        if (normKeywords.includes(word)) matches += 10; // Keywords también tienen prioridad máxima
         if (normId.includes(word)) matches += 8;       // Código de error es muy relevante
         if (normProtocol.includes(word)) matches += 1;
 
@@ -441,6 +465,30 @@ export default function TroubleshootingSearch({
       .sort((a, b) => b.score - a.score)
       .map(x => x.item);
   }, [combinedKnowledgeBase, searchTerm]);
+
+  // Debounce effect to log no_matches for text search
+  React.useEffect(() => {
+    if (searchTerm.trim() === '') return;
+    
+    const handler = setTimeout(() => {
+      if (lastSearchTypeRef.current === 'text') {
+        const words = searchTerm.trim().split(/\s+/).filter(w => w.length > 0);
+        if (words.length > 0) {
+          const matches = filteredKnowledge.length;
+          if (matches === 0) {
+            logSearch({
+              query: searchTerm,
+              matches_count: 0,
+              status: 'no_matches',
+              source: 'text'
+            });
+          }
+        }
+      }
+    }, 2000);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm, filteredKnowledge.length]);
 
   // Fallas de la categoría seleccionada
   const categoryKnowledge = useMemo(() => {
@@ -503,18 +551,48 @@ export default function TroubleshootingSearch({
 
   const handleOpenModal = (item: ExtendedTroubleshootingKnowledge, prefix: string = '', readAloud: boolean = false) => {
     setSelectedItemForModal(item);
+    setShowFeedbackPrompt(false);
+    
+    // Almacenar los parámetros de búsqueda para registrar telemetría al cerrar
+    currentSearchRef.current = {
+      query: searchTerm || item.symptom,
+      matches_count: lastSearchTypeRef.current === 'voice_inline' ? lastResultsRef.current.length : filteredKnowledge.length,
+      selected_option: item.symptom,
+      source: lastSearchTypeRef.current
+    };
+
     // Leer en voz alta el protocolo y detalle de la falla seleccionada solo si se solicitó explícitamente (micrófono / manos libres)
     if (readAloud) {
       speakItemDetails(item, prefix);
     }
   };
 
-  const handleCloseModal = () => {
+  const forceCloseModal = () => {
     setSelectedItemForModal(null);
+    setShowFeedbackPrompt(false);
+    currentSearchRef.current = null;
     // Detener la lectura de voz inmediatamente si se cierra la ventana
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
+  };
+
+  const handleCloseModalAttempt = () => {
+    if (currentSearchRef.current) {
+      setShowFeedbackPrompt(true);
+    } else {
+      forceCloseModal();
+    }
+  };
+
+  const handleSaveFeedback = (solved: boolean) => {
+    if (currentSearchRef.current) {
+      logSearch({
+        ...currentSearchRef.current,
+        status: solved ? 'resolved' : 'no_matches', // 'no_matches' se muestra como 'SIN SOLUCIÓN' en el admin
+      });
+    }
+    forceCloseModal();
   };
 
   return (
@@ -581,14 +659,15 @@ export default function TroubleshootingSearch({
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
+              lastSearchTypeRef.current = 'text';
               if (e.target.value.trim() !== '') {
                 setShowAllFaults(false); 
               }
             }}
-            className={`w-full border rounded-2xl py-5 pl-14 pr-64 text-base placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-md ${
+            className={`w-full border rounded-2xl py-5 pl-14 pr-64 text-base font-semibold placeholder-neutral-400 focus:outline-none focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange transition-all shadow-md ${
               isDarkMode
-                ? 'bg-[#0f1015] border-neutral-700 text-neutral-100 placeholder-neutral-600'
-                : 'bg-white border-neutral-200 text-neutral-800'
+                ? 'bg-[#0f1015] border-neutral-700 text-white placeholder-neutral-500'
+                : 'bg-white border-neutral-200 text-black placeholder-neutral-400'
             }`}
           />
           <SpeechAgent 
@@ -873,37 +952,77 @@ export default function TroubleshootingSearch({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md p-4 sm:p-6 animate-fadeIn">
           <div className="bg-[#FCFCFC] border border-white/20 rounded-[2rem] sm:rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-[0_16px_64px_rgba(0,0,0,0.15)] ring-1 ring-black/5 relative flex flex-col max-h-[92vh] sm:max-h-[85vh] animate-scaleUp">
             
-            {/* Cabezal del Modal */}
-            <div className="px-5 py-5 sm:px-8 sm:py-7 border-b border-neutral-100 flex justify-between items-start gap-4 bg-white relative z-10">
-              <div className="flex-1 flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100/80 border border-neutral-200/60 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-md">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
-                    <span className="text-[10px] sm:text-[11px] font-mono text-neutral-600 font-bold tracking-widest uppercase">
-                      {selectedItemForModal.id}
-                    </span>
-                  </div>
-                  <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-ultra-orange/5 border border-ultra-orange/20 shadow-[0_2px_8px_rgba(255,106,0,0.04)] backdrop-blur-md">
-                    <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-ultra-orange font-black">
-                      {selectedItemForModal.category}
-                    </span>
-                  </div>
+            {showFeedbackPrompt ? (
+              /* PANTALLA DE CONFIRMACIÓN DE SOLUCIÓN (PREMIUM) */
+              <div className="p-8 flex flex-col items-center justify-center text-center gap-6 my-auto animate-fadeIn min-h-[350px]">
+                <div className="w-16 h-16 rounded-full bg-ultra-orange/10 flex items-center justify-center text-ultra-orange shadow-inner">
+                  <Wrench className="w-8 h-8 animate-pulse" />
                 </div>
-                <h3 className="text-neutral-900 text-xl sm:text-[28px] font-black leading-tight sm:leading-tight tracking-tight">
-                  {selectedItemForModal.symptom}
-                </h3>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-black text-neutral-900">¿Esta información resolvió tu problema?</h3>
+                  <p className="text-sm text-neutral-500 max-w-md">
+                    Tu respuesta nos ayuda a clasificar esta falla y a optimizar las futuras búsquedas de todo el equipo de Autoryx.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md mt-4">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveFeedback(true)}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl transition-all shadow-md active:scale-98 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-5 h-5 stroke-[2.5]" />
+                    Sí, solucionado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveFeedback(false)}
+                    className="flex-1 bg-red-650 hover:bg-red-700 text-white font-bold py-3.5 rounded-2xl transition-all shadow-md active:scale-98 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <X className="w-5 h-5 stroke-[2.5]" />
+                    No, no me sirvió
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={forceCloseModal}
+                  className="text-xs text-neutral-400 hover:text-neutral-600 underline transition-colors cursor-pointer mt-2"
+                >
+                  Cerrar sin calificar
+                </button>
               </div>
-              <button 
-                onClick={handleCloseModal}
-                className="text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 bg-neutral-50/80 border border-neutral-200/50 rounded-full p-2.5 transition-all duration-300 shrink-0 mt-1"
-                aria-label="Cerrar modal"
-              >
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            </div>
+            ) : (
+              <>
+                {/* Cabezal del Modal */}
+                <div className="px-5 py-5 sm:px-8 sm:py-7 border-b border-neutral-100 flex justify-between items-start gap-4 bg-white relative z-10">
+                  <div className="flex-1 flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100/80 border border-neutral-200/60 shadow-[0_2px_8px_rgba(0,0,0,0.03)] backdrop-blur-md">
+                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
+                        <span className="text-[10px] sm:text-[11px] font-mono text-neutral-600 font-bold tracking-widest uppercase">
+                          {selectedItemForModal.id}
+                        </span>
+                      </div>
+                      <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-ultra-orange/5 border border-ultra-orange/20 shadow-[0_2px_8px_rgba(255,106,0,0.04)] backdrop-blur-md">
+                        <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-ultra-orange font-black">
+                          {selectedItemForModal.category}
+                        </span>
+                      </div>
+                    </div>
+                    <h3 className="text-neutral-900 text-xl sm:text-[28px] font-black leading-tight sm:leading-tight tracking-tight">
+                      {selectedItemForModal.symptom}
+                    </h3>
+                  </div>
+                  <button 
+                    onClick={handleCloseModalAttempt}
+                    className="text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 bg-neutral-50/80 border border-neutral-200/50 rounded-full p-2.5 transition-all duration-300 shrink-0 mt-1 cursor-pointer"
+                    aria-label="Cerrar modal"
+                  >
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                </div>
 
-            {/* Cuerpo del Modal */}
-            <div className="p-5 sm:p-8 overflow-y-auto space-y-6 sm:space-y-8 flex-1 bg-[#FAFAFA]">
+                {/* Cuerpo del Modal */}
+                <div className="p-5 sm:p-8 overflow-y-auto space-y-6 sm:space-y-8 flex-1 bg-[#FAFAFA]">
               
               {/* Bloque Destacado de Ayuda Visual */}
               {selectedItemForModal.category === "Consejos Operativos" && selectedItemForModal.clientKey && (
@@ -993,13 +1112,16 @@ export default function TroubleshootingSearch({
             {/* Pie del Modal */}
             <div className="p-4 sm:p-6 border-t border-neutral-100 bg-white relative z-10 flex justify-end">
               <button 
-                onClick={handleCloseModal}
-                className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#e65c00] text-white font-bold text-[14px] uppercase tracking-widest px-8 py-4 sm:py-3.5 rounded-2xl transition-all shadow-[0_4px_16px_rgba(255,106,0,0.25)] flex items-center justify-center gap-2.5"
+                onClick={handleCloseModalAttempt}
+                className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#e65c00] text-white font-bold text-[14px] uppercase tracking-widest px-8 py-4 sm:py-3.5 rounded-2xl transition-all shadow-[0_4px_16px_rgba(255,106,0,0.25)] flex items-center justify-center gap-2.5 cursor-pointer"
               >
                 <Check className="w-5 h-5 stroke-[2.5]" />
                 Entendido
               </button>
             </div>
+
+          </>
+        )}
 
           </div>
         </div>

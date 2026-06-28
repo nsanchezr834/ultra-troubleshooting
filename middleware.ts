@@ -43,6 +43,11 @@ export function middleware(request: NextRequest) {
   // 6. Permissions Policy
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), interest-cohort=()');
 
+  // 7. Cabeceras de Seguridad Adicionales
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  response.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+
   return response;
 }
 

@@ -1,0 +1,7 @@
+- `[x]` 1. Crear `app/lib/telemetry.ts` — utilidad compartida `logSearch()`
+- `[x]` 2. Modificar `/api/telemetry/route.ts` — aceptar campo `source`
+- `[x]` 3. Modificar `troubleshooting-search.tsx` — registrar búsquedas texto + voz inline
+- `[x]` 4. Modificar `SpeechAgent.tsx` — registrar búsquedas del asistente IA
+- `[x]` 5. Modificar `admin-client.tsx` — columna "Origen" con badges
+- `[x]` 6. Entregar SQL para Supabase
+- `[x]` 7. Verificar que compila
