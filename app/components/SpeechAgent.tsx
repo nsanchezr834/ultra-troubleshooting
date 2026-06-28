@@ -594,7 +594,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       </div>
 
       {/* ── Nuevo Activador Oye Autoryx (Badge Animado Radar) ── */}
-      <div className="absolute left-1/2 -translate-x-1/2 -bottom-[5.5rem] z-10 flex flex-col items-center">
+      <div className="relative mt-8 sm:mt-10 flex flex-col items-center w-full">
         <button
           type="button"
           onClick={() => setIsWakeWordEnabled(!isWakeWordEnabled)}
@@ -602,7 +602,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
           title='Activar asistente por voz'
           aria-pressed={isWakeWordEnabled}
         >
-          <div className={`relative flex items-center justify-center p-2.5 rounded-full transition-all duration-300 ${isWakeWordEnabled ? 'bg-[#FF6A00]/15 shadow-[0_0_20px_rgba(255,106,0,0.4)]' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}>
+          <div className={`relative flex items-center justify-center p-3 rounded-full transition-all duration-300 ${isWakeWordEnabled ? 'bg-[#FF6A00]/15 shadow-[0_0_20px_rgba(255,106,0,0.4)]' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}>
             {/* Orange Radar Effect (when inactive) */}
             {!isWakeWordEnabled && (
               <>
@@ -614,12 +614,12 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
             <img 
               src="/autoryx_badge_v2.svg" 
               alt="Autoryx AI" 
-              className={`w-9 h-9 sm:w-8 sm:h-8 object-contain transition-all duration-300 relative z-10 ${isWakeWordEnabled ? 'scale-[1.15] drop-shadow-md' : 'scale-100'} ${isDarkMode ? 'invert opacity-80' : ''}`}
+              className={`w-10 h-10 sm:w-9 sm:h-9 object-contain transition-all duration-300 relative z-10 ${isWakeWordEnabled ? 'scale-[1.15] drop-shadow-md' : 'scale-100'} ${isDarkMode ? 'invert opacity-80' : ''}`}
             />
           </div>
-          <div className="flex flex-col items-center leading-none mt-0.5">
-             <span className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>powered by</span>
-             <span className="text-[10px] font-black text-[#FF6A00] uppercase tracking-widest">Autoryx AI</span>
+          <div className="flex flex-col items-center leading-none mt-1">
+             <span className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>powered by</span>
+             <span className="text-[10px] sm:text-[11px] font-black text-[#FF6A00] uppercase tracking-widest mt-0.5">Autoryx AI</span>
           </div>
         </button>
       </div>
