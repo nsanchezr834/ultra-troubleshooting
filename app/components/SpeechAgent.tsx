@@ -595,6 +595,20 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
       {/* ── Nuevo Activador Oye Autoryx (Badge Animado Radar) ── */}
       <div className="relative mt-8 sm:mt-10 flex flex-col items-center w-full">
+        {/* Instruction Card (shows when active but idle) */}
+        {isWakeWordEnabled && turn === 'idle' && (
+          <div className={`absolute -top-14 animate-[fadeSlideDown_0.3s_ease-out] flex items-center gap-2.5 px-4 py-2 rounded-2xl shadow-xl z-20 whitespace-nowrap text-xs sm:text-sm font-medium ${isDarkMode ? 'bg-neutral-800 text-neutral-200 shadow-black/50 border border-neutral-700' : 'bg-white text-neutral-700 shadow-neutral-200/50 border border-neutral-100'}`}>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF6A00] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF6A00]"></span>
+            </span>
+            <span>Para iniciar, di <strong className="text-[#FF6A00] font-black">"Oye Ultra"</strong></span>
+            
+            {/* Tooltip pointer */}
+            <div className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 border-b border-r ${isDarkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-100'}`} />
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => setIsWakeWordEnabled(!isWakeWordEnabled)}
