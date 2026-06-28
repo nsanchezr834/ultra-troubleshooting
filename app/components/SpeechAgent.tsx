@@ -235,6 +235,31 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     try { rec.start(); } catch (_) { }
   }, [resetAgent]);
 
+  const playPing = useCallback(() => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+      console.log('No se pudo reproducir el ping:', e);
+    }
+  }, []);
+
   // ─────────────────────────────────────────────
   // PASO 1 — capturar síntoma del operario
   // ─────────────────────────────────────────────
@@ -245,11 +270,14 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     optionsRef.current = [];
     setOptionsMenu([]);
 
-    speak(
-      '¿Cuál es el problema que tienes con el robot?',
-      () => listenOnce(processSymptom, '🎙️ Describe el problema...')
-    );
-  }, [speak, hardStop]);
+    // En lugar de hablar una frase larga (que interrumpe al usuario si ya empezó a hablar),
+    // reproducimos un pitido corto e inmediatamente abrimos el micrófono.
+    playPing();
+    
+    setTimeout(() => {
+      listenOnce(processSymptom, '🎙️ Describe el problema...');
+    }, 150);
+  }, [hardStop, listenOnce, playPing]);
 
   // ─────────────────────────────────────────────
   // WAKE WORD LISTENER — "Oye Autoryx"
@@ -404,8 +432,11 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       tres: 2, '3': 2, tercera: 2, tercero: 2,
     };
 
+    // Check word boundaries for exact number matching
+    const tokens = t.split(' ');
+
     // ¿Cancelar?
-    if (['cancelar', 'parar', 'salir', 'stop', 'ninguna'].some(w => t.includes(w))) {
+    if (['cancelar', 'parar', 'salir', 'stop', 'ninguna', 'ninguno'].some(w => tokens.includes(w))) {
       logSearch({
         query: lastQueryRef.current,
         matches_count: opts.length,
@@ -419,15 +450,15 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     // ¿Número?
     let idx = -1;
     for (const [word, i] of Object.entries(numberMap)) {
-      if (t.includes(word)) { idx = i; break; }
+      if (tokens.includes(word)) { idx = i; break; }
     }
 
     // ¿Nombre parcial?
     if (idx === -1) {
       opts.forEach((opt, i) => {
         const short = sanitize(getShortTitle(opt));
-        const tokens = t.split(' ').filter(w => w.length > 2);
-        if (tokens.some(w => short.includes(w))) idx = i;
+        const importantTokens = tokens.filter(w => w.length > 2);
+        if (importantTokens.some(w => short.includes(w))) idx = i;
       });
     }
 

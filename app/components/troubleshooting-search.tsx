@@ -242,12 +242,13 @@ export default function TroubleshootingSearch({
     // 1. Si estábamos esperando una selección numérica (ejecutado de inmediato)
     if (isWaitingForSelectionRef.current && lastResultsRef.current.length > 0) {
       let selectedIndex = -1;
+      const tokens = normalized.split(' ');
 
-      if (normalized.includes('uno') || normalized.includes('1') || normalized.includes('primera') || normalized.includes('primero')) {
+      if (['uno', '1', 'primera', 'primero'].some(w => tokens.includes(w))) {
         selectedIndex = 0;
-      } else if (normalized.includes('dos') || normalized.includes('2') || normalized.includes('segunda') || normalized.includes('segundo')) {
+      } else if (['dos', '2', 'segunda', 'segundo'].some(w => tokens.includes(w))) {
         selectedIndex = 1;
-      } else if (normalized.includes('tres') || normalized.includes('3') || normalized.includes('tercera') || normalized.includes('tercero')) {
+      } else if (['tres', '3', 'tercera', 'tercero'].some(w => tokens.includes(w))) {
         selectedIndex = 2;
       }
 
