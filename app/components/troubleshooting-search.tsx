@@ -200,7 +200,7 @@ export default function TroubleshootingSearch({
       const recognition = new SpeechRecognition();
       recognition.lang = 'es-ES';
       recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
+      recognition.maxAlternatives = 5;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -208,8 +208,20 @@ export default function TroubleshootingSearch({
 
       recognition.onresult = (event: any) => {
         const result = event.results[event.results.length - 1];
-        const transcript = result[0].transcript;
-        handleVoiceInput(transcript, result.isFinal);
+        const isFinal = result.isFinal;
+        
+        if (isFinal && result[0].confidence < 0.35) {
+          return; // Ignorar ruido
+        }
+        
+        const transcripts = [];
+        for (let i = 0; i < result.length; i++) {
+          if (result[i].transcript) transcripts.push(result[i].transcript);
+        }
+        
+        if (transcripts.length > 0) {
+          handleVoiceInput(transcripts, isFinal);
+        }
       };
 
       recognition.onerror = () => {
@@ -229,53 +241,54 @@ export default function TroubleshootingSearch({
   };
 
   // Manejador centralizado de transcripciones de voz
-  const handleVoiceInput = (transcript: string, isFinal: boolean = true) => {
-    const normalized = transcript.toLowerCase().trim();
+  const handleVoiceInput = (transcripts: string[], isFinal: boolean = true) => {
+    // 2. Si no es el resultado final, actualizamos la búsqueda en pantalla con la mejor alternativa
+    if (!isFinal) {
+      setSearchTerm(transcripts[0]);
+      return;
+    }
 
-    // Comandos de control para cerrar el modal por voz (ejecutado de inmediato)
-    if (normalized.includes('entendido') || normalized.includes('cerrar') || normalized.includes('listo') || normalized.includes('salir') || normalized.includes('regresar') || normalized.includes('atras')) {
+    let isCloseCommand = false;
+    let selectedIndex = -1;
+    let finalQuery = transcripts[0];
+
+    // Iteramos sobre las alternativas (maxAlternatives = 5) para buscar comandos
+    for (const transcript of transcripts) {
+      const normalized = transcript.toLowerCase().trim();
+      
+      // Comando cerrar
+      if (['entendido', 'cerrar', 'listo', 'salir', 'regresar', 'atras'].some(w => normalized.includes(w))) {
+        isCloseCommand = true;
+        break;
+      }
+
+      // Selección numérica
+      if (isWaitingForSelectionRef.current && lastResultsRef.current.length > 0) {
+        const tokens = normalized.split(' ').filter(Boolean);
+        if (['uno', '1', 'primera', 'primero'].some(w => tokens.includes(w))) {
+          selectedIndex = 0; break;
+        } else if (['dos', '2', 'segunda', 'segundo'].some(w => tokens.includes(w))) {
+          selectedIndex = 1; break;
+        } else if (['tres', '3', 'tercera', 'tercero'].some(w => tokens.includes(w))) {
+          selectedIndex = 2; break;
+        }
+      }
+    }
+
+    if (isCloseCommand) {
       if (recognitionRef.current) recognitionRef.current.stop();
       handleCloseModalAttempt();
       return;
     }
 
-    // 1. Si estábamos esperando una selección numérica (ejecutado de inmediato)
-    if (isWaitingForSelectionRef.current && lastResultsRef.current.length > 0) {
-      let selectedIndex = -1;
-      const tokens = normalized.split(' ').filter(Boolean);
-
-      if (['uno', '1', 'primera', 'primero'].some(w => tokens.includes(w))) {
-        selectedIndex = 0;
-      } else if (['dos', '2', 'segunda', 'segundo'].some(w => tokens.includes(w))) {
-        selectedIndex = 1;
-      } else if (['tres', '3', 'tercera', 'tercero'].some(w => tokens.includes(w))) {
-        selectedIndex = 2;
-      }
-
-      if (selectedIndex >= 0 && selectedIndex < lastResultsRef.current.length) {
-        // Encontró la opción correspondiente
-        const item = lastResultsRef.current[selectedIndex];
-        
-        // Detener el micrófono inmediatamente para evitar colisiones
-        if (recognitionRef.current) recognitionRef.current.stop();
-
-        // Limpiar el estado de selección
-        isWaitingForSelectionRef.current = false;
-
-        // Abrir el modal y leer con el prefijo de confirmación
-        handleOpenModal(item, `Abriendo la opción ${selectedIndex + 1}. `, true);
-        return;
-      }
-    }
-
-    // 2. Si no es una selección ni comando, y no es el resultado final, actualizamos la búsqueda
-    // en pantalla pero no la disparamos para evitar peticiones/voz errática.
-    if (!isFinal) {
-      setSearchTerm(transcript);
+    if (selectedIndex >= 0 && selectedIndex < lastResultsRef.current.length) {
+      const item = lastResultsRef.current[selectedIndex];
+      if (recognitionRef.current) recognitionRef.current.stop();
+      isWaitingForSelectionRef.current = false;
+      handleOpenModal(item, `Abriendo la opción ${selectedIndex + 1}. `, true);
       return;
     }
-
-    setSearchTerm(transcript);
+    setSearchTerm(finalQuery);
     setShowAllFaults(false);
     isWaitingForSelectionRef.current = false;
     lastSearchTypeRef.current = 'voice_inline';
@@ -286,7 +299,7 @@ export default function TroubleshootingSearch({
       'falla', 'fallas', 'error', 'errores', 'problema', 'problemas', 'fe'
     ]);
 
-    const searchWords = transcript
+    const searchWords = finalQuery
       .trim()
       .split(/\s+/)
       .map((w: string) => normalizeForSearch(w))
@@ -424,23 +437,43 @@ export default function TroubleshootingSearch({
   }, []);
 
   // Búsqueda global
+  const fuseRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    // Dynamic import to avoid SSR issues if any, but regular import is fine.
+    import('fuse.js').then((FuseModule) => {
+      fuseRef.current = new FuseModule.default(combinedKnowledgeBase, {
+        keys: ['title', 'symptom', 'keywords', 'id', 'resolution_protocol'],
+        threshold: 0.3,
+        ignoreLocation: true,
+        minMatchCharLength: 3,
+      });
+    });
+  }, [combinedKnowledgeBase]);
+
   const filteredKnowledge = useMemo(() => {
-    // Lista de palabras vacías (stop words) en español y términos genéricos de voz a omitir
+    const searchStr = searchTerm.trim();
+    if (!searchStr) return [];
+    
+    if (fuseRef.current) {
+      const result = fuseRef.current.search(searchStr);
+      return result.map((r: any) => r.item);
+    }
+    
+    // Fallback if fuse isn't loaded yet
     const stopWords = new Set([
       'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 
       'de', 'del', 'en', 'para', 'con', 'por', 'que', 'y', 'o', 'a',
       'falla', 'fallas', 'error', 'errores', 'problema', 'problemas', 'fe'
     ]);
 
-    const searchWords = searchTerm
-      .trim()
+    const searchWords = searchStr
       .split(/\s+/)
       .map(w => normalizeForSearch(w))
       .filter(w => w && !stopWords.has(w));
 
     if (searchWords.length === 0) return [];
 
-    // Calcular relevancia por coincidencia de palabras clave
     const scoredItems = combinedKnowledgeBase.map(item => {
       const normSymptom = normalizeForSearch(item.symptom);
       const normProtocol = normalizeForSearch(item.resolution_protocol);
@@ -463,7 +496,6 @@ export default function TroubleshootingSearch({
       return { item, score };
     });
 
-    // Filtrar los que tengan al menos una coincidencia y ordenar de mayor a menor relevancia
     return scoredItems
       .filter(x => x.score > 0)
       .sort((a, b) => b.score - a.score)

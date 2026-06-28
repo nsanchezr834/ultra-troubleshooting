@@ -13,6 +13,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Fuse from 'fuse.js';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
 import { logSearch } from '../lib/telemetry';
 import { VoiceStatusPanel, MicButton, VoiceOption } from './ui';
@@ -73,23 +74,18 @@ function sanitize(raw: string): string {
 // ───────────────────────────────────────────────────────────────────
 // BÚSQUEDA FUZZY LOCAL
 // ───────────────────────────────────────────────────────────────────
+const fuse = new Fuse(TROUBLESHOOTING_DATABASE, {
+  keys: ['title', 'symptom', 'keywords', 'id'],
+  threshold: 0.3,
+  ignoreLocation: true,
+  minMatchCharLength: 3,
+});
+
 function localFuzzySearch(query: string): typeof TROUBLESHOOTING_DATABASE {
-  const tokens = sanitize(query).split(' ').filter(t => t.length > 2);
-  if (!tokens.length) return [];
-
-  const scored = TROUBLESHOOTING_DATABASE.map(entry => {
-    const haystack = sanitize(
-      entry.symptom + ' ' + ((entry as any).keywords || '')
-    );
-    const hits = tokens.filter(t => haystack.includes(t)).length;
-    return { entry, score: hits };
-  });
-
-  return scored
-    .filter(r => r.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3)
-    .map(r => r.entry);
+  const result = fuse.search(sanitize(query));
+  
+  // Return top 3 matches that meet the threshold
+  return result.slice(0, 3).map(r => r.item);
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -201,23 +197,66 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // El mic solo se abre aquí, NUNCA mientras la máquina habla
   // ─────────────────────────────────────────────
   const listenOnce = useCallback((
-    onResult: (transcript: string) => void,
-    label: string
+    onResult: (transcripts: string[]) => void,
+    label: string,
+    grammarType?: 'selection'
   ) => {
     const rec = recRef.current;
     if (!rec) return;
+
+    if (grammarType === 'selection') {
+      const SGL = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
+      if (SGL) {
+        const nums = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'cancelar', 'salir', 'parar', 'ninguna'];
+        const grammarString = `#JSGF V1.0; grammar sel; public <sel> = ${nums.join(' | ')};`;
+        const list = new SGL();
+        list.addFromString(grammarString, 1);
+        rec.grammars = list;
+      }
+    } else {
+      rec.grammars = null;
+    }
+
+    rec.interimResults = true;
+    rec.maxAlternatives = 5;
 
     setTurnSafe('user-speaking');
     setStatusText(label);
 
     rec.onresult = (e: any) => {
-      const t = e.results[0]?.[0]?.transcript?.trim() ?? '';
-      if (t) onResult(t);
+      // 2. Interim Results UI
+      const interim = Array.from(e.results)
+        .filter((r: any) => !r.isFinal)
+        .map((r: any) => r[0].transcript)
+        .join('');
+      if (interim) {
+        setStatusText(`🎙️ ${interim}...`);
+      }
+
+      // Check for final result
+      const finalResult = Array.from(e.results).find((r: any) => r.isFinal);
+      if (finalResult) {
+        // 1. Confidence threshold
+        if (finalResult[0].confidence < 0.35) { // 0.35 threshold is more realistic for noisy environments
+          speak('No te escuché bien. ¿Puedes repetirlo?', () => listenOnce(onResult, label, grammarType));
+          return;
+        }
+        
+        // 4. Max Alternatives
+        const alts = [];
+        for (let i = 0; i < finalResult.length; i++) {
+          const t = finalResult[i].transcript?.trim();
+          if (t) alts.push(t);
+        }
+        
+        if (alts.length > 0) {
+          onResult(alts);
+        }
+      }
     };
 
     rec.onerror = (e: any) => {
       if (e.error === 'no-speech') {
-        // Silencio: volver a escuchar sin reiniciar todo el flujo
         try { rec.start(); } catch (_) { }
         return;
       }
@@ -226,11 +265,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       resetAgent();
     };
 
-    rec.onend = () => {
-      // Si onresult ya se disparó, turnRef ya cambió a 'processing'
-      // y no volvemos a iniciar. Si no hubo resultado (silencio largo),
-      // onerror con 'no-speech' lo maneja arriba.
-    };
+    rec.onend = () => {};
 
     try { rec.start(); } catch (_) { }
   }, [resetAgent]);
@@ -365,7 +400,19 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // ─────────────────────────────────────────────
   // PASO 2 — buscar en DB + Gemini si falla local
   // ─────────────────────────────────────────────
-  const processSymptom = useCallback(async (rawText: string) => {
+  const processSymptom = useCallback(async (transcripts: string[]) => {
+    let rawText = transcripts[0];
+
+    // 6. Memoria a corto plazo (Contexto)
+    const lastSymptom = sessionStorage.getItem('ultra_last_symptom');
+    const isContextualRef = ['lo mismo', 'sigue fallando', 'igual', 'no se arregla', 'otra vez', 'el mismo'].some(w => rawText.toLowerCase().includes(w));
+    
+    if (isContextualRef && lastSymptom) {
+      rawText = lastSymptom;
+    } else {
+      sessionStorage.setItem('ultra_last_symptom', rawText);
+    }
+
     setTurnSafe('processing');
     setStatusText(`Buscando: "${rawText}"`);
     lastQueryRef.current = sanitize(rawText);
@@ -427,9 +474,8 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // ─────────────────────────────────────────────
   // PASO 3 — interpretar selección del usuario
   // ─────────────────────────────────────────────
-  const processSelection = useCallback((rawText: string) => {
+  const processSelection = useCallback((transcripts: string[]) => {
     setTurnSafe('processing');
-    const t = sanitize(rawText);
     const opts = optionsRef.current;
 
     const numberMap: Record<string, number> = {
@@ -438,11 +484,36 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       tres: 2, '3': 2, tercera: 2, tercero: 2,
     };
 
-    // Check word boundaries for exact number matching
-    const tokens = t.split(' ').filter(Boolean);
+    let idx = -1;
+    let cancel = false;
 
-    // ¿Cancelar?
-    if (['cancelar', 'parar', 'salir', 'stop', 'ninguna', 'ninguno'].some(w => tokens.includes(w))) {
+    // 4. Evaluar múltiples alternativas
+    for (const rawText of transcripts) {
+      const t = sanitize(rawText);
+      const tokens = t.split(' ').filter(Boolean);
+
+      // ¿Cancelar?
+      if (['cancelar', 'parar', 'salir', 'stop', 'ninguna', 'ninguno'].some(w => tokens.includes(w))) {
+        cancel = true;
+        break;
+      }
+
+      // ¿Número?
+      for (const [word, i] of Object.entries(numberMap)) {
+        if (tokens.includes(word)) { idx = i; break; }
+      }
+      if (idx !== -1) break;
+
+      // ¿Nombre parcial?
+      opts.forEach((opt, i) => {
+        const short = sanitize(getShortTitle(opt));
+        const importantTokens = tokens.filter(w => w.length > 1 || /^[A-Z0-9]+$/i.test(w));
+        if (importantTokens.some(w => short.includes(w))) idx = i;
+      });
+      if (idx !== -1) break;
+    }
+
+    if (cancel) {
       logSearch({
         query: lastQueryRef.current,
         matches_count: opts.length,
@@ -453,27 +524,12 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       return;
     }
 
-    // ¿Número?
-    let idx = -1;
-    for (const [word, i] of Object.entries(numberMap)) {
-      if (tokens.includes(word)) { idx = i; break; }
-    }
-
-    // ¿Nombre parcial?
-    if (idx === -1) {
-      opts.forEach((opt, i) => {
-        const short = sanitize(getShortTitle(opt));
-        const importantTokens = tokens.filter(w => w.length > 1 || /^[A-Z0-9]+$/i.test(w));
-        if (importantTokens.some(w => short.includes(w))) idx = i;
-      });
-    }
-
     if (idx !== -1 && idx < opts.length) {
       readResolution(opts[idx]);
     } else {
       speak(
         'No entendí la selección. Di el número de la opción que quieres.',
-        () => listenOnce(processSelection, '🎙️ Di el número de opción...')
+        () => listenOnce(processSelection, '🎙️ Di el número de opción...', 'selection')
       );
     }
   }, [speak, listenOnce, resetAgent]);
@@ -481,10 +537,13 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // ─────────────────────────────────────────────
   // PASO 5 — post resolución: ¿otra falla o terminar?
   // ─────────────────────────────────────────────
-  const handlePostResolution = useCallback((rawText: string) => {
-    const t = sanitize(rawText);
-    const yes = ['si', 'sí', 'otra', 'otro', 'quiero', 'ayuda', 'problema'].some(w => t.includes(w));
-    const no = ['no', 'listo', 'gracias', 'terminar', 'salir', 'ya'].some(w => t.includes(w));
+  const handlePostResolution = useCallback((transcripts: string[]) => {
+    let yes = false, no = false;
+    for (const rawText of transcripts) {
+      const t = sanitize(rawText);
+      if (['si', 'sí', 'otra', 'otro', 'quiero', 'ayuda', 'problema'].some(w => t.includes(w))) yes = true;
+      if (['no', 'listo', 'gracias', 'terminar', 'salir', 'ya'].some(w => t.includes(w))) no = true;
+    }
 
     if (yes) {
       // Nueva búsqueda — preguntar directamente
@@ -506,10 +565,13 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // ─────────────────────────────────────────────
   // PASO 4.5 — procesar respuesta de feedback del usuario
   // ─────────────────────────────────────────────
-  const handleFeedbackResponse = useCallback((rawText: string) => {
-    const t = sanitize(rawText);
-    const solved = ['si', 'sí', 'correcto', 'funciono', 'funciona', 'resuelto', 'bien', 'util', 'sirvio'].some(w => t.includes(w));
-    const notSolved = ['no', 'fallo', 'mal', 'incorrecto', 'tampoco', 'toda', 'nada', 'sirve'].some(w => t.includes(w));
+  const handleFeedbackResponse = useCallback((transcripts: string[]) => {
+    let solved = false, notSolved = false;
+    for (const rawText of transcripts) {
+      const t = sanitize(rawText);
+      if (['si', 'sí', 'correcto', 'funciono', 'funciona', 'resuelto', 'bien', 'util', 'sirvio'].some(w => t.includes(w))) solved = true;
+      if (['no', 'fallo', 'mal', 'incorrecto', 'tampoco', 'toda', 'nada', 'sirve'].some(w => t.includes(w))) notSolved = true;
+    }
 
     if (currentVoiceSearchRef.current) {
       const status = solved ? 'resolved' : 'no_matches';
