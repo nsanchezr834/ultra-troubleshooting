@@ -116,8 +116,8 @@ export function SearchBar({
           )}
         </button>
 
-        {/* Desktop slot — SpeechAgent badge + mic button rendered by parent */}
-        <div className="hidden sm:block">{children}</div>
+        {/* Desktop slot — SpeechAgent badge + mic button (visibility controlled by SpeechAgent) */}
+        <div>{children}</div>
       </div>
 
       {/* ── Mobile badge (below the search bar) ── */}

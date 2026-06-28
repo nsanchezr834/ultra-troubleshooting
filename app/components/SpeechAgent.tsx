@@ -623,11 +623,13 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
         <div className={`hidden sm:block w-[1px] h-6 shrink-0 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} aria-hidden="true" />
 
-        {/* Accessible mic button */}
-        <MicButton
-          isActive={isActive}
-          onClick={isActive ? resetAgent : startCapture}
-        />
+        {/* Accessible mic button (Desktop only, mobile has its own in SearchBar) */}
+        <div className="hidden sm:block">
+          <MicButton
+            isActive={isActive}
+            onClick={isActive ? resetAgent : startCapture}
+          />
+        </div>
       </div>
 
       {/* ── Floating voice panel (premium, accessible) ── */}
