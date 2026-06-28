@@ -585,51 +585,43 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
   return (
     <>
-      {/* ── Botón micrófono + badge Autoryx ── */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3 sm:gap-4 z-20">
-        {/* Badge — desktop only */}
-        <span className="hidden sm:inline-flex items-center gap-2 pointer-events-none select-none shrink-0">
-          <img src="/autoryx_badge_v2.svg" alt="Autoryx" className={`w-6 h-6 object-contain shrink-0 ${isDarkMode ? 'invert opacity-80' : ''}`} />
-          <span className="flex flex-col text-left leading-[1.1] whitespace-nowrap shrink-0">
-            <span className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-neutral-400' : 'text-neutral-400'}`}>powered by</span>
-            <span className="text-[11px] font-black text-[#FF6A00] uppercase tracking-widest">Autoryx AI</span>
-          </span>
-        </span>
-        <div className={`hidden sm:block w-[1px] h-6 shrink-0 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} aria-hidden="true" />
+      {/* ── Botón micrófono (Desktop only, SearchBar has its own for mobile) ── */}
+      <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 items-center z-20">
+        <MicButton
+          isActive={isActive}
+          onClick={isActive ? resetAgent : startCapture}
+        />
+      </div>
 
-        {/* Wake Word Toggle (Desktop) */}
-        <label className="hidden sm:flex flex-col items-center gap-1 cursor-pointer group" title='Modo manos libres ("Oye Autoryx")'>
-          <div className={`relative w-7 h-3.5 rounded-full p-0.5 transition-colors ${isWakeWordEnabled ? 'bg-[#FF6A00]' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
-             <div className={`w-2.5 h-2.5 bg-white rounded-full transition-transform ${isWakeWordEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
+      {/* ── Nuevo Activador Oye Autoryx (Badge Animado Radar) ── */}
+      <div className="absolute left-1/2 -translate-x-1/2 -bottom-[5.5rem] z-10 flex flex-col items-center">
+        <button
+          type="button"
+          onClick={() => setIsWakeWordEnabled(!isWakeWordEnabled)}
+          className="flex flex-col items-center gap-1 cursor-pointer group outline-none"
+          title='Activar asistente por voz'
+          aria-pressed={isWakeWordEnabled}
+        >
+          <div className={`relative flex items-center justify-center p-2.5 rounded-full transition-all duration-300 ${isWakeWordEnabled ? 'bg-[#FF6A00]/15 shadow-[0_0_20px_rgba(255,106,0,0.4)]' : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}>
+            {/* Orange Radar Effect (when inactive) */}
+            {!isWakeWordEnabled && (
+              <>
+                <div className="absolute inset-0 rounded-full border-2 border-[#FF6A00] opacity-75 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                <div className="absolute inset-0 rounded-full border-2 border-[#FF6A00] opacity-75 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_1s_infinite]" />
+              </>
+            )}
+            {/* Logo */}
+            <img 
+              src="/autoryx_badge_v2.svg" 
+              alt="Autoryx AI" 
+              className={`w-9 h-9 sm:w-8 sm:h-8 object-contain transition-all duration-300 relative z-10 ${isWakeWordEnabled ? 'scale-[1.15] drop-shadow-md' : 'scale-100'} ${isDarkMode ? 'invert opacity-80' : ''}`}
+            />
           </div>
-          <span className={`text-[8px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap ${isWakeWordEnabled ? 'text-[#FF6A00]' : 'text-neutral-400 group-hover:text-neutral-500'}`}>
-             Oye Autoryx
-          </span>
-          <input type="checkbox" className="hidden" checked={isWakeWordEnabled} onChange={(e) => setIsWakeWordEnabled(e.target.checked)} />
-        </label>
-        
-        {/* Wake Word Toggle (Mobile Fixed Bottom) */}
-        <div className="sm:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-neutral-900 p-3 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 flex flex-col items-center gap-2">
-          <label className="flex items-center gap-3 cursor-pointer group" title='Modo manos libres'>
-            <div className={`relative w-10 h-5 rounded-full p-0.5 transition-colors ${isWakeWordEnabled ? 'bg-[#FF6A00]' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
-               <div className={`w-4 h-4 bg-white rounded-full transition-transform ${isWakeWordEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-            </div>
-            <span className={`text-xs font-black uppercase tracking-widest transition-colors whitespace-nowrap ${isWakeWordEnabled ? 'text-[#FF6A00]' : 'text-neutral-400'}`}>
-               Oye Ultra
-            </span>
-            <input type="checkbox" className="hidden" checked={isWakeWordEnabled} onChange={(e) => setIsWakeWordEnabled(e.target.checked)} />
-          </label>
-        </div>
-
-        <div className={`hidden sm:block w-[1px] h-6 shrink-0 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} aria-hidden="true" />
-
-        {/* Accessible mic button (Desktop only, mobile has its own in SearchBar) */}
-        <div className="hidden sm:block">
-          <MicButton
-            isActive={isActive}
-            onClick={isActive ? resetAgent : startCapture}
-          />
-        </div>
+          <div className="flex flex-col items-center leading-none mt-0.5">
+             <span className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>powered by</span>
+             <span className="text-[10px] font-black text-[#FF6A00] uppercase tracking-widest">Autoryx AI</span>
+          </div>
+        </button>
       </div>
 
       {/* ── Floating voice panel (premium, accessible) ── */}
