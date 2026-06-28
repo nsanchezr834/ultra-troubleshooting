@@ -278,7 +278,12 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       const t = sanitize(fullTranscript);
       console.log('🗣️ [WakeWord] Escuchando:', t);
       
-      if (['oye autoryx', 'oy autoryx', 'hola autoryx', 'autoryx', 'ayuda ultra'].some(w => t.includes(w))) {
+      // Búsqueda más flexible (Fuzzy) porque el navegador a veces escribe "autorix", "auto rix", "oye autoris", etc.
+      const hasOye = t.includes('oye') || t.includes('oy ') || t.includes('hoy ') || t.includes('hola ');
+      const hasAuto = t.includes('autor') || t.includes('auto') || t.includes('ultra');
+      const exactMatch = ['autoryx', 'autorix', 'ayuda ultra'].some(w => t.includes(w));
+      
+      if ((hasOye && hasAuto) || exactMatch) {
         console.log('✅ [WakeWord] ¡Palabra clave detectada!');
         wakeRec.abort();
         startCapture();
@@ -289,16 +294,20 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       console.log('❌ [WakeWord] Error disparado:', e.error);
       if (e.error === 'not-allowed' || e.error === 'aborted') return;
       if (isWakeWordEnabled && turn === 'idle') {
-         console.log('🔄 [WakeWord] Reiniciando tras error no fatal...');
-         try { wakeRec.start(); } catch (err) { console.log('Error reiniciando:', err); }
+         console.log('🔄 [WakeWord] Reiniciando tras error no fatal en 1s...');
+         setTimeout(() => {
+           try { wakeRec.start(); } catch (err) { }
+         }, 1000);
       }
     };
 
     wakeRec.onend = () => {
       console.log('🏁 [WakeWord] onend disparado (el micrófono se apagó).');
       if (isWakeWordEnabled && turn === 'idle') {
-         console.log('🔄 [WakeWord] Reiniciando escucha...');
-         try { wakeRec.start(); } catch (err) { console.log('Error reiniciando:', err); }
+         console.log('🔄 [WakeWord] Reiniciando escucha en 1s...');
+         setTimeout(() => {
+           try { wakeRec.start(); } catch (err) { }
+         }, 1000);
       }
     };
 
