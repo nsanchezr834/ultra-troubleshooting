@@ -235,10 +235,13 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     try { rec.start(); } catch (_) { }
   }, [resetAgent]);
 
-  const playPing = useCallback(() => {
+  const playPing = useCallback((onEnd?: () => void) => {
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
+      if (!AudioContext) {
+        if (onEnd) onEnd();
+        return;
+      }
       const ctx = new AudioContext();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -253,10 +256,16 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
       
+      osc.onended = () => {
+        ctx.close().catch(console.error);
+        if (onEnd) onEnd();
+      };
+      
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.2);
     } catch (e) {
       console.log('No se pudo reproducir el ping:', e);
+      if (onEnd) onEnd();
     }
   }, []);
 
@@ -270,13 +279,10 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     optionsRef.current = [];
     setOptionsMenu([]);
 
-    // En lugar de hablar una frase larga (que interrumpe al usuario si ya empezó a hablar),
-    // reproducimos un pitido corto e inmediatamente abrimos el micrófono.
-    playPing();
-    
-    setTimeout(() => {
+    // Usamos el callback del ping para iniciar el mic justo cuando termina el sonido
+    playPing(() => {
       listenOnce(processSymptom, '🎙️ Describe el problema...');
-    }, 150);
+    });
   }, [hardStop, listenOnce, playPing]);
 
   // ─────────────────────────────────────────────
@@ -433,7 +439,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     };
 
     // Check word boundaries for exact number matching
-    const tokens = t.split(' ');
+    const tokens = t.split(' ').filter(Boolean);
 
     // ¿Cancelar?
     if (['cancelar', 'parar', 'salir', 'stop', 'ninguna', 'ninguno'].some(w => tokens.includes(w))) {
@@ -457,7 +463,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     if (idx === -1) {
       opts.forEach((opt, i) => {
         const short = sanitize(getShortTitle(opt));
-        const importantTokens = tokens.filter(w => w.length > 2);
+        const importantTokens = tokens.filter(w => w.length > 1 || /^[A-Z0-9]+$/i.test(w));
         if (importantTokens.some(w => short.includes(w))) idx = i;
       });
     }

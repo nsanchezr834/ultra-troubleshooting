@@ -242,7 +242,7 @@ export default function TroubleshootingSearch({
     // 1. Si estábamos esperando una selección numérica (ejecutado de inmediato)
     if (isWaitingForSelectionRef.current && lastResultsRef.current.length > 0) {
       let selectedIndex = -1;
-      const tokens = normalized.split(' ');
+      const tokens = normalized.split(' ').filter(Boolean);
 
       if (['uno', '1', 'primera', 'primero'].some(w => tokens.includes(w))) {
         selectedIndex = 0;
