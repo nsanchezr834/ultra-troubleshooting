@@ -315,7 +315,7 @@ export default function AdminClient() {
                 }
             }
 
-            const curr = groups.get(groupKey) || { name: groupKey, count: 0, last_access: log.accessed_at, logs: [] };
+            const curr = groups.get(groupKey) || { name: groupKey, count: 0, last_access: log.accessed_at, logs: [] as any[] };
             curr.count += 1;
             curr.logs.push(log);
             
