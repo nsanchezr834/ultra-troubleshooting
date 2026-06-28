@@ -103,10 +103,10 @@ export function SearchBar({
             'sm:hidden p-2 rounded-xl transition-all duration-200',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ultra-orange',
             isListening
-              ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25'
+              ? 'bg-[#FF6A00] text-white shadow-md shadow-[#FF6A00]/25'
               : isDarkMode
-                ? 'bg-neutral-800 text-neutral-400 hover:text-emerald-400'
-                : 'bg-neutral-100 text-neutral-500 hover:text-emerald-600',
+                ? 'bg-neutral-800 text-[#FF6A00] hover:text-white hover:bg-[#FF6A00]'
+                : 'bg-neutral-100 text-neutral-500 hover:text-[#FF6A00]',
           ].join(' ')}
         >
           {isListening ? (
@@ -119,6 +119,15 @@ export function SearchBar({
         {/* Desktop slot — SpeechAgent badge + mic button rendered by parent */}
         <div className="hidden sm:block">{children}</div>
       </div>
+
+      {/* ── Mobile badge (below the search bar) ── */}
+      {!isListening && (
+        <div className="sm:hidden absolute left-1/2 -translate-x-1/2 -bottom-6 flex items-center gap-1.5 pointer-events-none select-none w-max z-10" aria-hidden="true">
+          <img src="/autoryx_badge_v2.svg" alt="" className={`w-4 h-4 object-contain shrink-0 ${isDarkMode ? 'invert opacity-80' : ''}`} />
+          <span className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-neutral-400' : 'text-neutral-400'}`}>powered by</span>
+          <span className="text-[10px] font-black text-[#FF6A00] uppercase tracking-widest">Autoryx AI</span>
+        </div>
+      )}
     </div>
   );
 }

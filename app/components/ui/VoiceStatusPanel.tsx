@@ -243,13 +243,13 @@ export function MicButton({ isActive, onClick, disabled }: MicButtonProps) {
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ultra-orange focus-visible:ring-offset-2',
         'disabled:opacity-40 disabled:cursor-not-allowed',
         isActive
-          ? 'bg-ultra-orange text-white hover:scale-105 shadow-md shadow-ultra-orange/25'
-          : 'hover:bg-ultra-orange/5 dark:hover:bg-ultra-orange/10 text-ultra-orange',
+          ? 'bg-[#FF6A00] text-white hover:scale-105 shadow-md shadow-[#FF6A00]/25'
+          : 'hover:bg-[#FF6A00]/10 text-[#FF6A00]',
       ].join(' ')}
     >
       {isActive ? (
         <div className="relative" aria-hidden="true">
-          <span className="absolute inline-flex h-full w-full rounded-xl bg-ultra-orange opacity-75 animate-ping -left-0 -top-0 scale-150 pointer-events-none" />
+          <span className="absolute inline-flex h-full w-full rounded-xl bg-[#FF6A00] opacity-75 animate-ping -left-0 -top-0 scale-150 pointer-events-none" />
           <X className="w-5 h-5 relative z-10" />
         </div>
       ) : (

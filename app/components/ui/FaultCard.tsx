@@ -72,8 +72,7 @@ export const FaultCard = React.memo(function FaultCard({
             : 'bg-neutral-50/50 border-neutral-200/60 hover:border-ultra-orange hover:bg-white',
       ].join(' ')}
       style={{
-        animationDelay: `${delayMs}ms`,
-        animation: 'fadeSlideUp 220ms ease-out forwards',
+        animation: `fadeSlideUp 220ms ease-out ${delayMs}ms forwards`,
         opacity: 0,
       }}
     >

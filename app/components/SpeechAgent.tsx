@@ -12,10 +12,10 @@
 //  de timestamp ni ventanas de silencio.
 // ═══════════════════════════════════════════════════════════════════
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Mic, Volume2, Loader2, AlertCircle, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
 import { logSearch } from '../lib/telemetry';
+import { VoiceStatusPanel, MicButton, VoiceOption } from './ui';
 
 // ───────────────────────────────────────────────────────────────────
 // TÍTULOS CORTOS — mapa de ID → etiqueta breve para lectura en voz
@@ -110,10 +110,12 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   const [statusText, setStatusText] = useState('');
   const [optionsMenu, setOptionsMenu] = useState<typeof TROUBLESHOOTING_DATABASE>([]);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isWakeWordEnabled, setIsWakeWordEnabled] = useState(false);
 
   const turnRef = useRef<Turn>('idle');
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const recRef = useRef<any>(null);
+  const wakeWordRecRef = useRef<any>(null);
   const optionsRef = useRef<typeof TROUBLESHOOTING_DATABASE>([]);
 
   // Telemetría ligera
@@ -137,6 +139,13 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       rec.interimResults = false;
       rec.maxAlternatives = 1;
       recRef.current = rec;
+      
+      const wakeRec = new SR();
+      wakeRec.lang = 'es-MX';
+      wakeRec.continuous = true;
+      wakeRec.interimResults = true;
+      wakeRec.maxAlternatives = 1;
+      wakeWordRecRef.current = wakeRec;
     } else {
       setErrorMsg('Este navegador no soporta reconocimiento de voz.');
     }
@@ -241,6 +250,53 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       () => listenOnce(processSymptom, '🎙️ Describe el problema...')
     );
   }, [speak, hardStop]);
+
+  // ─────────────────────────────────────────────
+  // WAKE WORD LISTENER — "Oye Autoryx"
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    const wakeRec = wakeWordRecRef.current;
+    if (!wakeRec) return;
+
+    if (!isWakeWordEnabled || turn !== 'idle') {
+      try { wakeRec.abort(); } catch (_) { }
+      return;
+    }
+
+    wakeRec.onresult = (e: any) => {
+      let transcript = '';
+      for (let i = e.resultIndex; i < e.results.length; ++i) {
+        transcript += e.results[i][0].transcript;
+      }
+      const t = sanitize(transcript);
+      if (['oye autoryx', 'oy autoryx', 'hola autoryx', 'autoryx', 'ayuda ultra'].some(w => t.includes(w))) {
+        wakeRec.abort();
+        startCapture();
+      }
+    };
+    
+    wakeRec.onerror = (e: any) => {
+      if (e.error === 'not-allowed' || e.error === 'aborted') return;
+      if (isWakeWordEnabled && turn === 'idle') {
+         try { wakeRec.start(); } catch (_) { }
+      }
+    };
+
+    wakeRec.onend = () => {
+      if (isWakeWordEnabled && turn === 'idle') {
+         try { wakeRec.start(); } catch (_) { }
+      }
+    };
+
+    try { wakeRec.start(); } catch (_) { }
+
+    return () => {
+      wakeRec.onresult = null;
+      wakeRec.onerror = null;
+      wakeRec.onend = null;
+      try { wakeRec.abort(); } catch (_) { }
+    };
+  }, [turn, isWakeWordEnabled, startCapture]);
 
   // ─────────────────────────────────────────────
   // PASO 2 — buscar en DB + Gemini si falla local
@@ -410,7 +466,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   }, [speak, listenOnce, handlePostResolution]);
 
   // ─────────────────────────────────────────────
-  // PASO 4 — leer resolución
+  // PASO 4 — leer resolución (paso a paso interactivo)
   // ─────────────────────────────────────────────
   const readResolution = useCallback((entry: typeof TROUBLESHOOTING_DATABASE[0]) => {
     setTurnSafe('machine-speaking');
@@ -427,143 +483,121 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       source: 'speech_agent'
     };
 
-    // Leer solo los pasos, no el título completo (ya se mostró en pantalla)
-    const speech = entry.resolution_protocol.replace(/\n/g, '. ');
+    // Separar los pasos por salto de línea
+    const steps = entry.resolution_protocol
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s !== '.' && s !== '-');
 
-    speak(speech, () => {
-      speak(
-        '¿Esta información resolvió tu problema? Di sí o no.',
-        () => listenOnce(handleFeedbackResponse, '🎙️ Di "sí" para solucionado o "no" para no solucionado...')
-      );
-    });
-  }, [speak, listenOnce, onMatchFault, handleFeedbackResponse]);
+    const executeStep = (index: number) => {
+      if (index >= steps.length) {
+        speak(
+          'He terminado los pasos. ¿Esta información resolvió tu problema? Di sí o no.',
+          () => listenOnce(handleFeedbackResponse, '🎙️ Di "sí" para solucionado o "no" para no solucionado...')
+        );
+        return;
+      }
+      
+      const stepText = steps[index].replace(/^[0-9]+\.\s*/, '');
+      
+      speak(`${stepText}. ¿Listo?`, () => {
+        listenOnce((rawText) => {
+          const t = sanitize(rawText);
+          const next = ['si', 'sí', 'listo', 'siguiente', 'ok', 'ya', 'claro', 'continuar'].some(w => t.includes(w));
+          const repeat = ['repetir', 'repite', 'que', 'como', 'otra vez', 'nuevo'].some(w => t.includes(w));
+          const stop = ['salir', 'parar', 'no', 'cancelar', 'alto'].some(w => t.includes(w));
+          
+          if (stop) {
+            speak('De acuerdo, diagnóstico cancelado.', resetAgent);
+          } else if (repeat) {
+            executeStep(index);
+          } else if (next) {
+            executeStep(index + 1);
+          } else {
+            speak('No te escuché bien. Di "listo" para avanzar, "repetir" o "cancelar".', () => {
+               executeStep(index);
+            });
+          }
+        }, `🎙️ Paso ${index + 1} de ${steps.length}: Di "listo", "repetir" o "cancelar"...`);
+      });
+    };
+
+    executeStep(0);
+  }, [speak, listenOnce, onMatchFault, handleFeedbackResponse, resetAgent]);
 
   // ─────────────────────────────────────────────
   // UI
   // ─────────────────────────────────────────────
   const isActive = turn !== 'idle';
-  const isMachineTurn = turn === 'machine-speaking' || turn === 'processing';
-  const isUserTurn = turn === 'user-speaking';
+
+  // Build the options list for VoiceStatusPanel (memoised to avoid allocation on every render)
+  const voiceOptions: VoiceOption[] = useMemo(
+    () => optionsMenu.map((opt) => ({ id: opt.id, label: getShortTitle(opt) })),
+    [optionsMenu]
+  );
+
+  const handleOptionClick = useCallback(
+    (id: string) => {
+      const opt = optionsMenu.find((o) => o.id === id);
+      if (!opt) return;
+      synthRef.current?.cancel();
+      const rec = recRef.current;
+      if (rec) {
+        rec.onresult = null;
+        rec.onerror = null;
+        rec.onend = null;
+        try { rec.abort(); } catch (_) { }
+      }
+      readResolution(opt);
+    },
+    [optionsMenu, readResolution]
+  );
 
   return (
     <>
-      {/* ── Botón micrófono + badge ── */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-4.5 z-20">
-        <span className="hidden sm:inline-flex items-center gap-2 pointer-events-none select-none">
-          <img src="/autoryx_badge_v2.svg" alt="Autoryx" className="w-6 h-6 object-contain" />
-          <span className="flex flex-col text-left leading-[1.1]">
-            <span className="text-[8px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">powered by</span>
-            <span className="text-[11px] font-black text-ultra-orange uppercase tracking-widest">Autoryx AI</span>
+      {/* ── Botón micrófono + badge Autoryx ── */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-3 sm:gap-4 z-20">
+        {/* Badge — desktop only */}
+        <span className="hidden sm:inline-flex items-center gap-2 pointer-events-none select-none shrink-0">
+          <img src="/autoryx_badge_v2.svg" alt="Autoryx" className={`w-6 h-6 object-contain shrink-0 ${isDarkMode ? 'invert opacity-80' : ''}`} />
+          <span className="flex flex-col text-left leading-[1.1] whitespace-nowrap shrink-0">
+            <span className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-neutral-400' : 'text-neutral-400'}`}>powered by</span>
+            <span className="text-[11px] font-black text-[#FF6A00] uppercase tracking-widest">Autoryx AI</span>
           </span>
         </span>
+        <div className={`hidden sm:block w-[1px] h-6 shrink-0 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} aria-hidden="true" />
 
-        <div className="hidden sm:block w-[1px] h-6 bg-neutral-200 dark:bg-neutral-800" />
+        {/* Wake Word Toggle */}
+        <label className="hidden sm:flex flex-col items-center gap-1 cursor-pointer group" title='Modo manos libres ("Oye Autoryx")'>
+          <div className={`relative w-7 h-3.5 rounded-full p-0.5 transition-colors ${isWakeWordEnabled ? 'bg-[#FF6A00]' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
+             <div className={`w-2.5 h-2.5 bg-white rounded-full transition-transform ${isWakeWordEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
+          </div>
+          <span className={`text-[8px] font-bold uppercase tracking-widest transition-colors whitespace-nowrap ${isWakeWordEnabled ? 'text-[#FF6A00]' : 'text-neutral-400 group-hover:text-neutral-500'}`}>
+             Oye Autoryx
+          </span>
+          <input type="checkbox" className="hidden" checked={isWakeWordEnabled} onChange={(e) => setIsWakeWordEnabled(e.target.checked)} />
+        </label>
 
-        <button
+        <div className={`hidden sm:block w-[1px] h-6 shrink-0 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} aria-hidden="true" />
+
+        {/* Accessible mic button */}
+        <MicButton
+          isActive={isActive}
           onClick={isActive ? resetAgent : startCapture}
-          className={`relative p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center ${isActive
-              ? 'bg-ultra-orange text-white hover:scale-105 shadow-md shadow-ultra-orange/20'
-              : 'hover:bg-ultra-orange/5 dark:hover:bg-ultra-orange/10 text-ultra-orange'
-            }`}
-          title={isActive ? 'Cancelar' : 'Iniciar diagnóstico por voz'}
-        >
-          {isActive ? (
-            <div className="relative">
-              <span className="absolute inline-flex h-full w-full rounded-xl bg-ultra-orange opacity-75 animate-ping -left-0 -top-0 scale-150 pointer-events-none" />
-              <X className="w-5.5 h-5.5 relative z-10" />
-            </div>
-          ) : (
-            <Mic className="w-5.5 h-5.5 text-ultra-orange" />
-          )}
-        </button>
+        />
       </div>
 
-      {/* ── Mobile badge ── */}
-      {!isActive && (
-        <div className="sm:hidden absolute left-1/2 -translate-x-1/2 top-[calc(100%+12px)] flex items-center gap-1.5 pointer-events-none select-none w-max z-10">
-          <img src="/autoryx_badge_v2.svg" alt="Autoryx" className="w-4 h-4 object-contain" />
-          <span className="text-[8px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">powered by</span>
-          <span className="text-[10px] font-black text-ultra-orange uppercase tracking-widest">Autoryx AI</span>
-        </div>
-      )}
-
-      {/* ── Panel flotante ── */}
+      {/* ── Floating voice panel (premium, accessible) ── */}
       {isActive && (
-        <div className={`absolute left-0 right-0 top-full mt-3 z-50 rounded-2xl p-5 shadow-2xl border backdrop-blur-md ${isDarkMode
-            ? 'bg-neutral-900/90 border-neutral-800 text-neutral-100'
-            : 'bg-white/95 border-neutral-200/80 text-neutral-800'
-          }`}>
-
-          {/* Header con turno actual */}
-          <div className="flex items-center justify-between mb-4 pb-2.5 border-b border-neutral-200/50 dark:border-neutral-800/50">
-            <div className="flex items-center gap-2">
-              {/* Indicador de turno */}
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUserTurn ? 'bg-emerald-400' : 'bg-ultra-orange'
-                  }`} />
-                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isUserTurn ? 'bg-emerald-500' : 'bg-ultra-orange'
-                  }`} />
-              </span>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                {turn === 'machine-speaking' && 'Asistente hablando'}
-                {turn === 'user-speaking' && 'Tu turno — escuchando'}
-                {turn === 'processing' && 'Buscando falla...'}
-              </span>
-            </div>
-            <button onClick={resetAgent} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Estado / mensaje */}
-          <div className="flex items-start gap-3 mb-4">
-            {turn === 'processing' ? (
-              <Loader2 className="w-5 h-5 text-ultra-orange animate-spin flex-shrink-0 mt-0.5" />
-            ) : isUserTurn ? (
-              <Mic className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5 animate-pulse" />
-            ) : (
-              <Volume2 className="w-5 h-5 text-ultra-orange flex-shrink-0 mt-0.5" />
-            )}
-            <p className="text-sm font-medium leading-relaxed">{statusText || '...'}</p>
-          </div>
-
-          {/* Menú de opciones — siempre visible para toque táctil */}
-          {optionsMenu.length > 0 && (
-            <div className="space-y-2">
-              {optionsMenu.map((opt, i) => (
-                <button
-                  key={opt.id}
-                  onClick={() => {
-                    synthRef.current?.cancel();
-                    const rec = recRef.current;
-                    if (rec) { rec.onresult = null; rec.onerror = null; rec.onend = null; try { rec.abort(); } catch (_) { } }
-                    readResolution(opt);
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left text-sm font-semibold transition-all duration-200 ${isDarkMode
-                      ? 'bg-neutral-800/40 border-neutral-700/50 hover:bg-neutral-800 hover:border-ultra-orange'
-                      : 'bg-neutral-50/70 border-neutral-200/60 hover:bg-white hover:border-ultra-orange hover:shadow-sm'
-                    }`}
-                >
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-ultra-orange/10 dark:bg-ultra-orange/20 text-ultra-orange flex items-center justify-center text-xs font-black">
-                    {i + 1}
-                  </span>
-                  <span className="flex-1">{getShortTitle(opt)}</span>
-                </button>
-              ))}
-              <p className="text-[10px] text-neutral-400 dark:text-neutral-500 italic text-center mt-2">
-                Toca una opción o di el número en voz alta
-              </p>
-            </div>
-          )}
-
-          {/* Error */}
-          {errorMsg && (
-            <div className="mt-3 flex items-center gap-2 p-3 rounded-xl bg-red-500/5 border border-red-500/10 text-red-500 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-        </div>
+        <VoiceStatusPanel
+          turn={turn}
+          statusText={statusText}
+          options={voiceOptions}
+          errorMsg={errorMsg}
+          isDarkMode={isDarkMode}
+          onOptionClick={handleOptionClick}
+          onDismiss={resetAgent}
+        />
       )}
     </>
   );
