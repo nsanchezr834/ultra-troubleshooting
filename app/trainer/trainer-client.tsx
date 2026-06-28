@@ -1089,7 +1089,7 @@ export default function TrainerClient() {
             <header className="bg-white/[0.02] backdrop-blur-lg border-b border-white/[0.05] px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
                     <h1 className="text-base tracking-widest text-white" style={{ fontFamily: 'var(--font-orbitron), sans-serif', fontWeight: 900 }}>
-                        Trainner DashBoard
+                        Trainer Dashboard
                     </h1>
                     <p className="text-[9px] text-[#ff4f00] font-black tracking-wider uppercase mt-0.5">Ultra Troubleshooting Capacitación</p>
                 </div>
