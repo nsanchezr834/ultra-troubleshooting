@@ -259,6 +259,7 @@ export default function TrainerClient() {
     const [savingQuestion, setSavingQuestion] = useState(false);
     const [questionCategoryFilter, setQuestionCategoryFilter] = useState<string>('all');
     const [questionSearchQuery, setQuestionSearchQuery] = useState<string>('');
+    const [recentlyModifiedIds, setRecentlyModifiedIds] = useState<string[]>([]);
 
     // Filtros de búsqueda para resultados
     const [searchQuery, setSearchQuery] = useState('');
@@ -798,6 +799,11 @@ export default function TrainerClient() {
                     })
                     .eq('id', q.id);
                 if (error) throw error;
+                
+                setRecentlyModifiedIds(prev => {
+                    const filtered = prev.filter(id => id !== q.id);
+                    return [q.id as string, ...filtered];
+                });
             } else {
                 // Crear nueva pregunta
                 const newId = crypto.randomUUID();
@@ -1194,71 +1200,104 @@ export default function TrainerClient() {
                                 );
                             }
 
-                            return (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {filtered.map((q) => (
-                                    <div key={q.id} className={`bg-white/[0.02] backdrop-blur-sm border rounded-2xl p-5 flex flex-col gap-3.5 transition-all shadow-md ${q.is_active ? 'border-white/[0.05]' : 'border-white/[0.02] opacity-40'}`}>
-                                        <div className="flex justify-between items-start gap-4">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase bg-neutral-800 border-neutral-700 text-neutral-350`}>
-                                                    {q.difficulty}
-                                                </span>
-                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${
-                                                    q.is_active ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-neutral-800 border-neutral-700 text-neutral-500'
-                                                }`}>
-                                                    {q.is_active ? 'Activa' : 'Inactiva'}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <button
-                                                    onClick={() => handleToggleQuestionActive(q.id, q.is_active)}
-                                                    className="p-1.5 bg-neutral-850 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-400 hover:text-white transition-all"
-                                                    title={q.is_active ? 'Desactivar pregunta' : 'Activar pregunta'}
-                                                >
-                                                    {q.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                                </button>
-                                                <button
-                                                    onClick={() => setEditingQuestion(q)}
-                                                    className="p-1.5 bg-neutral-850 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-neutral-400 hover:text-[#ff4f00] transition-all"
-                                                    title="Editar pregunta"
-                                                >
-                                                    <Edit className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteQuestion(q.id)}
-                                                    className="p-1.5 bg-neutral-850 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-neutral-400 hover:text-red-400 transition-all"
-                                                    title="Eliminar pregunta"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        </div>
+                            const recentlyModifiedQuestions = recentlyModifiedIds
+                                .map(id => filtered.find(q => q.id === id))
+                                .filter((q): q is DBQuestion => q !== undefined);
 
-                                        <div>
-                                            <h4 className="text-sm font-bold text-white leading-relaxed">{q.question}</h4>
-                                            <ul className="flex flex-col gap-1.5 mt-3">
-                                                {q.options.map((opt, idx) => (
-                                                    <li key={idx} className={`text-xs px-3.5 py-2 rounded-xl border flex items-center gap-2.5 ${
-                                                        idx === q.correct_index
-                                                            ? 'bg-emerald-500/5 border-emerald-500/25 text-emerald-400 font-bold'
-                                                            : 'bg-neutral-950/40 border-neutral-800/40 text-neutral-400'
-                                                    }`}>
-                                                        <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black ${
-                                                            idx === q.correct_index ? 'bg-emerald-500/10 text-emerald-400' : 'bg-neutral-800 text-neutral-500'
-                                                        }`}>{idx + 1}</span>
-                                                        {opt}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
+                            const mainQuestions = filtered.filter(q => !recentlyModifiedIds.includes(q.id));
 
-                                        {q.explanation && (
-                                            <div className="bg-neutral-950/60 border border-neutral-800 rounded-xl p-3 text-[11px] text-neutral-500 leading-relaxed">
-                                                <strong className="text-neutral-400">Explicación:</strong> {q.explanation}
-                                            </div>
-                                        )}
+                            const renderQuestionCard = (q: DBQuestion, isRecent: boolean = false) => (
+                                <div key={q.id} className={`bg-white/[0.02] backdrop-blur-sm border rounded-2xl p-5 flex flex-col gap-3.5 transition-all shadow-md ${
+                                    isRecent 
+                                        ? 'border-[#ff4f00]/50 bg-[#ff4f00]/[0.05]' 
+                                        : (q.is_active ? 'border-white/[0.05]' : 'border-white/[0.02] opacity-40')
+                                }`}>
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase bg-neutral-800 border-neutral-700 text-neutral-350`}>
+                                                {q.difficulty}
+                                            </span>
+                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${
+                                                q.is_active ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-neutral-800 border-neutral-700 text-neutral-500'
+                                            }`}>
+                                                {q.is_active ? 'Activa' : 'Inactiva'}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                onClick={() => handleToggleQuestionActive(q.id, q.is_active)}
+                                                className="p-1.5 bg-neutral-850 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-400 hover:text-white transition-all"
+                                                title={q.is_active ? 'Desactivar pregunta' : 'Activar pregunta'}
+                                            >
+                                                {q.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingQuestion(q)}
+                                                className="p-1.5 bg-neutral-850 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-neutral-400 hover:text-[#ff4f00] transition-all"
+                                                title="Editar pregunta"
+                                            >
+                                                <Edit className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteQuestion(q.id)}
+                                                className="p-1.5 bg-neutral-850 hover:bg-neutral-850 border border-neutral-800 rounded-lg text-neutral-400 hover:text-red-400 transition-all"
+                                                title="Eliminar pregunta"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    ))}
+
+                                    <div>
+                                        <h4 className="text-sm font-bold text-white leading-relaxed">{q.question}</h4>
+                                        <ul className="flex flex-col gap-1.5 mt-3">
+                                            {q.options.map((opt, idx) => (
+                                                <li key={idx} className={`text-xs px-3.5 py-2 rounded-xl border flex items-center gap-2.5 ${
+                                                    idx === q.correct_index
+                                                        ? 'bg-emerald-500/5 border-emerald-500/25 text-emerald-400 font-bold'
+                                                        : 'bg-neutral-950/40 border-neutral-800/40 text-neutral-400'
+                                                }`}>
+                                                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                                        idx === q.correct_index ? 'bg-emerald-500/10 text-emerald-400' : 'bg-neutral-800 text-neutral-500'
+                                                    }`}>{idx + 1}</span>
+                                                    {opt}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    {q.explanation && (
+                                        <div className="bg-neutral-950/60 border border-neutral-800 rounded-xl p-3 text-[11px] text-neutral-500 leading-relaxed">
+                                            <strong className="text-neutral-400">Explicación:</strong> {q.explanation}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+
+                            return (
+                                <div className="flex flex-col gap-8">
+                                    {recentlyModifiedQuestions.length > 0 && (
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-center gap-2 px-1 border-b border-white/[0.05] pb-2">
+                                                <span className="text-[#ff4f00] animate-pulse">🌟</span>
+                                                <h3 className="text-sm font-black text-white uppercase tracking-wider">Modificadas Recientemente</h3>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {recentlyModifiedQuestions.map(q => renderQuestionCard(q, true))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {mainQuestions.length > 0 && (
+                                        <div className="flex flex-col gap-4">
+                                            {recentlyModifiedQuestions.length > 0 && (
+                                                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest px-1">Otras Preguntas</h3>
+                                            )}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {mainQuestions.map(q => renderQuestionCard(q, false))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })()}

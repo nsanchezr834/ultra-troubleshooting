@@ -334,7 +334,7 @@ export default function TroubleshootingSearch({
       speakResults(results);
       if (results.length === 0) {
         logSearch({
-          query: transcript,
+          query: finalQuery,
           matches_count: 0,
           status: 'no_matches',
           source: 'voice_inline'
@@ -343,7 +343,7 @@ export default function TroubleshootingSearch({
     } else {
       speakResults([]);
       logSearch({
-        query: transcript,
+        query: finalQuery,
         matches_count: 0,
         status: 'no_matches',
         source: 'voice_inline'
@@ -723,7 +723,7 @@ export default function TroubleshootingSearch({
               </div>
             ) : (
               <div id={resultsId} className="space-y-3">
-                {filteredKnowledge.map((item, i) => (
+                {filteredKnowledge.map((item: any, i: number) => (
                   <FaultCard key={item.id} item={item} index={i} isDarkMode={isDarkMode} onClick={handleOpenModal} />
                 ))}
               </div>

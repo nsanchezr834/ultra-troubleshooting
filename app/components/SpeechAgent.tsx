@@ -234,7 +234,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       }
 
       // Check for final result
-      const finalResult = Array.from(e.results).find((r: any) => r.isFinal);
+      const finalResult: any = Array.from(e.results).find((r: any) => r.isFinal);
       if (finalResult) {
         // 1. Confidence threshold
         if (finalResult[0].confidence < 0.35) { // 0.35 threshold is more realistic for noisy environments
@@ -630,8 +630,8 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       const stepText = steps[index].replace(/^[0-9]+\.\s*/, '');
       
       speak(`${stepText}. ¿Listo?`, () => {
-        listenOnce((rawText) => {
-          const t = sanitize(rawText);
+        listenOnce((transcripts: string[]) => {
+          const t = sanitize(transcripts[0] || '');
           const next = ['si', 'sí', 'listo', 'siguiente', 'ok', 'ya', 'claro', 'continuar'].some(w => t.includes(w));
           const repeat = ['repetir', 'repite', 'que', 'como', 'otra vez', 'nuevo'].some(w => t.includes(w));
           const stop = ['salir', 'parar', 'no', 'cancelar', 'alto'].some(w => t.includes(w));

@@ -85,6 +85,8 @@ export default function AdminClient() {
     const [loadingTelemetry, setLoadingTelemetry] = useState(false);
     const [loadingAccessLogs, setLoadingAccessLogs] = useState(false);
     const [loadingEditor, setLoadingEditor] = useState(false);
+    const [selectedTelemetryIds, setSelectedTelemetryIds] = useState<string[]>([]);
+    const [expandedAccessLogUser, setExpandedAccessLogUser] = useState<string | null>(null);
     
     const [faultModalOpen, setFaultModalOpen] = useState(false);
     const [selectedFault, setSelectedFault] = useState<any | null>(null);
@@ -179,6 +181,37 @@ export default function AdminClient() {
         }
     }, [fetchTelemetry]);
 
+    const handleToggleTelemetrySelect = (id: string) => {
+        setSelectedTelemetryIds(prev => 
+            prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id]
+        );
+    };
+
+    const handleToggleAllTelemetry = () => {
+        if (selectedTelemetryIds.length === telemetryList.length && telemetryList.length > 0) {
+            setSelectedTelemetryIds([]);
+        } else {
+            setSelectedTelemetryIds(telemetryList.map(t => t.id));
+        }
+    };
+
+    const handleBulkDeleteTelemetry = async () => {
+        if (!confirm(`¿Estás seguro de que deseas eliminar ${selectedTelemetryIds.length} registros de forma permanente?`)) return;
+        
+        try {
+            await Promise.all(selectedTelemetryIds.map(id => 
+                fetch(`/api/telemetry?id=${id}`, { method: 'DELETE' })
+            ));
+            
+            setSelectedTelemetryIds([]);
+            fetchTelemetry();
+            alert('Registros eliminados exitosamente');
+        } catch (err) {
+            console.error('Error in bulk delete:', err);
+            alert('Error al intentar eliminar los registros');
+        }
+    };
+
     const fetchAccessLogs = useCallback(async () => {
         setLoadingAccessLogs(true);
         try {
@@ -259,6 +292,45 @@ export default function AdminClient() {
         return Object.entries(stats)
             .map(([date, count]) => ({ date, count }))
             .sort((a, b) => b.date.localeCompare(a.date));
+    }, [accessLogsList]);
+
+    const groupedAccessLogs = useMemo(() => {
+        const groups = new Map<string, { name: string; count: number; last_access: string; logs: any[] }>();
+        
+        accessLogsList.forEach(log => {
+            if (!log.full_name) return;
+            const name = log.full_name.trim();
+            const cleanName = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (!cleanName) return;
+
+            let groupKey = name;
+            let found = false;
+
+            for (const [existingKey, data] of groups.entries()) {
+                const cleanExisting = existingKey.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (cleanExisting === cleanName || cleanExisting.includes(cleanName) || cleanName.includes(cleanExisting)) {
+                    groupKey = existingKey;
+                    found = true;
+                    break;
+                }
+            }
+
+            const curr = groups.get(groupKey) || { name: groupKey, count: 0, last_access: log.accessed_at, logs: [] };
+            curr.count += 1;
+            curr.logs.push(log);
+            
+            if (new Date(log.accessed_at) > new Date(curr.last_access)) {
+                curr.last_access = log.accessed_at;
+            }
+
+            groups.set(groupKey, curr);
+        });
+
+        groups.forEach(group => {
+            group.logs.sort((a, b) => new Date(b.accessed_at).getTime() - new Date(a.accessed_at).getTime());
+        });
+
+        return Array.from(groups.values()).sort((a, b) => new Date(b.last_access).getTime() - new Date(a.last_access).getTime());
     }, [accessLogsList]);
 
 
@@ -1419,19 +1491,38 @@ export default function AdminClient() {
                                     <h3 className="text-xs font-bold text-white uppercase tracking-widest">
                                         Historial de consultas de voz analizadas por IA
                                     </h3>
-                                    <button 
-                                        onClick={fetchTelemetry}
-                                        className="text-gray-400 hover:text-white flex items-center gap-1 text-[11px]"
-                                    >
-                                        <RefreshCw className={`w-3 h-3 ${loadingTelemetry ? 'animate-spin' : ''}`} />
-                                        Actualizar
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        {selectedTelemetryIds.length > 0 && (
+                                            <button 
+                                                onClick={handleBulkDeleteTelemetry}
+                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/25 hover:border-red-500/40 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                                Eliminar Seleccionados ({selectedTelemetryIds.length})
+                                            </button>
+                                        )}
+                                        <button 
+                                            onClick={fetchTelemetry}
+                                            className="text-gray-400 hover:text-white flex items-center gap-1 text-[11px]"
+                                        >
+                                            <RefreshCw className={`w-3 h-3 ${loadingTelemetry ? 'animate-spin' : ''}`} />
+                                            Actualizar
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="overflow-hidden rounded-xl border border-white/[0.05]">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-xs">
                                             <thead>
                                                 <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                    <th className="p-4 w-12 text-center">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={telemetryList.length > 0 && selectedTelemetryIds.length === telemetryList.length}
+                                                            onChange={handleToggleAllTelemetry}
+                                                            className="w-4 h-4 rounded bg-[#14151f] border-white/[0.1] text-[#00A8FC] focus:ring-0 cursor-pointer"
+                                                        />
+                                                    </th>
                                                     <th className="p-4">Fecha</th>
                                                     <th className="p-4">Consulta del Operador</th>
                                                     <th className="p-4 text-center">Coincidencias</th>
@@ -1458,6 +1549,14 @@ export default function AdminClient() {
                                                 ) : (
                                                     telemetryList.map((item) => (
                                                         <tr key={item.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                            <td className="p-4 text-center">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={selectedTelemetryIds.includes(item.id)}
+                                                                    onChange={() => handleToggleTelemetrySelect(item.id)}
+                                                                    className="w-4 h-4 rounded bg-[#14151f] border-white/[0.1] text-[#00A8FC] focus:ring-0 cursor-pointer"
+                                                                />
+                                                            </td>
                                                             <td className="p-4 text-gray-400 font-medium whitespace-nowrap">
                                                                 {formatDate(item.timestamp)}
                                                             </td>
@@ -1582,9 +1681,9 @@ export default function AdminClient() {
                                                     <thead>
                                                         <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
                                                             <th className="p-4">Usuario</th>
-                                                            <th className="p-4">Ubicación</th>
-                                                            <th className="p-4">Dirección IP</th>
-                                                            <th className="p-4">Fecha y Hora</th>
+                                                            <th className="p-4 text-center">Total de Accesos</th>
+                                                            <th className="p-4">Último Acceso</th>
+                                                            <th className="p-4 text-center">Acciones</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-white/[0.03]">
@@ -1594,20 +1693,60 @@ export default function AdminClient() {
                                                                     Cargando historial de accesos...
                                                                 </td>
                                                             </tr>
-                                                        ) : accessLogsList.length === 0 ? (
+                                                        ) : groupedAccessLogs.length === 0 ? (
                                                             <tr>
                                                                 <td colSpan={4} className="p-8 text-center text-gray-500">
                                                                     No se han registrado accesos aún.
                                                                 </td>
                                                             </tr>
                                                         ) : (
-                                                            accessLogsList.map((log) => (
-                                                                <tr key={log.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
-                                                                    <td className="p-4 text-white font-bold">{log.full_name}</td>
-                                                                    <td className="p-4 text-gray-300 font-medium">{log.location || 'Desconocido'}</td>
-                                                                    <td className="p-4 text-gray-400 font-mono">{log.ip_address}</td>
-                                                                    <td className="p-4 text-gray-400 whitespace-nowrap">{formatDate(log.accessed_at)}</td>
-                                                                </tr>
+                                                            groupedAccessLogs.map((group) => (
+                                                                <React.Fragment key={group.name}>
+                                                                    <tr 
+                                                                        className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02] cursor-pointer"
+                                                                        onClick={() => setExpandedAccessLogUser(expandedAccessLogUser === group.name ? null : group.name)}
+                                                                    >
+                                                                        <td className="p-4 text-white font-bold flex items-center gap-2">
+                                                                            {group.name}
+                                                                        </td>
+                                                                        <td className="p-4 text-center font-black text-[#00A8FC]">
+                                                                            {group.count}
+                                                                        </td>
+                                                                        <td className="p-4 text-gray-400 whitespace-nowrap">{formatDate(group.last_access)}</td>
+                                                                        <td className="p-4 text-center">
+                                                                            <button className="text-[#00A8FC] hover:underline font-semibold text-xs">
+                                                                                {expandedAccessLogUser === group.name ? 'Ocultar' : 'Ver Registros'}
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                    {expandedAccessLogUser === group.name && (
+                                                                        <tr>
+                                                                            <td colSpan={4} className="bg-[#0e0f16]/90 p-4 border-b border-white/[0.05]">
+                                                                                <div className="flex flex-col gap-2">
+                                                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1 mb-2">Desglose de Accesos de {group.name}:</div>
+                                                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                                                        {group.logs.map(log => (
+                                                                                            <div key={log.id} className="bg-[#141520] border border-white/[0.05] rounded-xl p-3 flex flex-col gap-1.5">
+                                                                                                <div className="flex justify-between text-xs text-gray-400">
+                                                                                                    <span className="font-semibold text-neutral-300">Fecha:</span>
+                                                                                                    <span>{formatDate(log.accessed_at)}</span>
+                                                                                                </div>
+                                                                                                <div className="flex justify-between text-[11px] text-gray-400">
+                                                                                                    <span className="font-semibold">Ubicación:</span>
+                                                                                                    <span className="truncate ml-2">{log.location || 'Desconocido'}</span>
+                                                                                                </div>
+                                                                                                <div className="flex justify-between text-[11px] text-gray-400">
+                                                                                                    <span className="font-semibold">IP:</span>
+                                                                                                    <span className="font-mono">{log.ip_address}</span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    )}
+                                                                </React.Fragment>
                                                             ))
                                                         )}
                                                     </tbody>
