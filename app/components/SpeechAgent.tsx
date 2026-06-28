@@ -586,7 +586,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   return (
     <>
       {/* ── Botón micrófono (Desktop only, SearchBar has its own for mobile) ── */}
-      <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 items-center z-20">
+      <div className="hidden sm:flex absolute right-4 top-[34px] -translate-y-1/2 items-center z-20">
         <MicButton
           isActive={isActive}
           onClick={isActive ? resetAgent : startCapture}

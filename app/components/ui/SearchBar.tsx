@@ -55,7 +55,7 @@ export function SearchBar({
 
       {/* Search icon — decorative */}
       <Search
-        className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none"
+        className="absolute left-5 top-[26px] sm:top-[34px] -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none"
         aria-hidden="true"
       />
 
@@ -92,7 +92,7 @@ export function SearchBar({
       />
 
       {/* Right slot: mobile dictation mic button */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+      <div className="absolute right-3 top-[34px] -translate-y-1/2 flex items-center gap-2">
         {/* Mobile-only mic toggle (for the inline voice dictation in troubleshooting-search) */}
         <button
           type="button"
