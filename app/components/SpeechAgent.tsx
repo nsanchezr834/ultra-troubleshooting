@@ -264,18 +264,23 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     }
 
     wakeRec.onresult = (e: any) => {
-      let transcript = '';
-      for (let i = e.resultIndex; i < e.results.length; ++i) {
-        transcript += e.results[i][0].transcript;
+      let fullTranscript = '';
+      for (let i = 0; i < e.results.length; ++i) {
+        fullTranscript += e.results[i][0].transcript + ' ';
       }
-      const t = sanitize(transcript);
+      
+      const t = sanitize(fullTranscript);
+      console.log('🗣️ [WakeWord] Escuchando:', t);
+      
       if (['oye autoryx', 'oy autoryx', 'hola autoryx', 'autoryx', 'ayuda ultra'].some(w => t.includes(w))) {
+        console.log('✅ [WakeWord] ¡Palabra clave detectada!');
         wakeRec.abort();
         startCapture();
       }
     };
     
     wakeRec.onerror = (e: any) => {
+      console.log('❌ [WakeWord] Error:', e.error);
       if (e.error === 'not-allowed' || e.error === 'aborted') return;
       if (isWakeWordEnabled && turn === 'idle') {
          try { wakeRec.start(); } catch (_) { }
