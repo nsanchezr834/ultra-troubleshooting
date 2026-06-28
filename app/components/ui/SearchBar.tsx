@@ -91,7 +91,7 @@ export function SearchBar({
         ].join(' ')}
       />
 
-      {/* Right slot: mic button (always) + SpeechAgent badge (desktop only) */}
+      {/* Right slot: mobile dictation mic button */}
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
         {/* Mobile-only mic toggle (for the inline voice dictation in troubleshooting-search) */}
         <button
@@ -115,19 +115,10 @@ export function SearchBar({
             <Mic className="w-4 h-4" aria-hidden="true" />
           )}
         </button>
-
-        {/* Desktop slot — SpeechAgent badge + mic button (visibility controlled by SpeechAgent) */}
-        <div>{children}</div>
       </div>
 
-      {/* ── Mobile badge (below the search bar) ── */}
-      {!isListening && (
-        <div className="sm:hidden absolute left-1/2 -translate-x-1/2 -bottom-6 flex items-center gap-1.5 pointer-events-none select-none w-max z-10" aria-hidden="true">
-          <img src="/autoryx_badge_v2.svg" alt="" className={`w-4 h-4 object-contain shrink-0 ${isDarkMode ? 'invert opacity-80' : ''}`} />
-          <span className={`text-[8px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-neutral-400' : 'text-neutral-400'}`}>powered by</span>
-          <span className="text-[10px] font-black text-[#FF6A00] uppercase tracking-widest">Autoryx AI</span>
-        </div>
-      )}
+      {/* SpeechAgent components (Desktop Mic + Centered Badge) */}
+      {children}
     </div>
   );
 }
