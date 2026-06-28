@@ -93,8 +93,8 @@ export function VoiceStatusPanel({
       role="region"
       aria-label="Panel de asistencia por voz"
       className={[
-        'absolute right-0 w-[calc(100vw-3rem)] sm:w-[450px] max-w-full top-full mt-6 z-50 rounded-2xl p-5 shadow-2xl border backdrop-blur-md outline-none',
-        'transition-all duration-300',
+        'absolute right-0 sm:-right-2 w-[320px] sm:w-[450px] max-w-[85vw] top-full mt-6 z-50 rounded-2xl p-5 shadow-2xl border backdrop-blur-md outline-none',
+        'transition-all duration-300 origin-top-right',
         isDarkMode
           ? 'bg-neutral-900/92 border-neutral-800 text-neutral-100'
           : 'bg-white/97 border-neutral-200/80 text-neutral-800',
