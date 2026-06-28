@@ -281,7 +281,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       // Búsqueda más flexible (Fuzzy) porque el navegador a veces escribe "autorix", "auto rix", "oye autoris", etc.
       const hasOye = t.includes('oye') || t.includes('oy ') || t.includes('hoy ') || t.includes('hola ');
       const hasAuto = t.includes('autor') || t.includes('auto') || t.includes('ultra');
-      const exactMatch = ['autoryx', 'autorix', 'ayuda ultra'].some(w => t.includes(w));
+      const exactMatch = ['autoryx', 'autorix', 'ayuda ultra', 'oye ultra'].some(w => t.includes(w));
       
       if ((hasOye && hasAuto) || exactMatch) {
         console.log('✅ [WakeWord] ¡Palabra clave detectada!');
@@ -597,7 +597,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
         </span>
         <div className={`hidden sm:block w-[1px] h-6 shrink-0 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} aria-hidden="true" />
 
-        {/* Wake Word Toggle */}
+        {/* Wake Word Toggle (Desktop) */}
         <label className="hidden sm:flex flex-col items-center gap-1 cursor-pointer group" title='Modo manos libres ("Oye Autoryx")'>
           <div className={`relative w-7 h-3.5 rounded-full p-0.5 transition-colors ${isWakeWordEnabled ? 'bg-[#FF6A00]' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
              <div className={`w-2.5 h-2.5 bg-white rounded-full transition-transform ${isWakeWordEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
@@ -607,6 +607,19 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
           </span>
           <input type="checkbox" className="hidden" checked={isWakeWordEnabled} onChange={(e) => setIsWakeWordEnabled(e.target.checked)} />
         </label>
+        
+        {/* Wake Word Toggle (Mobile Fixed Bottom) */}
+        <div className="sm:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-neutral-900 p-3 rounded-2xl shadow-xl border border-neutral-200 dark:border-neutral-800 flex flex-col items-center gap-2">
+          <label className="flex items-center gap-3 cursor-pointer group" title='Modo manos libres'>
+            <div className={`relative w-10 h-5 rounded-full p-0.5 transition-colors ${isWakeWordEnabled ? 'bg-[#FF6A00]' : 'bg-neutral-300 dark:bg-neutral-700'}`}>
+               <div className={`w-4 h-4 bg-white rounded-full transition-transform ${isWakeWordEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </div>
+            <span className={`text-xs font-black uppercase tracking-widest transition-colors whitespace-nowrap ${isWakeWordEnabled ? 'text-[#FF6A00]' : 'text-neutral-400'}`}>
+               Oye Ultra
+            </span>
+            <input type="checkbox" className="hidden" checked={isWakeWordEnabled} onChange={(e) => setIsWakeWordEnabled(e.target.checked)} />
+          </label>
+        </div>
 
         <div className={`hidden sm:block w-[1px] h-6 shrink-0 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} aria-hidden="true" />
 
