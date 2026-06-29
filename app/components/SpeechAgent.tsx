@@ -14,9 +14,40 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Fuse from 'fuse.js';
+import { distance } from 'fastest-levenshtein';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
 import { logSearch } from '../lib/telemetry';
 import { VoiceStatusPanel, MicButton, VoiceOption } from './ui';
+
+function soundex(word: string): string {
+  const w = word.toUpperCase().replace(/[^A-Z]/g, '');
+  if (!w) return '';
+  
+  const firstLetter = w[0];
+  const mapping: Record<string, string> = {
+    B: '1', F: '1', P: '1', V: '1',
+    C: '2', G: '2', J: '2', K: '2', Q: '2', S: '2', X: '2', Z: '2',
+    D: '3', T: '3',
+    L: '4',
+    M: '5', N: '5',
+    R: '6'
+  };
+  
+  let code = firstLetter;
+  let lastCode = mapping[firstLetter] || '0';
+  
+  for (let i = 1; i < w.length && code.length < 4; i++) {
+    const c = mapping[w[i]] || '0';
+    if (c !== '0' && c !== lastCode) {
+      code += c;
+      lastCode = c;
+    } else if (c !== '0') {
+      lastCode = c;
+    }
+  }
+  
+  return (code + '000').substring(0, 4);
+}
 
 // ───────────────────────────────────────────────────────────────────
 // TÍTULOS CORTOS — mapa de ID → etiqueta breve para lectura en voz
@@ -82,10 +113,59 @@ const fuse = new Fuse(TROUBLESHOOTING_DATABASE, {
 });
 
 function localFuzzySearch(query: string): typeof TROUBLESHOOTING_DATABASE {
-  const result = fuse.search(sanitize(query));
+  const sanitizedQuery = sanitize(query);
+  const queryWords = sanitizedQuery.split(' ').filter(w => w.length > 2);
+  const querySoundex = queryWords.map(w => soundex(w));
   
-  // Return top 3 matches that meet the threshold
-  return result.slice(0, 3).map(r => r.item);
+  // 1. Fuse tradicional
+  const fuseResults = fuse.search(sanitizedQuery);
+  
+  // 2. Soundex + Levenshtein — detecta variantes fonéticas
+  const phoneticMatches: Array<{item: typeof TROUBLESHOOTING_DATABASE[0], score: number}> = [];
+  
+  TROUBLESHOOTING_DATABASE.forEach(entry => {
+    const entryWords = sanitize(entry.symptom).split(' ').filter(w => w.length > 2);
+    const entrySoundex = entryWords.map(w => soundex(w));
+    
+    let soundexScore = 0;
+    querySoundex.forEach(qsx => {
+      if (entrySoundex.includes(qsx)) soundexScore += 1;
+    });
+    
+    if (soundexScore > 0) {
+      const levScores = queryWords.map(qw => {
+        const minLev = Math.min(
+          ...entryWords.map(ew => distance(qw, ew))
+        );
+        return minLev <= 2 ? (2 - minLev) / 2 : 0;
+      });
+      
+      const avgLev = levScores.reduce((a, b) => a + b, 0) / queryWords.length;
+      const phoneticScore = (soundexScore / querySoundex.length) * 0.7 + avgLev * 0.3;
+      
+      if (phoneticScore > 0.4) {
+        phoneticMatches.push({ item: entry, score: phoneticScore });
+      }
+    }
+  });
+  
+  // 3. Combinar: Fuse + Phonetic
+  const combined = new Map<string, {item: typeof TROUBLESHOOTING_DATABASE[0], score: number}>();
+  
+  fuseResults.slice(0, 5).forEach(r => {
+    combined.set(r.item.id, { item: r.item, score: 1 - r.score });
+  });
+  
+  phoneticMatches.forEach(pm => {
+    if (!combined.has(pm.item.id)) {
+      combined.set(pm.item.id, pm);
+    }
+  });
+  
+  return Array.from(combined.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(m => m.item);
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -466,6 +546,14 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     lastQueryRef.current = sanitize(rawText);
 
     let matches = localFuzzySearch(rawText);
+
+    const debugInfo = {
+      rawTranscript: rawText,
+      sanitized: lastQueryRef.current,
+      soundexTokens: lastQueryRef.current.split(' ').map(w => `${w}→${soundex(w)}`),
+      fuzzyMatches: matches.length
+    };
+    console.log('🔍 [Phonetic Search]', JSON.stringify(debugInfo, null, 2));
 
     if (matches.length === 0) {
       try {
