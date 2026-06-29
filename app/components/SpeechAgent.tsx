@@ -177,19 +177,39 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // ─────────────────────────────────────────────
   const speak = useCallback((text: string, onEnd: () => void) => {
     const synth = synthRef.current;
-    if (!synth) return;
+    if (!synth) {
+      onEnd();
+      return;
+    }
     synth.cancel();
     setTurnSafe('machine-speaking');
 
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'es-MX';
-    u.rate = 1.25;   // 25% más rápido — más natural y menos tardado
+    u.rate = 1.25;
     u.pitch = 1.0;
 
-    u.onend = () => onEnd();
-    u.onerror = () => onEnd();
+    let ended = false;
+    const finish = () => {
+      if (ended) return;
+      ended = true;
+      onEnd();
+    };
+
+    u.onend = finish;
+    u.onerror = finish;
 
     synth.speak(u);
+
+    // Fallback de seguridad: si el motor de voz del navegador falla en disparar los eventos
+    // (común en móviles), calculamos el tiempo de lectura (aprox 75ms por letra + 2s base)
+    const estimatedTimeout = Math.max(2000, text.length * 75 + 1500);
+    setTimeout(() => {
+      if (!ended) {
+        console.warn('SpeechSynthesis timeout disparado. Avanzando forzosamente.');
+        finish();
+      }
+    }, estimatedTimeout);
   }, []);
 
   // ─────────────────────────────────────────────
@@ -204,17 +224,15 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     const rec = recRef.current;
     if (!rec) return;
 
-    if (grammarType === 'selection') {
-      const SGL = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
-      if (SGL) {
-        const nums = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'cancelar', 'salir', 'parar', 'ninguna'];
-        const grammarString = `#JSGF V1.0; grammar sel; public <sel> = ${nums.join(' | ')};`;
-        const list = new SGL();
-        list.addFromString(grammarString, 1);
-        rec.grammars = list;
-      }
-    } else {
-      rec.grammars = null;
+    const SGL = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
+    if (grammarType === 'selection' && SGL) {
+      const nums = ['uno', 'dos', 'tres', 'cuatro', 'cinco', 'cancelar', 'salir', 'parar', 'ninguna'];
+      const grammarString = `#JSGF V1.0; grammar sel; public <sel> = ${nums.join(' | ')};`;
+      const list = new SGL();
+      list.addFromString(grammarString, 1);
+      try { rec.grammars = list; } catch (e) { console.error('Error setting grammars:', e); }
+    } else if (SGL) {
+      try { rec.grammars = new SGL(); } catch (e) { console.error('Error clearing grammars:', e); }
     }
 
     rec.interimResults = true;
@@ -224,6 +242,9 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     setStatusText(label);
 
     rec.onresult = (e: any) => {
+      // FIX #1: GUARDAR ESTADO EN LISTENERS
+      if (turnRef.current !== 'user-speaking') return;
+
       // 2. Interim Results UI
       const interim = Array.from(e.results)
         .filter((r: any) => !r.isFinal)
@@ -242,6 +263,9 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
           return;
         }
         
+        // FIX #2: FORZAR rec.stop() EXPLÍCITO
+        try { rec.stop(); } catch (err) {}
+
         // 4. Max Alternatives
         const alts = [];
         for (let i = 0; i < finalResult.length; i++) {
@@ -256,6 +280,9 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     };
 
     rec.onerror = (e: any) => {
+      // FIX #1: GUARDAR ESTADO EN LISTENERS
+      if (turnRef.current !== 'user-speaking') return;
+
       if (e.error === 'no-speech') {
         try { rec.start(); } catch (_) { }
         return;
@@ -271,13 +298,25 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   }, [resetAgent]);
 
   const playPing = useCallback((onEnd?: () => void) => {
+    let endedCalled = false;
+    const finish = () => {
+      if (endedCalled) return;
+      endedCalled = true;
+      if (onEnd) onEnd();
+    };
+
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) {
-        if (onEnd) onEnd();
+        finish();
         return;
       }
       const ctx = new AudioContext();
+      
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(console.log);
+      }
+
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -293,14 +332,22 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
       
       osc.onended = () => {
         ctx.close().catch(console.error);
-        if (onEnd) onEnd();
+        finish();
       };
       
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.2);
+
+      // Fallback in case AudioContext is suspended and never fires onended
+      setTimeout(() => {
+        if (ctx.state !== 'closed') {
+          ctx.close().catch(console.error);
+        }
+        finish();
+      }, 300);
     } catch (e) {
       console.log('No se pudo reproducir el ping:', e);
-      if (onEnd) onEnd();
+      finish();
     }
   }, []);
 
@@ -313,6 +360,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     setErrorMsg('');
     optionsRef.current = [];
     setOptionsMenu([]);
+    setTurnSafe('user-speaking');
 
     // Usamos el callback del ping para iniciar el mic justo cuando termina el sonido
     playPing(() => {
@@ -362,7 +410,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     wakeRec.onerror = (e: any) => {
       console.log('❌ [WakeWord] Error disparado:', e.error);
       if (e.error === 'not-allowed' || e.error === 'aborted') return;
-      if (isWakeWordEnabled && turn === 'idle') {
+      if (isWakeWordEnabled && turnRef.current === 'idle') {
          console.log('🔄 [WakeWord] Reiniciando tras error no fatal en 1s...');
          setTimeout(() => {
            try { wakeRec.start(); } catch (err) { }
@@ -372,7 +420,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
     wakeRec.onend = () => {
       console.log('🏁 [WakeWord] onend disparado (el micrófono se apagó).');
-      if (isWakeWordEnabled && turn === 'idle') {
+      if (isWakeWordEnabled && turnRef.current === 'idle') {
          console.log('🔄 [WakeWord] Reiniciando escucha en 1s...');
          setTimeout(() => {
            try { wakeRec.start(); } catch (err) { }
@@ -421,17 +469,30 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
     if (matches.length === 0) {
       try {
+        // FIX #3: ABORTAR FETCH CON TIMEOUT
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         const res = await fetch('/api/voice-agent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ symptom: sanitize(rawText) }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+
         if (res.ok) {
           const data = await res.json();
           const titles: string[] = data.coincidencias ?? [];
           matches = TROUBLESHOOTING_DATABASE.filter(e => titles.includes(e.symptom));
         }
-      } catch (_) { }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          console.warn('Gemini fetch timeout');
+          speak('No pude conectar. Intenta de nuevo.', resetAgent);
+          return;
+        }
+      }
     }
 
     if (matches.length === 0) {
@@ -710,7 +771,17 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
 
         <button
           type="button"
-          onClick={() => setIsWakeWordEnabled(!isWakeWordEnabled)}
+          onClick={() => {
+            if (!isWakeWordEnabled) {
+              try {
+                // Unlock SpeechSynthesis on first user gesture
+                const u = new SpeechSynthesisUtterance('');
+                u.volume = 0;
+                window.speechSynthesis.speak(u);
+              } catch (e) {}
+            }
+            setIsWakeWordEnabled(!isWakeWordEnabled);
+          }}
           className="flex flex-col items-center gap-1 cursor-pointer group outline-none"
           title='Activar asistente por voz'
           aria-pressed={isWakeWordEnabled}

@@ -51,7 +51,7 @@ Responde única y exclusivamente en formato JSON estructurado sin formato markdo
 }
 Si no encuentras ninguna coincidencia estricta y segura, devuelve el array vacío: {"coincidencias": []}.`;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
         const response = await fetch(geminiUrl, {
             method: 'POST',
             headers: {

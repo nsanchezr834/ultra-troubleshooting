@@ -229,6 +229,20 @@ const TRAINING_1_QUESTIONS: Question[] = [
         explanation: 'Overflow se refiere a la saturación o llenado al límite de un contenedor, requiriendo el uso de un depósito o contenedor adicional.',
         difficulty: 'easy',
         category: 'Training 1'
+    },
+    {
+        id: 'q_t1_16',
+        question: '“Uno de los ojos de la Main camera no se ve”',
+        options: [
+            'Mandarlo como “other issue”, luego especificar en Slack, en el Hilo del Fault: “Main camera left eye out.”',
+            'Reiniciar el robot inmediatamente desde el visor.',
+            'Reportar “Head Cam Out” sin añadir más detalles en Slack.',
+            'Ignorar el problema si el otro ojo de la cámara funciona.'
+        ],
+        correctIndex: 0,
+        explanation: 'Se debe enviar como "other issue" y especificar en el hilo de Slack del fault: "Main camera left eye out.".',
+        difficulty: 'easy',
+        category: 'Training 1'
     }
 ];
 
@@ -611,6 +625,48 @@ const TRAINING_2_QUESTIONS: Question[] = [
         explanation: 'Para re-centrar la vista de forma rápida, se debe mantener presionado el Meta Button en el mando derecho.',
         difficulty: 'easy',
         category: 'Training 2'
+    },
+    {
+        id: 'q_t2_28',
+        question: '¿Qué hacer cuando aparece un lab con “connection timeout”?',
+        options: [
+            'Avisar en slack con un SS (captura de pantalla) de la pantalla.',
+            'Reiniciar el Meta Quest 3.',
+            'Mandar el robot a HOME.',
+            'Reportar "App Not Working".'
+        ],
+        correctIndex: 0,
+        explanation: 'Se debe avisar en Slack compartiendo una captura de pantalla (SS) de la pantalla del error.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_29',
+        question: '¿Cómo sacar una SS (captura de pantalla) desde los visores?',
+        options: [
+            'Decir "Tomar captura" al micrófono del visor.',
+            'Mantén presionado el botón Meta en tu controlador derecho, y aprieta y suelta el gatillo delantero (índice).',
+            'Presionar simultáneamente los botones A y B en el mando derecho.',
+            'Pausar la aplicación y seleccionar "Captura" en el menú principal.'
+        ],
+        correctIndex: 1,
+        explanation: 'Para tomar una captura en los Meta Quest 3, mantén presionado el botón Meta en el controlador derecho y aprieta el gatillo delantero.',
+        difficulty: 'easy',
+        category: 'Training 2'
+    },
+    {
+        id: 'q_t2_30',
+        question: '¿Cómo sacar un videorecording de los visores?',
+        options: [
+            'Abre el menú universal con el botón Meta, selecciona Cámara y luego Grabar vídeo.',
+            'Mantén presionado el gatillo izquierdo por 5 segundos.',
+            'Presiona el botón de encendido dos veces.',
+            'Di "Grabar video" en voz alta al micrófono.'
+        ],
+        correctIndex: 0,
+        explanation: 'Para grabar, abre el menú universal presionando el botón Meta, selecciona Cámara y luego Grabar vídeo. Aparecerá un punto rojo indicando que graba.',
+        difficulty: 'easy',
+        category: 'Training 2'
     }
 ];
 
@@ -783,6 +839,20 @@ const TRAINING_3_QUESTIONS: Question[] = [
         explanation: 'El requisito de 500 horas de simulación en videojuegos de conducción comercial no forma parte de los criterios para obtener la Certificación Operacional oficial de Ultra Robotics.',
         difficulty: 'medium',
         category: 'Training 3'
+    },
+    {
+        id: 'q_t3_13',
+        question: '¿En qué parte va la etiqueta del WF de Mailer, detrás o enfrente, horizontal o vertical?',
+        options: [
+            'Siempre va de forma vertical en la parte delantera.',
+            'Pueden ser de ambos lados y dependiendo del tamaño del sobre.',
+            'Siempre va en la parte trasera de forma horizontal.',
+            'Depende del tamaño del producto y no del cliente.'
+        ],
+        correctIndex: 1,
+        explanation: 'La etiqueta puede ir de ambos lados y dependiendo del tamaño del sobre.',
+        difficulty: 'medium',
+        category: 'Training 3'
     }
 ];
 
@@ -915,6 +985,62 @@ const CUSTOMER_QUESTIONS: Question[] = [
         ],
         correctIndex: 2,
         explanation: 'Primero debes de verificar el display de la bagger, dar clic en el error para que se borre y proceder a arrancar la bolsa, mandar el reprint label (boton color amarillo) y validar si ya salen las bolsas correctamente. "Bag Jam" es la opción específica para cuando una bolsa queda atascada en cualquier parte del mecanismo de la Bagger. En caso de que siga sin salir deberías de reportar Bag Jam.',
+        difficulty: 'hard',
+        category: 'Customer'
+    },
+    {
+        id: 'q_cust_2',
+        question: '¿Qué hacer cuando se manda un fault con una alerta que diga “Other issue”?',
+        options: [
+            'Debes describir en el hilo del fault la situación.',
+            'Esperar a que el supervisor te pregunte.',
+            'Reiniciar la aplicación del visor.',
+            'Continuar empacando hasta que el error desaparezca.'
+        ],
+        correctIndex: 0,
+        explanation: 'Cuando se selecciona “Other issue”, es obligatorio describir la situación en el hilo del fault para proveer contexto.',
+        difficulty: 'hard',
+        category: 'Customer'
+    },
+    {
+        id: 'q_cust_3',
+        question: '¿En qué parte va la etiqueta del WF de Mailer, detrás o enfrente, horizontal o vertical?',
+        options: [
+            'Dependiendo del cliente. Fleetwood Pack piden que la etiqueta vaya en la parte donde se abre el sobre y de forma horizontal, y en Venus: piden que la apliquen a la parte trasera.',
+            'Siempre en el frente del sobre de forma vertical.',
+            'Siempre en la parte trasera de forma horizontal.',
+            'Siempre en la abertura del sobre.'
+        ],
+        correctIndex: 0,
+        explanation: 'Depende del cliente. Fleetwood Pack pide que la etiqueta vaya en la parte donde se abre el sobre y de forma horizontal, y en Venus piden que la apliquen a la parte trasera.',
+        difficulty: 'hard',
+        category: 'Customer'
+    },
+    {
+        id: 'q_cust_4',
+        question: 'Tienes 3 tamaños diferentes de folders/sobres, ¿Cómo sabes qué tamaño debes elegir para empacar el producto en cuestión?',
+        options: [
+            'Siempre usar el sobre más grande para asegurar que quepa.',
+            'Dependiendo del producto, debes elegir el sobre.',
+            'Usar el sobre más pequeño para ahorrar material.',
+            'El robot lo elige automáticamente.'
+        ],
+        correctIndex: 1,
+        explanation: 'Debes elegir el sobre dependiendo del producto en cuestión.',
+        difficulty: 'hard',
+        category: 'Customer'
+    },
+    {
+        id: 'q_cust_5',
+        question: '¿Qué parámetros debes observar al aplicar una label en el folder?',
+        options: [
+            'Procurar poner el label acorde al sobre (si te lo permite) y procurar no sellarlo encima de la abertura.',
+            'Poner la etiqueta en cualquier lado, siempre y cuando no se caiga.',
+            'Pegar la etiqueta siempre sobre la abertura para sellarla.',
+            'Doblar la etiqueta por la mitad en el borde del sobre.'
+        ],
+        correctIndex: 0,
+        explanation: 'Se debe procurar poner el label acorde al sobre y evitar sellarlo encima de la abertura.',
         difficulty: 'hard',
         category: 'Customer'
     }
