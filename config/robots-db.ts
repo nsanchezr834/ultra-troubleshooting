@@ -88,7 +88,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'packie-2.0__6',
                         adviceNumber: 6,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo jala la barra hacia ti.\nPaso 2: Posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error.\nPaso 3: Confirma el cerrado con los pedales para que la máquina reaccione correctamente.\nPaso 4: Si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta.',
+                        isException: false
+                    },
+                    {
+                        id: 'packie-2.0__7',
+                        adviceNumber: 7,
+                        content: 'Falla con la bagger: En caso de que la bolsa se imprima por fuera de la barra selladora:\nPaso 1: Arrancar la bolsa y dejarla en el hospital bin.\nPaso 2: Presionar en reprint (pedal amarillo) para que vuelva a sacar la bolsa correctamente.',
                         isException: false
                     }
                 ]
@@ -132,7 +138,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'future-2.0__6',
                         adviceNumber: 6,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo jala la barra hacia ti.\nPaso 2: Posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error.\nPaso 3: Confirma el cerrado con los pedales para que la máquina reaccione correctamente.\nPaso 4: Si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta.',
+                        isException: false
+                    },
+                    {
+                        id: 'future-2.0__7',
+                        adviceNumber: 7,
+                        content: 'Falla con la bagger: En caso de que la bolsa se imprima por fuera de la barra selladora:\nPaso 1: Arrancar la bolsa y dejarla en el hospital bin.\nPaso 2: Presionar en reprint (pedal amarillo) para que vuelva a sacar la bolsa correctamente.',
                         isException: false
                     }
                 ]
@@ -165,7 +177,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'captain-pack-sparrow__2',
                         adviceNumber: 2,
-                        content: 'En caso de que no saque la bolsa de la bagger: 1. Retirar la etiqueta. 2. Darle en reportar falla y reimprimir (esto activará de nuevo la bagger). 3. Si persiste, colocar la fault de bagger "bag jam" para enviar un redo automático del pedido.',
+                        content: 'En caso de que no saque la bolsa de la bagger:\nPaso 1: Retirar la etiqueta.\nPaso 2: Darle en reportar falla y reimprimir (esto activará de nuevo la bagger).\nPaso 3: Si persiste, colocar la fault de bagger "bag jam" para enviar un redo automático del pedido.',
+                        isException: false
+                    },
+                    {
+                        id: 'captain-pack-sparrow__3',
+                        adviceNumber: 3,
+                        content: 'En caso de que la bolsa de la bagger se imprima por fuera de la barra:\nPaso 1: Intenta ingresarla a la posición por detrás de la barra.',
                         isException: false
                     }
                 ]
@@ -216,7 +234,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'packasaurus__5',
                         adviceNumber: 5,
-                        content: 'En caso de que no saque la bolsa de la bagger: 1. Retirar la etiqueta. 2. Darle en reportar falla y reimprimir (esto activará de nuevo la bagger). 3. Si persiste, colocar la fault de bagger "bag jam" para enviar un redo automático del pedido.',
+                        content: 'En caso de que no saque la bolsa de la bagger:\nPaso 1: Retirar la etiqueta.\nPaso 2: Darle en reportar falla y reimprimir (esto activará de nuevo la bagger).\nPaso 3: Si persiste, colocar la fault de bagger "bag jam" para enviar un redo automático del pedido.',
+                        isException: false
+                    },
+                    {
+                        id: 'packasaurus__6',
+                        adviceNumber: 6,
+                        content: 'En caso de que la bolsa de la bagger se imprima por fuera de la barra:\nPaso 1: Intenta ingresarla a la posición por detrás de la barra.',
                         isException: false
                     }
                 ]
@@ -292,7 +316,13 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'fleetwood-pack__6',
                         adviceNumber: 6,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo jala la barra hacia ti.\nPaso 2: Posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error.\nPaso 3: Confirma el cerrado con los pedales para que la máquina reaccione correctamente.\nPaso 4: Si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta.',
+                        isException: false
+                    },
+                    {
+                        id: 'fleetwood-pack__7',
+                        adviceNumber: 7,
+                        content: 'Falla con la bagger: En caso de que la bolsa se imprima por fuera de la barra selladora:\nPaso 1: Arrancar la bolsa y dejarla en el hospital bin.\nPaso 2: Presionar en reprint (pedal amarillo) para que vuelva a sacar la bolsa correctamente.',
                         isException: false
                     }
                 ]
@@ -697,7 +727,7 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     {
                         id: 'bagger-label__6',
                         adviceNumber: 6,
-                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora: con el brazo izquierdo jala la barra hacia ti y, posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error. Luego, confirma el cerrado con los pedales para que la máquina reaccione correctamente (si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta).',
+                        content: 'Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo jala la barra hacia ti.\nPaso 2: Posteriormente, con el gripper de la mano derecha cerrado, presiona la pantalla del display de la máquina bagger para borrar el error.\nPaso 3: Confirma el cerrado con los pedales para que la máquina reaccione correctamente.\nPaso 4: Si vuelve a fallar el cerrado, usa el pedal 3 de color amarillo para reimprimir la etiqueta.',
                         isException: false
                     }
                 ]
