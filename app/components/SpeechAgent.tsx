@@ -153,7 +153,7 @@ function localFuzzySearch(query: string): typeof TROUBLESHOOTING_DATABASE {
   const combined = new Map<string, {item: typeof TROUBLESHOOTING_DATABASE[0], score: number}>();
   
   fuseResults.slice(0, 5).forEach(r => {
-    combined.set(r.item.id, { item: r.item, score: 1 - r.score });
+    combined.set(r.item.id, { item: r.item, score: 1 - (r.score ?? 0) });
   });
   
   phoneticMatches.forEach(pm => {
