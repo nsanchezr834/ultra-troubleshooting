@@ -697,6 +697,7 @@ export default function TroubleshootingSearch({
         >
           <SpeechAgent
             isDarkMode={isDarkMode}
+            knowledgeBase={combinedKnowledgeBase}
             onMatchFault={(symptom) => {
               setSearchTerm(symptom);
               const matchedItem = combinedKnowledgeBase.find(item => item.symptom === symptom);

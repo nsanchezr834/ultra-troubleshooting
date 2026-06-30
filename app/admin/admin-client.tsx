@@ -74,7 +74,11 @@ export default function AdminClient() {
 
     // Estados del Gestor de Contenidos (Fallas y Consejos)
     const [view, setView] = useState<'analytics' | 'editor'>('analytics');
-    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry' | 'access'>('faults');
+    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry' | 'access' | 'robots'>('faults');
+
+    // Estados para la gestión de robots/estaciones
+    const [robotsList, setRobotsList] = useState<any[]>([]);
+    const [loadingRobots, setLoadingRobots] = useState(false);
     
     const [editorRobots, setEditorRobots] = useState<any[]>([]);
     const [selectedEditorRobotId, setSelectedEditorRobotId] = useState<string>('');
@@ -334,13 +338,57 @@ export default function AdminClient() {
     }, [accessLogsList]);
 
 
+    const fetchRobotsConfig = useCallback(async () => {
+        setLoadingRobots(true);
+        try {
+            const res = await fetch('/api/admin/robots');
+            if (res.ok) {
+                const json = await res.json();
+                setRobotsList(json.data || []);
+            }
+        } catch (err) {
+            console.error('Error fetching robots config:', err);
+        } finally {
+            setLoadingRobots(false);
+        }
+    }, []);
+
+    const handleUpdateRobotField = (id: string, field: 'target_url' | 'status', value: string) => {
+        setRobotsList(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    };
+
+    const handleSaveRobotConfig = async (robot: any) => {
+        try {
+            const res = await fetch('/api/admin/robots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: robot.id,
+                    target_url: robot.target_url,
+                    status: robot.status
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`Configuración de ${robot.name} guardada exitosamente.`);
+                fetchRobotsConfig();
+            } else {
+                alert('Error al guardar: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Error saving robot:', err);
+            alert('Error al intentar guardar la configuración.');
+        }
+    };
+
     useEffect(() => {
         if (view === 'editor') {
             fetchEditorData();
             fetchTelemetry();
             fetchAccessLogs();
+            fetchRobotsConfig();
         }
-    }, [view, fetchEditorData, fetchTelemetry, fetchAccessLogs]);
+    }, [view, fetchEditorData, fetchTelemetry, fetchAccessLogs, fetchRobotsConfig]);
 
     useEffect(() => {
         if (view === 'editor' && selectedEditorRobotId) {
@@ -1295,6 +1343,16 @@ export default function AdminClient() {
                                     >
                                         Accesos de Usuarios
                                     </button>
+                                    <button
+                                        onClick={() => setEditorTab('robots')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all border ${
+                                            editorTab === 'robots'
+                                                ? 'bg-[#FF5A00] text-white border-[#FF5A00]'
+                                                : 'bg-[#14151f] text-gray-400 border-white/[0.05] hover:text-white'
+                                        }`}
+                                    >
+                                        Estaciones (Robots)
+                                    </button>
                                 </div>
                             </div>
                             
@@ -1357,6 +1415,13 @@ export default function AdminClient() {
                                     className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]"
                                 >
                                     <RefreshCw className={`w-3.5 h-3.5 ${loadingAccessLogs ? 'animate-spin' : ''}`} /> Actualizar Accesos
+                                </button>
+                            ) : editorTab === 'robots' ? (
+                                <button 
+                                    onClick={fetchRobotsConfig}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-lg flex items-center gap-1.5 transition-all active:scale-[0.98]"
+                                >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${loadingRobots ? 'animate-spin' : ''}`} /> Actualizar Robots
                                 </button>
                             ) : null}
                         </div>
@@ -1650,7 +1715,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : editorTab === 'access' ? (
                             /* ACCESOS DE USUARIOS */
                             <div className="flex flex-col gap-6 w-full text-left">
                                 {/* Tarjetas de Métricas */}
@@ -1794,6 +1859,75 @@ export default function AdminClient() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        ) : (
+                            /* ESTACIONES (ROBOTS) */
+                            <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col w-full text-left">
+                                <h3 className="text-xs font-black text-white uppercase tracking-widest mb-4">
+                                    Configuración de URLs de Estaciones Robotizadas
+                                </h3>
+                                {loadingRobots ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-gray-500 gap-3">
+                                        <span className="w-8 h-8 border-2 border-[#00A8FC]/30 border-t-[#00A8FC] rounded-full animate-spin" />
+                                        <span className="text-xs">Cargando estaciones...</span>
+                                    </div>
+                                ) : robotsList.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+                                        <span>No se encontraron estaciones registradas en la base de datos.</span>
+                                    </div>
+                                ) : (
+                                    <div className="overflow-hidden rounded-xl border border-white/[0.05]">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-xs">
+                                                <thead>
+                                                    <tr className="bg-[#141520] border-b border-white/[0.05] text-gray-400 font-semibold">
+                                                        <th className="p-4">ID (Código Nodo)</th>
+                                                        <th className="p-4">Nombre del Robot</th>
+                                                        <th className="p-4">URL Objetivo (Ultra Tech)</th>
+                                                        <th className="p-4 text-center">Estatus</th>
+                                                        <th className="p-4 text-center">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/[0.03]">
+                                                    {robotsList.map(robot => (
+                                                        <tr key={robot.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                            <td className="p-4 font-mono font-semibold text-gray-300">{robot.id}</td>
+                                                            <td className="p-4 text-white font-bold">{robot.name}</td>
+                                                            <td className="p-4">
+                                                                <input
+                                                                    type="text"
+                                                                    value={robot.target_url || ''}
+                                                                    onChange={(e) => handleUpdateRobotField(robot.id, 'target_url', e.target.value)}
+                                                                    placeholder="https://app.ultra.tech/app/stations/..."
+                                                                    className="w-full bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none"
+                                                                />
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                <select
+                                                                    value={robot.status || 'inactive'}
+                                                                    onChange={(e) => handleUpdateRobotField(robot.id, 'status', e.target.value)}
+                                                                    className="bg-[#14151f] border border-white/[0.07] focus:border-[#00A8FC]/50 rounded-lg px-2 py-1.5 text-xs font-semibold text-white focus:outline-none appearance-none cursor-pointer text-center"
+                                                                >
+                                                                    <option value="active">Activo</option>
+                                                                    <option value="inactive">Inactivo</option>
+                                                                    <option value="maintenance">Mantenimiento</option>
+                                                                </select>
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                <button
+                                                                    onClick={() => handleSaveRobotConfig(robot)}
+                                                                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all active:scale-[0.98]"
+                                                                >
+                                                                    Guardar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

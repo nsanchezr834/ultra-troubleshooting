@@ -15,7 +15,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { distance } from 'fastest-levenshtein';
-import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
 import { logSearch } from '../lib/telemetry';
 import { VoiceStatusPanel, MicButton, VoiceOption } from './ui';
 
@@ -86,7 +85,7 @@ const SHORT_TITLES: Record<string, string> = {
   'ERR-BAG-004': 'Bagger no sella — Monty',
 };
 
-function getShortTitle(entry: typeof TROUBLESHOOTING_DATABASE[0]): string {
+function getShortTitle(entry: any): string {
   return SHORT_TITLES[entry.id] || entry.symptom.slice(0, 50);
 }
 
@@ -105,25 +104,24 @@ function sanitize(raw: string): string {
 // ───────────────────────────────────────────────────────────────────
 // BÚSQUEDA FUZZY LOCAL
 // ───────────────────────────────────────────────────────────────────
-const fuse = new Fuse(TROUBLESHOOTING_DATABASE, {
-  keys: ['title', 'symptom', 'keywords', 'id'],
-  threshold: 0.3,
-  ignoreLocation: true,
-  minMatchCharLength: 3,
-});
-
-function localFuzzySearch(query: string): typeof TROUBLESHOOTING_DATABASE {
+function localFuzzySearch(query: string, knowledgeBase: any[]): any[] {
   const sanitizedQuery = sanitize(query);
   const queryWords = sanitizedQuery.split(' ').filter(w => w.length > 2);
   const querySoundex = queryWords.map(w => soundex(w));
   
   // 1. Fuse tradicional
+  const fuse = new Fuse(knowledgeBase, {
+    keys: ['title', 'symptom', 'keywords', 'id', 'resolution_protocol'],
+    threshold: 0.3,
+    ignoreLocation: true,
+    minMatchCharLength: 3,
+  });
   const fuseResults = fuse.search(sanitizedQuery);
   
   // 2. Soundex + Levenshtein — detecta variantes fonéticas
-  const phoneticMatches: Array<{item: typeof TROUBLESHOOTING_DATABASE[0], score: number}> = [];
+  const phoneticMatches: Array<{item: any, score: number}> = [];
   
-  TROUBLESHOOTING_DATABASE.forEach(entry => {
+  knowledgeBase.forEach(entry => {
     const entryWords = sanitize(entry.symptom).split(' ').filter(w => w.length > 2);
     const entrySoundex = entryWords.map(w => soundex(w));
     
@@ -150,7 +148,7 @@ function localFuzzySearch(query: string): typeof TROUBLESHOOTING_DATABASE {
   });
   
   // 3. Combinar: Fuse + Phonetic
-  const combined = new Map<string, {item: typeof TROUBLESHOOTING_DATABASE[0], score: number}>();
+  const combined = new Map<string, {item: any, score: number}>();
   
   fuseResults.slice(0, 5).forEach(r => {
     combined.set(r.item.id, { item: r.item, score: 1 - (r.score ?? 0) });
@@ -176,15 +174,16 @@ type Turn = 'idle' | 'machine-speaking' | 'user-speaking' | 'processing';
 interface SpeechAgentProps {
   onMatchFault?: (symptom: string) => void;
   isDarkMode?: boolean;
+  knowledgeBase?: any[];
 }
 
 // ───────────────────────────────────────────────────────────────────
 // COMPONENTE
 // ───────────────────────────────────────────────────────────────────
-export default function SpeechAgent({ onMatchFault, isDarkMode = false }: SpeechAgentProps) {
+export default function SpeechAgent({ onMatchFault, isDarkMode = false, knowledgeBase = [] }: SpeechAgentProps) {
   const [turn, setTurn] = useState<Turn>('idle');
   const [statusText, setStatusText] = useState('');
-  const [optionsMenu, setOptionsMenu] = useState<typeof TROUBLESHOOTING_DATABASE>([]);
+  const [optionsMenu, setOptionsMenu] = useState<any[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [isWakeWordEnabled, setIsWakeWordEnabled] = useState(false);
 
@@ -192,7 +191,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const recRef = useRef<any>(null);
   const wakeWordRecRef = useRef<any>(null);
-  const optionsRef = useRef<typeof TROUBLESHOOTING_DATABASE>([]);
+  const optionsRef = useRef<any[]>([]);
 
   // Telemetría ligera
   const lastQueryRef = useRef('');
@@ -545,7 +544,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     setStatusText(`Buscando: "${rawText}"`);
     lastQueryRef.current = sanitize(rawText);
 
-    let matches = localFuzzySearch(rawText);
+    let matches = localFuzzySearch(rawText, knowledgeBase);
 
     const debugInfo = {
       rawTranscript: rawText,
@@ -572,7 +571,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
         if (res.ok) {
           const data = await res.json();
           const titles: string[] = data.coincidencias ?? [];
-          matches = TROUBLESHOOTING_DATABASE.filter(e => titles.includes(e.symptom));
+          matches = knowledgeBase.filter(e => titles.includes(e.symptom));
         }
       } catch (err: any) {
         if (err.name === 'AbortError') {
@@ -746,7 +745,7 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
   // ─────────────────────────────────────────────
   // PASO 4 — leer resolución (paso a paso interactivo)
   // ─────────────────────────────────────────────
-  const readResolution = useCallback((entry: typeof TROUBLESHOOTING_DATABASE[0]) => {
+  const readResolution = useCallback((entry: any) => {
     setTurnSafe('machine-speaking');
     setStatusText(`📋 ${getShortTitle(entry)}`);
     onMatchFault?.(entry.symptom);
@@ -762,10 +761,10 @@ export default function SpeechAgent({ onMatchFault, isDarkMode = false }: Speech
     };
 
     // Separar los pasos por salto de línea
-    const steps = entry.resolution_protocol
+    const steps = String(entry.resolution_protocol || '')
       .split('\n')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && s !== '.' && s !== '-');
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 0 && s !== '.' && s !== '-');
 
     const executeStep = (index: number) => {
       if (index >= steps.length) {

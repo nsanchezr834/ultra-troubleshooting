@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
+
+// Inicializar el cliente de Supabase con Service Role Key (para saltar RLS en lecturas si es necesario)
+const supabaseAdmin = createClient(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_KEY || ''
+);
 
 export async function POST(req: NextRequest) {
     try {
@@ -21,16 +28,59 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ coincidencias: matches });
         }
 
-        const catalogList = TROUBLESHOOTING_DATABASE.map(t => t.symptom);
+        // 1. Obtener catálogo consolidado (estático local + dinámico de Supabase)
+        let catalogList = TROUBLESHOOTING_DATABASE.map(t => t.symptom);
+        let clientNames: string[] = [];
+        let robotNames: string[] = [];
+
+        try {
+            const { data: dbTroubleshooting } = await supabaseAdmin
+                .from('troubleshooting_knowledge')
+                .select('symptom');
+
+            if (dbTroubleshooting && dbTroubleshooting.length > 0) {
+                const dbSymptoms = dbTroubleshooting.map((t: any) => t.symptom);
+                // Unir evitando duplicados
+                const uniqueSymptoms = new Set([...catalogList, ...dbSymptoms]);
+                catalogList = Array.from(uniqueSymptoms);
+            }
+        } catch (dbErr) {
+            console.error('[VoiceAgent API] Error obteniendo troubleshooting_knowledge de Supabase:', dbErr);
+        }
+
+        // 2. Obtener nombres de clientes para el contexto de Gemini
+        try {
+            const { data: dbClients } = await supabaseAdmin.from('clients').select('name');
+            if (dbClients) {
+                clientNames = dbClients.map((c: any) => c.name);
+            }
+        } catch (cErr) {
+            console.error('[VoiceAgent API] Error obteniendo clientes de Supabase:', cErr);
+        }
+
+        // 3. Obtener nombres de robots para el contexto de Gemini
+        try {
+            const { data: dbRobots } = await supabaseAdmin.from('robots').select('name');
+            if (dbRobots) {
+                robotNames = dbRobots.map((r: any) => r.name);
+            }
+        } catch (rErr) {
+            console.error('[VoiceAgent API] Error obteniendo robots de Supabase:', rErr);
+        }
 
         const prompt = `Actúas como un validador semántico determinista de fallas para celdas robóticas industriales.
 Tu única tarea es recibir una frase de un operario y relacionarla con síntomas exactos del catálogo provisto.
 
+INFORMACIÓN DE CONTEXTO DE LA PLANTA:
+- Clientes / Empresas activas: ${JSON.stringify(clientNames)}
+- Robots / Estaciones activas: ${JSON.stringify(robotNames)}
+
 REGLAS DE EMPAREJAMIENTO CRÍTICAS:
-1. NO ALUCINES NI INFUTAS. Si el operario menciona un componente, pieza o acción que NO tiene una relación directa, causal y unívoca con los síntomas del catálogo, NO debes hacer match.
-2. IGNORA PALABRAS GENÉRICAS. Frases que usen verbos como "funciona", "falla", "ayuda", "máquina" o "sistema" pero se refieran a objetos ajenos al catálogo (ej: "pedales", "perro", "silla") NO deben emparejarse con ninguna falla existente. Es preferible devolver un array vacío antes que un falso positivo.
+1. NO ALUCINES NI INFUTAS. Si el operario menciona un componente, pieza, cliente o robot que NO tiene una relación directa, causal y unívoca con los síntomas del catálogo, NO debes hacer match.
+2. IGNORA PALABRAS GENÉRICAS. Frases que usen verbos como "funciona", "falla", "ayuda", "máquina" o "sistema" pero se refieran a objetos ajenos al catálogo NO deben emparejarse con ninguna falla existente. Es preferible devolver un array vacío antes que un falso positivo.
 3. El match debe basarse en la coincidencia del componente clave afectado (ej. Bagger, Etiqueta/Printer, Brazos/Robot, Gripper, Contenedor/Bin, Cámaras, Conectividad/Red/Latencia, Productos/Lote/Trabajo).
-4. TRADUCCIÓN Y SINÓNIMOS LOGÍSTICOS: Identifica y traduce términos comunes de almacén en inglés o tecnicismos industriales (ej: "no job available" o "no active batch" equivalen semánticamente a "Falta de productos en la zona de alimentación (Out of Product) - Global", "bag jam" equivale a "Bolsa atascada en Bagger", "bad seal" a "Bolsa arrugada, quemada o mal sellada") y realiza la coincidencia con el síntoma en español correspondiente.
+4. TRADUCCIÓN Y SINÓNIMOS LOGÍSTICOS: Identifica y traduce términos comunes de almacén en inglés o tecnicismos industriales (ej: "no job available" o "no active batch" equivalen semánticamente a "Falta de productos en la zona de alimentación (Out of Product) - Global", "bag jam" equivale a "Bolsa atascada en Bagger", "bad seal" a "Bolsa arrugada, quemada o mal sellada", "container" o "tote" a "contenedor") y realiza la coincidencia con el síntoma en español correspondiente.
+5. Usa el contexto de robots y clientes para afinar la puntería si el operario los menciona explícitamente (ej: si menciona "Venus" y hay una falla o consejo sobre el contenedor de Venus, haz el match correcto).
 
 EJEMPLOS DE ENTRENAMIENTO (FEW-SHOT):
 - Operario: "mis pedales no funcionan" -> Catálogo contiene fallas de brazos, grippers, bagger, etc. Ninguno menciona pedales ni se relaciona con la operación de la celda. -> {"coincidencias": []}
@@ -39,7 +89,7 @@ EJEMPLOS DE ENTRENAMIENTO (FEW-SHOT):
 - Operario: "la impresora no saca la etiqueta" -> Coincidencia exacta de componente (etiqueta/impresora). -> {"coincidencias": ["Qué hacer en caso de que no imprima la etiqueta (Bagger / Impresora Integrada)", "Qué hacer en caso de que la impresora de etiquetas (pegado manual) no saque la etiqueta"]}
 - Operario: "brazo congelado" -> Coincidencia directa de componente (brazos). -> {"coincidencias": ["Falla de brazos: Uno o ambos brazos del robot se quedan congelados, no responden a comandos o se mueven de forma errática."]}
 
-Catálogo de fallas válidas (Títulos Exactos):
+Catálogo de fallas y consejos válidos (Títulos Exactos):
 ${JSON.stringify(catalogList, null, 2)}
 
 Descripción del operario a analizar: "${symptom}"

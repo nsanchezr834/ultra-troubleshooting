@@ -7,7 +7,8 @@ import { WorkflowConfig } from '../../config/workflows-db';
 import WorkflowVisualizer from './workflow-visualizer';
 import VideoPlayer from './videos';
 import WorkflowTabs, { TabType } from './workflow-tabs';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Activity, Clock, User, Truck, RefreshCw } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface TelemetryDashboardProps {
     currentClient: ClientConfig | undefined;
@@ -60,6 +61,70 @@ export default function TelemetryDashboard({
     isDarkMode = false,
 }: TelemetryDashboardProps) {
     const [activeTab, setActiveTab] = useState<TabType>('videos');
+
+    // Estados para Monitoreo de Empaque en Vivo (Realtime)
+    const [latestOrders, setLatestOrders] = useState<any[]>([]);
+    const [lastSync, setLastSync] = useState<string | null>(null);
+    const [loadingLive, setLoadingLive] = useState(false);
+
+    useEffect(() => {
+        if (!currentRobot?.id) return;
+        
+        const fetchLiveStatus = async () => {
+            setLoadingLive(true);
+            try {
+                const { data, error } = await supabase
+                    .from('live_station_status')
+                    .select('latest_orders, last_updated')
+                    .eq('robot_id', currentRobot.id)
+                    .maybeSingle();
+                if (data) {
+                    setLatestOrders(data.latest_orders || []);
+                    setLastSync(data.last_updated);
+                } else {
+                    setLatestOrders([]);
+                    setLastSync(null);
+                }
+            } catch (err) {
+                console.error("Error fetching live status:", err);
+            } finally {
+                setLoadingLive(false);
+            }
+        };
+
+        fetchLiveStatus();
+
+        // Suscribirse a cambios en tiempo real con Supabase
+        const channel = supabase
+            .channel(`live_status_${currentRobot.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'live_station_status',
+                filter: `robot_id=eq.${currentRobot.id}`
+            }, (payload: any) => {
+                if (payload.new) {
+                    setLatestOrders(payload.new.latest_orders || []);
+                    setLastSync(payload.new.last_updated);
+                }
+            })
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'live_station_status',
+                filter: `robot_id=eq.${currentRobot.id}`
+            }, (payload: any) => {
+                if (payload.new) {
+                    setLatestOrders(payload.new.latest_orders || []);
+                    setLastSync(payload.new.last_updated);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [currentRobot?.id]);
 
     // Robots con material de vídeo disponible
     const ROBOTS_WITH_VIDEOS = ['future-2.0', 'phil', 'fleetwood-pack', 'fleetwood', 'packie-2.0', 'monty', 'venus', 'mercury', 'bagger-label', 'box-fold', 'pick-sort', 'tower-stack-unstack', 'mabel', 'captain-pack-sparrow', 'packasaurus', 'msqc'];
@@ -180,6 +245,136 @@ export default function TelemetryDashboard({
                 showTipsTab={showTipsTab}
                 isDarkMode={isDarkMode}
             />
+
+            {/* MONITOREO DE EMPAQUE EN VIVO (Supabase Realtime) */}
+            {currentRobot?.id && (
+                <div className={`w-full rounded-3xl border p-6 shadow-md text-left transition-colors duration-300 ${panelBg}`}>
+                    <div className={`border-b pb-4 mb-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2 ${panelHeaderBorder}`}>
+                        <div className="flex items-center gap-2">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                            </span>
+                            <h3 className={`text-xs font-sans font-black uppercase tracking-wider ${titleText}`}>
+                                Monitoreo de Empaque en Vivo (Ultra Tech)
+                            </h3>
+                        </div>
+                        {lastSync && (
+                            <span className={`text-[10px] font-mono font-semibold flex items-center gap-1 ${subtitleText}`}>
+                                <Clock className="w-3.5 h-3.5" /> Última Sincronización: {new Date(lastSync).toLocaleTimeString()}
+                            </span>
+                        )}
+                    </div>
+
+                    {loadingLive ? (
+                        <div className="flex items-center justify-center py-6 text-neutral-500 gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin text-[#ff4f00]" />
+                            <span className="text-xs">Cargando monitor en vivo...</span>
+                        </div>
+                    ) : latestOrders.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-neutral-500 text-center">
+                            <Activity className="w-8 h-8 text-neutral-400 mb-2 animate-pulse" />
+                            <p className="text-xs font-semibold">Esperando telemetría del robot en vivo...</p>
+                            <p className="text-[10px] text-neutral-400 mt-1">Abre el portal de Ultra Tech en una estación autorizada con la extensión activa.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            {/* Orden actual / en proceso (5 columnas) */}
+                            <div className={`lg:col-span-5 p-5 rounded-2xl border flex flex-col gap-4 ${
+                                isDarkMode ? 'bg-neutral-800/40 border-neutral-700/60' : 'bg-neutral-50/50 border-neutral-200/60'
+                            }`}>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Pedido / Batch Actual</span>
+                                        <h4 className="text-2xl font-black text-[#ff4f00] mt-0.5">
+                                            {latestOrders[0]?.order_number || 'Sin Número'}
+                                        </h4>
+                                    </div>
+                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                        latestOrders[0]?.status?.toUpperCase().includes('COMPLETED') || latestOrders[0]?.status?.toUpperCase().includes('PROCESADO')
+                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
+                                    }`}>
+                                        {latestOrders[0]?.status || 'Desconocido'}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 border-t pt-4 border-neutral-200 dark:border-neutral-800">
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                                            <User className="w-3 h-3 text-[#ff4f00]" /> Destino (Ship To)
+                                        </span>
+                                        <span className={`text-xs font-black mt-1 truncate ${isDarkMode ? 'text-neutral-200' : 'text-neutral-800'}`}>
+                                            {latestOrders[0]?.ship_to || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                                            <Truck className="w-3 h-3 text-[#ff4f00]" /> Carrier / Envío
+                                        </span>
+                                        <span className={`text-xs font-black mt-1 truncate ${isDarkMode ? 'text-neutral-200' : 'text-neutral-800'}`}>
+                                            {latestOrders[0]?.carrier || 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col border-t pt-3 border-neutral-200 dark:border-neutral-800">
+                                    <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
+                                        ID del Pedido / Número de Tracking (Interno)
+                                    </span>
+                                    <span className="text-xs font-mono text-[#00A8FC] font-bold mt-1 truncate">
+                                        {latestOrders[0]?.order_id || 'No disponible (Ver detalle en portal)'}
+                                    </span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-[10px] text-neutral-400 mt-auto border-t pt-2 border-neutral-200 dark:border-neutral-800">
+                                    <span>Intento: {latestOrders[0]?.attempted_at || 'Hace un momento'}</span>
+                                    <span>T. Ciclo: {latestOrders[0]?.time_s ? `${latestOrders[0]?.time_s}s` : 'N/A'}</span>
+                                </div>
+                            </div>
+
+                            {/* Historial de cola (7 columnas) */}
+                            <div className="lg:col-span-7 flex flex-col">
+                                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2.5">
+                                    Historial de Órdenes Recientes (Cola)
+                                </span>
+                                <div className={`overflow-hidden rounded-xl border grow max-h-[220px] overflow-y-auto custom-scrollbar ${
+                                    isDarkMode ? 'border-neutral-800/80' : 'border-neutral-200/80'
+                                }`}>
+                                    <table className="w-full text-left text-xs">
+                                        <thead>
+                                            <tr className={`${isDarkMode ? 'bg-[#141520] text-neutral-400 border-neutral-800/60' : 'bg-neutral-50 text-neutral-500 border-neutral-200'} border-b font-semibold`}>
+                                                <th className="p-3">Batch/Pedido</th>
+                                                <th className="p-3">Destinatario</th>
+                                                <th className="p-3 text-center">Estatus</th>
+                                                <th className="p-3">Hora</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className={`divide-y ${isDarkMode ? 'divide-neutral-800/40' : 'divide-neutral-100'}`}>
+                                            {latestOrders.slice(1, 6).map((order, idx) => (
+                                                <tr key={order.order_id || idx} className="hover:bg-white/[0.01] transition-colors">
+                                                    <td className="p-3 font-mono font-bold text-[#ff4f00]">{order.order_number}</td>
+                                                    <td className={`p-3 truncate max-w-[120px] ${isDarkMode ? 'text-neutral-200' : 'text-neutral-700'}`}>{order.ship_to}</td>
+                                                    <td className="p-3 text-center">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                                                            order.status?.toUpperCase().includes('COMPLETED') || order.status?.toUpperCase().includes('PROCESADO')
+                                                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10'
+                                                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/10'
+                                                        }`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 text-neutral-400 whitespace-nowrap">{order.attempted_at}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* CONTENIDO PRINCIPAL */}
             {activeTab === 'videos' && showVideoTab ? (

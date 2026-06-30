@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Autoryx Ultra Bridge",
+  "version": "2.2.0",
+  "description": "Real-time data extraction from Ultra Tech platform",
+  "permissions": ["activeTab"],
+  "host_permissions": [
+    "https://app.ultra.tech/*",
+    "https://ultra-troubleshooting.vercel.app/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://app.ultra.tech/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
