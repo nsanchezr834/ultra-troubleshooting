@@ -223,9 +223,9 @@ async function syncData() {
 }
 
 function getActiveBatchLink() {
-    // Buscar todos los elementos hoja de texto que tengan "ACTIVE" exactamente
+    // Buscar todos los elementos hoja de texto que tengan "ACTIVE" exactamente, con protección de undefined
     const badges = Array.from(document.querySelectorAll('*')).filter(el => {
-        return el.children.length === 0 && el.innerText.trim().toUpperCase() === 'ACTIVE';
+        return el.children.length === 0 && el.innerText && el.innerText.trim().toUpperCase() === 'ACTIVE';
     });
 
     for (const badge of badges) {
