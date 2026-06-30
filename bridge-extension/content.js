@@ -270,10 +270,10 @@ async function initialize() {
         log(`✅ ESTACIÓN DETECTADA: [${activeRobotConfig.name}] (${activeRobotConfig.id})`);
         
         const currentUrl = window.location.href;
-        const isBatchPage = currentUrl.includes('/batches/');
+        const isTelemetryPage = currentUrl.includes('/batches/') || currentUrl.includes('/jobs');
 
         // --- MODO DE AUTO-NAVEGACIÓN AUTÓNOMA ---
-        if (!isBatchPage) {
+        if (!isTelemetryPage) {
             log("Estamos en la página principal de la estación. Buscando lote activo...");
             const activeBatchLink = getActiveBatchLink();
             
@@ -288,7 +288,7 @@ async function initialize() {
             }
         }
 
-        // --- MODO DE TELEMETRÍA (DENTRO DEL LOTE) ---
+        // --- MODO DE TELEMETRÍA (DENTRO DEL LOTE O DE LA TABLA DE TRABAJOS) ---
         isSensing = true;
         await syncData();
         setInterval(syncData, CHECK_INTERVAL_MS);
