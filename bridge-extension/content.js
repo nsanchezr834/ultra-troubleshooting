@@ -78,25 +78,57 @@ function getPackagingLogRows() {
         if (hasPackagingHeaders) {
             let rows = table.querySelectorAll('tbody tr');
             if (!rows || rows.length === 0) {
-                // Fallback: si no hay tbody, tomamos todos los tr excepto el de cabecera
                 rows = Array.from(table.querySelectorAll('tr')).slice(1);
             }
             
-            if (rows && rows.length > 0) {
-                const shipToIdx = headers.findIndex(h => h.includes('ship to'));
-                const carrierIdx = headers.findIndex(h => h.includes('carrier'));
-                const statusIdx = headers.findIndex(h => h.includes('status'));
-                const attemptedIdx = headers.findIndex(h => h.includes('attempted'));
-                const timeIdx = headers.findIndex(h => h.includes('time'));
-                const orderNumIdx = headers.findIndex(h => h.includes('order number') || h.includes('number'));
-                const orderIdIdx = headers.findIndex(h => h.includes('order id') || h.includes('id'));
+            const shipToIdx = headers.findIndex(h => h.includes('ship to'));
+            const carrierIdx = headers.findIndex(h => h.includes('carrier'));
+            const statusIdx = headers.findIndex(h => h.includes('status'));
+            const attemptedIdx = headers.findIndex(h => h.includes('attempted'));
+            const timeIdx = headers.findIndex(h => h.includes('time'));
+            const orderNumIdx = headers.findIndex(h => h.includes('order number') || h.includes('number'));
+            const orderIdIdx = headers.findIndex(h => h.includes('order id') || h.includes('id'));
+            
+            log(`✅ Tabla de empaque identificada por cabeceras. Mapeo: ShipTo=${shipToIdx}, Carrier=${carrierIdx}, Status=${statusIdx}, Attempted=${attemptedIdx}, OrderNum=${orderNumIdx}`);
+            
+            return {
+                rows: rows || [],
+                mapping: { shipToIdx, carrierIdx, statusIdx, attemptedIdx, timeIdx, orderNumIdx, orderIdIdx }
+            };
+        }
+
+        // Fallback: Clasificar por contenido de celdas si no hay cabeceras claras en el primer tr
+        let rows = table.querySelectorAll('tbody tr, tr');
+        if (rows && rows.length > 0) {
+            const firstDataRow = rows[0].tagName === 'TR' && rows[0].querySelector('td') ? rows[0] : rows[1];
+            if (firstDataRow) {
+                const cells = Array.from(firstDataRow.querySelectorAll('td')).map(c => c.innerText.toLowerCase().trim());
+                const hasCarrier = cells.some(c => c.includes('dhl') || c.includes('fedex') || c.includes('ups') || c.includes('usps'));
+                const hasStatus = cells.some(c => c.includes('processing') || c.includes('completed') || c.includes('pending') || c.includes('failed') || c.includes('seal') || c.includes('label'));
                 
-                log(`✅ Tabla de empaque identificada. Columnas mapeadas: ShipTo=${shipToIdx}, Carrier=${carrierIdx}, Status=${statusIdx}, Attempted=${attemptedIdx}, OrderNum=${orderNumIdx}`);
-                
-                return {
-                    rows,
-                    mapping: { shipToIdx, carrierIdx, statusIdx, attemptedIdx, timeIdx, orderNumIdx, orderIdIdx }
-                };
+                if (hasCarrier || hasStatus) {
+                    log(`⚠️ Tabla de empaque identificada por CONTENIDO de celdas.`);
+                    const shipToIdx = 0;
+                    const carrierIdx = cells.findIndex(c => c.includes('dhl') || c.includes('fedex') || c.includes('ups') || c.includes('usps'));
+                    const statusIdx = cells.findIndex(c => c.includes('processing') || c.includes('completed') || c.includes('pending') || c.includes('failed') || c.includes('seal') || c.includes('label'));
+                    const attemptedIdx = 3;
+                    const timeIdx = 4;
+                    const orderNumIdx = 5;
+                    const orderIdIdx = 6;
+                    
+                    return {
+                        rows,
+                        mapping: { 
+                            shipToIdx: shipToIdx !== -1 ? shipToIdx : 0, 
+                            carrierIdx: carrierIdx !== -1 ? carrierIdx : 1, 
+                            statusIdx: statusIdx !== -1 ? statusIdx : 2, 
+                            attemptedIdx: attemptedIdx !== -1 ? attemptedIdx : 3, 
+                            timeIdx: timeIdx !== -1 ? timeIdx : 4, 
+                            orderNumIdx: orderNumIdx !== -1 ? orderNumIdx : 5, 
+                            orderIdIdx: orderIdIdx !== -1 ? orderIdIdx : 6 
+                        }
+                    };
+                }
             }
         }
     }
@@ -190,6 +222,37 @@ async function syncData() {
     }
 }
 
+function getActiveBatchLink() {
+    // Buscar todos los elementos hoja de texto que tengan "ACTIVE" exactamente
+    const badges = Array.from(document.querySelectorAll('*')).filter(el => {
+        return el.children.length === 0 && el.innerText.trim().toUpperCase() === 'ACTIVE';
+    });
+
+    for (const badge of badges) {
+        // Subir en el árbol DOM hasta encontrar la etiqueta <a> asociada al lote
+        let current = badge;
+        while (current && current !== document.body) {
+            if (current.tagName === 'A' && current.href.includes('/batches/')) {
+                return current.href;
+            }
+            const link = current.querySelector('a[href*="/batches/"]');
+            if (link) {
+                return link.href;
+            }
+            current = current.parentElement;
+        }
+    }
+    
+    // Fallback: si no detectamos badge, pero hay tarjetas de lotes, tomamos la primera
+    const firstBatchLink = document.querySelector('a[href*="/batches/"]');
+    if (firstBatchLink) {
+        log("⚠️ No se encontró badge ACTIVE explícito, usando primer lote disponible en pantalla.");
+        return firstBatchLink.href;
+    }
+
+    return null;
+}
+
 async function initialize() {
     log("========== INICIALIZANDO AUTORYX V2 (CHROME EXTENSION) ==========");
     
@@ -205,8 +268,28 @@ async function initialize() {
 
     if (activeRobotConfig) {
         log(`✅ ESTACIÓN DETECTADA: [${activeRobotConfig.name}] (${activeRobotConfig.id})`);
-        isSensing = true;
         
+        const currentUrl = window.location.href;
+        const isBatchPage = currentUrl.includes('/batches/');
+
+        // --- MODO DE AUTO-NAVEGACIÓN AUTÓNOMA ---
+        if (!isBatchPage) {
+            log("Estamos en la página principal de la estación. Buscando lote activo...");
+            const activeBatchLink = getActiveBatchLink();
+            
+            if (activeBatchLink) {
+                log(`🚀 Lote activo detectado de forma autónoma. Redirigiendo a: ${activeBatchLink}`);
+                window.location.href = activeBatchLink;
+                return;
+            } else {
+                log("No se detectaron lotes activos en pantalla. Reintentando escaneo en 10s...");
+                setTimeout(initialize, 10000);
+                return;
+            }
+        }
+
+        // --- MODO DE TELEMETRÍA (DENTRO DEL LOTE) ---
+        isSensing = true;
         await syncData();
         setInterval(syncData, CHECK_INTERVAL_MS);
     } else {
