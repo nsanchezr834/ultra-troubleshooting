@@ -2647,6 +2647,34 @@ export const WORKFLOWS_DATABASE: Record<string, WorkflowConfig> = {
                 }
             ]
         }
+    },
+    'siemens-workflow': {
+        id: 'siemens-workflow',
+        name: 'SIEMENS - Proceso Automatizado',
+        version: '1.0.0',
+        description: 'Flujo de trabajo para el empaque automatizado en la estación SIEMENS.',
+        rootNode: BAGGER_STANDARD_ROOT_NODE
+    },
+    'buddy-workflow': {
+        id: 'buddy-workflow',
+        name: 'Buddy - Proceso Embolsado',
+        version: '1.0.0',
+        description: 'Flujo maestro para la estación del robot Buddy en Shipcube.',
+        rootNode: BAGGER_STANDARD_ROOT_NODE
+    },
+    'max-workflow': {
+        id: 'max-workflow',
+        name: 'Max - Proceso Embolsado',
+        version: '1.0.0',
+        description: 'Flujo maestro para la estación del robot Max en Shipcube.',
+        rootNode: BAGGER_STANDARD_ROOT_NODE
+    },
+    'mojo-workflow': {
+        id: 'mojo-workflow',
+        name: 'Mojo - Proceso Embolsado',
+        version: '1.0.0',
+        description: 'Flujo maestro para la estación del robot Mojo en Shipcube.',
+        rootNode: BAGGER_STANDARD_ROOT_NODE
     }
 };
 

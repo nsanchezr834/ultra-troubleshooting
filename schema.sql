@@ -4,6 +4,7 @@
 
 -- Habilitar extensión http o pg_net si no están activas
 create extension if not exists pg_net;
+create extension if not exists vector;
 
 -- Crear tipo de severidad si no existe
 do $$
@@ -26,6 +27,9 @@ create table if not exists public.troubleshooting_knowledge (
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );
+
+-- Agregar columna de embedding para búsqueda semántica (Gemini)
+alter table public.troubleshooting_knowledge add column if not exists embedding vector(768);
 
 -- Tabla de Suscripciones a Notificaciones Push
 create table if not exists public.push_subscriptions (
@@ -68,12 +72,27 @@ create table if not exists public.user_access_logs (
     accessed_at timestamptz default now()
 );
 
+-- Tabla de Logs del Asistente (Telemetría)
+create table if not exists public.assistant_logs (
+    id uuid default gen_random_uuid() primary key,
+    user_query text not null,
+    ai_response text not null,
+    is_resolved boolean default false,
+    created_at timestamptz default now()
+);
+
 -- Habilitar RLS en tablas creadas
 alter table public.push_subscriptions enable row level security;
 alter table public.casos_estudio enable row level security;
 alter table public.troubleshooting_knowledge enable row level security;
 alter table public.advises enable row level security;
 alter table public.user_access_logs enable row level security;
+alter table public.assistant_logs enable row level security;
+
+drop policy if exists "Permitir inserción pública de assistant_logs" on public.assistant_logs;
+create policy "Permitir inserción pública de assistant_logs"
+    on public.assistant_logs for insert
+    with check (true);
 
 -- Políticas de RLS
 drop policy if exists "Permitir lectura pública de user_access_logs" on public.user_access_logs;
@@ -173,3 +192,33 @@ drop trigger if exists tr_advises_broadcast on public.advises;
 create trigger tr_advises_broadcast
     after insert or update on public.advises
     for each row execute function public.fn_on_new_record_broadcast();
+
+-- Función RPC para buscar conocimientos similares (Cosine Similarity)
+create or replace function match_knowledge (
+  query_embedding vector(768),
+  match_threshold float,
+  match_count int
+)
+returns table (
+  id varchar,
+  category varchar,
+  symptom text,
+  root_cause text,
+  resolution_protocol text,
+  similarity float
+)
+language sql stable
+as $$
+  select
+    troubleshooting_knowledge.id,
+    troubleshooting_knowledge.category,
+    troubleshooting_knowledge.symptom,
+    troubleshooting_knowledge.root_cause,
+    troubleshooting_knowledge.resolution_protocol,
+    1 - (troubleshooting_knowledge.embedding <=> query_embedding) as similarity
+  from public.troubleshooting_knowledge
+  where troubleshooting_knowledge.embedding is not null 
+    and 1 - (troubleshooting_knowledge.embedding <=> query_embedding) > match_threshold
+  order by troubleshooting_knowledge.embedding <=> query_embedding
+  limit match_count;
+$$;

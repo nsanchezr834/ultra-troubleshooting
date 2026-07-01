@@ -1,0 +1,552 @@
+[
+  {
+    "id": "packie-failed-to-print-label-fault",
+    "category": "Bagger / Impresora Integrada",
+    "symptom": "Failed to print label: HTTPSConnectionPool(host='d2kghplsj0vn8x.cloudfront.net', port=443): Max retries exceeded with url:"
+  },
+  {
+    "id": "mercury-container-scan-fault",
+    "category": "Brazos / Robot",
+    "symptom": "Qué hacer si no me escanea el conteiner (Robot Mercury)"
+  },
+  {
+    "id": "venus-container-scan-fault",
+    "category": "Brazos / Robot",
+    "symptom": "Qué hacer si no me escanea el conteiner (Robot Venus)"
+  },
+  {
+    "id": "ERR-NET-003",
+    "category": "Conectividad",
+    "symptom": "Alta latencia, congelamiento intermitente de cámaras o pérdida crítica de paquetes"
+  },
+  {
+    "id": "ADV-manifest.eco-packie-2.0-packie-2.0__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packie 2.0: Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot."
+  },
+  {
+    "id": "ADV-manifest.eco-packie-2.0-packie-2.0__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packie 2.0: Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo "
+  },
+  {
+    "id": "ADV-manifest.eco-packie-2.0-packie-2.0__7",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packie 2.0: Falla con la bagger: En caso de que la bolsa se imprima por fuera de la barra selladora:\nPaso 1: Arr"
+  },
+  {
+    "id": "ADV-manifest.eco-future-2.0-future-2.0__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Future 2.0: Verifica las dimensiones del producto, ya que si es muy grande, procura ingresarlo de forma vertical"
+  },
+  {
+    "id": "ADV-manifest.eco-future-2.0-future-2.0__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Future 2.0: Si se observa que la bagger arrojó la bolsa sin abrirse por falta de aire con los grippers cerrados,"
+  },
+  {
+    "id": "ADV-manifest.eco-future-2.0-future-2.0__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Future 2.0: Prioriza que el movimiento de los brazos sea mínimo y que el movimiento sea del robot completamente "
+  },
+  {
+    "id": "ADV-manifest.eco-packasaurus-packasaurus__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packasaurus: Se necesita agarrar la etiqueta con el brazo donde se encuentre la etiquetadora."
+  },
+  {
+    "id": "ADV-manifest.eco-packasaurus-packasaurus__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packasaurus: Mientras se va cerrando la bolsa se le pega la etiqueta; la bagger tardará unos 10 segundos aproxima"
+  },
+  {
+    "id": "ADV-manifest.eco-packasaurus-packasaurus__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packasaurus: Mucho cuidado al finalizar el cerrado: inmediatamente sale la otra bolsa de la bagger, por lo que ha"
+  },
+  {
+    "id": "ADV-fleetwood-pack__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Fleetwood Pack: Ingresa los objetos por la parte más delgada para facilitar su entrada a la bolsa y asegurar un cier"
+  },
+  {
+    "id": "ADV-manifest.eco-packie-2.0-packie-2.0__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packie 2.0: Si se observa que la bagger arrojó la bolsa sin abrirse por falta de aire con los grippers cerrados,"
+  },
+  {
+    "id": "ADV-manifest.eco-packie-2.0-packie-2.0__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packie 2.0: Cuando los objetos sean grandes y pesados, coloca la pinza debajo de la bolsa para ayudar con el pes"
+  },
+  {
+    "id": "ADV-manifest.eco-packie-2.0-packie-2.0__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packie 2.0: Prioriza que el movimiento de los brazos sea mínimo y que el movimiento sea del robot completamente "
+  },
+  {
+    "id": "ADV-manifest.eco-packie-2.0-packie-2.0__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packie 2.0: Verifica las dimensiones del producto, ya que si es muy grande, procura ingresarlo de forma vertical"
+  },
+  {
+    "id": "ADV-fleetwood-pack__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Fleetwood Pack: Verifica qué workflow está activo, ya que a cierta hora cambia de Bagger a Tote. Asegúrate de estar "
+  },
+  {
+    "id": "ERR-KIN-001",
+    "category": "Consejos Operativos",
+    "symptom": "El hombro del robot comienza a visualizarse en la pantalla operativa / pérdida de alineación"
+  },
+  {
+    "id": "ADV-internal-box-fold-box-fold__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Box Fold: Procura soltar las dos pestañas al mismo tiempo para agilizar el armado."
+  },
+  {
+    "id": "ADV-internal-box-fold-box-fold__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Box Fold: Voltea la caja de un solo movimiento sin soltar los grippers del lado izquierdo."
+  },
+  {
+    "id": "ADV-tower-stack-unstack__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Tower Stack/Unstack: Confirma con el pedal la secuencia de manera correcta: apilado/desapilado."
+  },
+  {
+    "id": "ADV-internal-bagger-label-bagger-label__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Bagger Label: Verifica las dimensiones del producto, ya que si es muy grande, procura ingresarlo de forma vertical"
+  },
+  {
+    "id": "ADV-internal-bagger-label-bagger-label__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Bagger Label: Si se observa que la bagger arrojó la bolsa sin abrirse por falta de aire con los grippers cerrados,"
+  },
+  {
+    "id": "ADV-internal-bagger-label-bagger-label__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Bagger Label: Cuando los objetos sean grandes y pesados, coloca la pinza debajo de la bolsa para ayudar con el pes"
+  },
+  {
+    "id": "ADV-internal-bagger-label-bagger-label__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Bagger Label: Prioriza que el movimiento de los brazos sea mínimo y que el movimiento sea del robot completamente "
+  },
+  {
+    "id": "ADV-internal-bagger-label-bagger-label__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Bagger Label: Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot."
+  },
+  {
+    "id": "ADV-internal-siemens-siemens__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo SIEMENS: Sigue el workflow establecido para asegurar la correcta operación del robot SIEMENS."
+  },
+  {
+    "id": "ADV-missouristar-msqc-msqc__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo MSQC: Sigue el workflow establecido para asegurar la correcta operación del robot."
+  },
+  {
+    "id": "ADV-shipcube-buddy-buddy__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Buddy: Consejo operativo inicial para el robot Buddy en Shipcube."
+  },
+  {
+    "id": "ADV-shipcube-max-max__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Max: Consejo operativo inicial para el robot Max en Shipcube."
+  },
+  {
+    "id": "ADV-shipcube-mojo-mojo__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mojo: Consejo operativo inicial para el robot Mojo en Shipcube."
+  },
+  {
+    "id": "ADV-fleetwood-pack__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Fleetwood Pack: La bin roja se ocupa exclusivamente para la basura generada durante el proceso. No la mezcles con el"
+  },
+  {
+    "id": "ADV-fleetwood-pack__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Fleetwood Pack: Si la bolsa no abre correctamente, desliza las pinzas cerradas de forma vertical sobre la bolsa suti"
+  },
+  {
+    "id": "ADV-tower-stack-unstack__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Tower Stack/Unstack: Utiliza los dos brazos para apilar y para desapilar."
+  },
+  {
+    "id": "ADV-internal-pick-sort-pick-sort__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Pick Sort: Utiliza la mano derecha para alcanzar los objetos más alejados y pásalos a la mano izquierda para in"
+  },
+  {
+    "id": "ADV-internal-bagger-label-bagger-label__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Bagger Label: Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo "
+  },
+  {
+    "id": "ADV-fleetwood-pack__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Fleetwood Pack: Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot."
+  },
+  {
+    "id": "ADV-fleetwood-pack__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Fleetwood Pack: Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo "
+  },
+  {
+    "id": "ADV-fleetwood-pack__7",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Fleetwood Pack: Falla con la bagger: En caso de que la bolsa se imprima por fuera de la barra selladora:\nPaso 1: Arr"
+  },
+  {
+    "id": "ADV-highline-commerce-phil-phil__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Phil: Las etiquetas que tienen una letra van en la bin más lejana al robot, y las etiquetas que no tienen "
+  },
+  {
+    "id": "ADV-manifest.eco-future-2.0-future-2.0__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Future 2.0: Cuando los objetos sean grandes y pesados, coloca la pinza debajo de la bolsa para ayudar con el pes"
+  },
+  {
+    "id": "ADV-manifest.eco-future-2.0-future-2.0__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Future 2.0: Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot."
+  },
+  {
+    "id": "ADV-manifest.eco-future-2.0-future-2.0__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Future 2.0: Si se detiene la máquina porque se quedó atorada la barra selladora:\nPaso 1: Con el brazo izquierdo "
+  },
+  {
+    "id": "ADV-manifest.eco-future-2.0-future-2.0__7",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Future 2.0: Falla con la bagger: En caso de que la bolsa se imprima por fuera de la barra selladora:\nPaso 1: Arr"
+  },
+  {
+    "id": "ADV-manifest.eco-packasaurus-packasaurus__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packasaurus: La mejor posición para quitar las etiquetas es en la parte superior haciendo un movimiento vertical "
+  },
+  {
+    "id": "ADV-manifest.eco-packasaurus-packasaurus__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packasaurus: En caso de que no saque la bolsa de la bagger:\nPaso 1: Retirar la etiqueta.\nPaso 2: Darle en reporta"
+  },
+  {
+    "id": "ADV-manifest.eco-packasaurus-packasaurus__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Packasaurus: En caso de que la bolsa de la bagger se imprima por fuera de la barra:\nPaso 1: Intenta ingresarla a "
+  },
+  {
+    "id": "ADV-highline-commerce-phil-phil__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Phil: Si el tote contiene 6 productos o más, se utiliza la bolsa de mayor tamaño; si tiene 5 productos o m"
+  },
+  {
+    "id": "ERR-KIN-003",
+    "category": "Consejos Operativos",
+    "symptom": "Cómo utilizar el modo AUTO"
+  },
+  {
+    "id": "ADV-highline-commerce-phil-phil__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Phil: Es importante escanear producto por producto, siguiendo la secuencia de 1 a 1, antes de ingresarlos "
+  },
+  {
+    "id": "ADV-highline-commerce-phil-phil__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Phil: También es importante recordar que si el tote contiene una etiqueta, esta debe ingresarse dentro del"
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__7",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Esta es la forma correcta de ingresar un objeto para evitar problemas de cerrado del mailer: Ver vid"
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__8",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Esta es la forma correcta de quitar la cinta adhesiva: Ver video 🎥"
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Al iniciar la tarea si te solicita el workflow escanear el cointener se escanea el codigo de barras "
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Ocupa la tool que es la barra de color negro para aplastar la bolsa y pueda cerrar de manera mas fac"
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot."
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Esta es la forma correcta de agarrar la bolsa: Ver video 🎥"
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Forma correcta de colocar una etiqueta en Venus o Mercury: Ver video 🎥"
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__7",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Esta es la forma correcta de ingresar un objeto para evitar problemas de cerrado del mailer: Ver vid"
+  },
+  {
+    "id": "ADV-highline-commerce-phil-phil__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Phil: Una vez terminado el tote, se debe dejar en la parte más baja del rack."
+  },
+  {
+    "id": "ADV-highline-commerce-phil-phil__7",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Phil: Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot."
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Al iniciar la tarea si te solicita el workflow escanear el cointener se escanea el codigo de barras "
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Para saber que tamaña de bolsa ocupar depende de el producto, productos singulares y de menor tamaño"
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Ocupa la tool que es la barra de color negro para aplastar la bolsa y pueda cerrar de manera mas fac"
+  },
+  {
+    "id": "ERR-MEC-015",
+    "category": "Consejos Operativos",
+    "symptom": "Retiro correcto de etiquetas (labels) del gripper"
+  },
+  {
+    "id": "ERR-PED-001",
+    "category": "Consejos Operativos",
+    "symptom": "No aparece el botón de los pedales / No tengo activos los pedales"
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Esta es la forma correcta de agarrar la bolsa: Ver video 🎥"
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__6",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Forma correcta de colocar una etiqueta en Venus o Mercury: Ver video 🎥"
+  },
+  {
+    "id": "ADV-mountainy-mabel-mabel__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mabel: Verifica más de una vez la cantidad de productos a ingresar."
+  },
+  {
+    "id": "ADV-mountainy-monty-monty__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Monty: Presiona el botón verde de la máquina, ubicado en la esquina inferior derecha, para proceder con el "
+  },
+  {
+    "id": "ADV-mountainy-monty-monty__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Monty: Ingresa el producto por su parte más delgada para evitar forzar la bolsa."
+  },
+  {
+    "id": "ADV-mountainy-monty-monty__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Monty: Verifica más de una vez la cantidad de productos a ingresar."
+  },
+  {
+    "id": "ADV-captain-pack-sparrow__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Captain Pack Sparrow: La mejor posición para quitar las etiquetas es en la parte superior haciendo un movimiento vertical "
+  },
+  {
+    "id": "ADV-captain-pack-sparrow__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Captain Pack Sparrow: En caso de que no saque la bolsa de la bagger:\nPaso 1: Retirar la etiqueta.\nPaso 2: Darle en reporta"
+  },
+  {
+    "id": "ADV-captain-pack-sparrow__3",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Captain Pack Sparrow: En caso de que la bolsa de la bagger se imprima por fuera de la barra:\nPaso 1: Intenta ingresarla a "
+  },
+  {
+    "id": "ADV-highline-commerce-phil-phil__5",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Phil: Cuando se presente algún problema con la orden (ya sea que no se imprima la etiqueta y continúe soli"
+  },
+  {
+    "id": "ADV-outerspace-mercury-mercury__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mercury: Visualiza la posición del robot: en una posición correcta no se vería demasiado el hombro del robot."
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Para saber que tamaña de bolsa ocupar depende de el producto, productos singulares y de menor tamaño"
+  },
+  {
+    "id": "ADV-outerspace-venus-venus__8",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Venus: Esta es la forma correcta de quitar la cinta adhesiva: Ver video 🎥"
+  },
+  {
+    "id": "ADV-mountainy-mabel-mabel__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mabel: Presiona el botón verde de la máquina, ubicado en la esquina inferior derecha, para proceder con el "
+  },
+  {
+    "id": "ADV-mountainy-mabel-mabel__2",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Mabel: Ingresa el producto por su parte más delgada para evitar forzar la bolsa."
+  },
+  {
+    "id": "ADV-mountainy-monty-monty__4",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Monty: La indicación y correcta manera de trabajar es tomar 2 productos a la vez e ingresarlos cuando la ba"
+  },
+  {
+    "id": "ADV-tower-stack-unstack__1",
+    "category": "Consejos Operativos",
+    "symptom": "Consejo Operativo Tower Stack/Unstack: Intenta meter los anillos de lado para que el brazo no te obstruya la vista."
+  },
+  {
+    "id": "ERR-ROB-010",
+    "category": "Problemas con el robot",
+    "symptom": "Falla de cuello: El cuello del robot no puede girar, está rígido o se atascó al intentar seguir visualmente un punto."
+  },
+  {
+    "id": "ERR-BAG-003",
+    "category": "Problemas con el robot",
+    "symptom": "Bolsa arrugada, quemada o mal sellada en los extremos (Bad Seal)"
+  },
+  {
+    "id": "ERR-VOICE-651",
+    "category": "Problemas con el robot",
+    "symptom": "Qué hago si no me escanea un cointener en Venus o Mercury"
+  },
+  {
+    "id": "ERR-ROB-012",
+    "category": "Problemas con el robot",
+    "symptom": "Robot no se mueve: El robot se mantiene completamente estático y no responde a ningún comando de movimiento autónomo o manual."
+  },
+  {
+    "id": "ERR-ROB-008",
+    "category": "Problemas con el robot",
+    "symptom": "Falla de grippers (pinzas): El gripper no abre, no cierra o no tiene fuerza de agarre."
+  },
+  {
+    "id": "ERR-ROB-009",
+    "category": "Problemas con el robot",
+    "symptom": "Falla de cámaras: Pérdida de señal de video o interferencia en la retroalimentación visual del robot."
+  },
+  {
+    "id": "ERR-BAG-002",
+    "category": "Problemas con el robot",
+    "symptom": "Bolsa atascada en Bagger (Bag Jam)"
+  },
+  {
+    "id": "ERR-ROB-007",
+    "category": "Problemas con el robot",
+    "symptom": "Falla de brazos: Uno o ambos brazos del robot se quedan congelados, no responden a comandos o se mueven de forma errática."
+  },
+  {
+    "id": "ERR-ROB-011",
+    "category": "Problemas con el robot",
+    "symptom": "Falla en chest (pecho): El torso o pecho del robot se encuentra congelado o dejó de moverse/rotar completamente."
+  },
+  {
+    "id": "ERR-BIN-003",
+    "category": "Qué hacer en caso de...",
+    "symptom": "El contenedor de artículos rechazados o defectuosos está lleno (Hospital Bin Full)"
+  },
+  {
+    "id": "ERR-MEC-002",
+    "category": "Qué hacer en caso de...",
+    "symptom": "Qué hacer en caso de que el objeto sea cilíndrico"
+  },
+  {
+    "id": "ERR-MEC-013",
+    "category": "Qué hacer en caso de...",
+    "symptom": "Qué hacer en caso de que un objeto se caiga"
+  },
+  {
+    "id": "ERR-BIN-002",
+    "category": "Qué hacer en caso de...",
+    "symptom": "El contenedor de paquetes terminados listos para envío está lleno (Package Bin Full)"
+  },
+  {
+    "id": "ERR-BAG-001",
+    "category": "Qué hacer en caso de...",
+    "symptom": "La bagger escupe de forma abrupta la bolsa o no imprime más (Out of Bags)"
+  },
+  {
+    "id": "ERR-BIN-001",
+    "category": "Qué hacer en caso de...",
+    "symptom": "Robot deposita el paquete terminado en un contenedor equivocado (Package Dropped in Wrong Bin)"
+  },
+  {
+    "id": "ERR-MEC-016",
+    "category": "Qué hacer en caso de...",
+    "symptom": "Qué hacer en caso de que la impresora de etiquetas (pegado manual) no saque la etiqueta"
+  },
+  {
+    "id": "ERR-MEC-014",
+    "category": "Qué hacer en caso de...",
+    "symptom": "Qué hacer en caso de que no imprima la etiqueta (Bagger / Impresora Integrada)"
+  },
+  {
+    "id": "ERR-ROB-013",
+    "category": "Qué hacer en caso de...",
+    "symptom": "El workflow solicita escanear el producto pero indica que el producto no ha sido encontrado (Aplica solo para robots Mabel y Fleetwood)"
+  },
+  {
+    "id": "ERR-BAG-004",
+    "category": "Qué hacer en caso de...",
+    "symptom": "La embolsadora no está sellando bien / falla de sellado en bolsa (Aplica solo para robot Monty)"
+  },
+  {
+    "id": "ERR-BIN-004",
+    "category": "Qué hacer en caso de...",
+    "symptom": "Alineación incorrecta del robot con el bin físico o necesidad de reubicar contenedores (Bin Location Adjustment Needed)"
+  },
+  {
+    "id": "ERR-PRO-001",
+    "category": "Qué hacer en caso de...",
+    "symptom": "Falta de productos en la zona de alimentación (Out of Product) - Global"
+  },
+  {
+    "id": "ERR-SEC-006",
+    "category": "Seguridad",
+    "symptom": "Incursión de personal o Warehouse Representative en el espacio de trabajo físico del robot"
+  },
+  {
+    "id": "ERR-SW-005",
+    "category": "Software",
+    "symptom": "El robot muestra el aviso o estado de sistema 'held for software dev'"
+  },
+  {
+    "id": "ERR-SW-006",
+    "category": "Software",
+    "symptom": "La aplicación en el visor/headset se congela, se cierra inesperadamente o no responde (App Not Working)"
+  },
+  {
+    "id": "ERR-SW-004",
+    "category": "Software",
+    "symptom": "Qué hacer en caso de que el robot no se mueva (no se mueve en teleop pero sí en auto)"
+  }
+]

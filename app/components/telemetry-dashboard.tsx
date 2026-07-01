@@ -47,6 +47,10 @@ const ROBOT_TO_WORKFLOW_MAP: Record<string, string> = {
     'bagger-label': 'internal-bagger-label',
     'tower-stack-unstack': 'internal-tower-stack',
     'msqc': 'msqc',
+    'siemens': 'siemens-workflow',
+    'buddy': 'buddy-workflow',
+    'max': 'max-workflow',
+    'mojo': 'mojo-workflow',
 };
 
 export default function TelemetryDashboard({
@@ -284,11 +288,21 @@ export default function TelemetryDashboard({
                                 isDarkMode ? 'bg-neutral-800/40 border-neutral-700/60' : 'bg-neutral-50/50 border-neutral-200/60'
                             }`}>
                                 <div className="flex justify-between items-start">
-                                    <div>
-                                        <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Pedido / Batch Actual</span>
-                                        <h4 className="text-2xl font-black text-[#ff4f00] mt-0.5">
-                                            {latestOrders[0]?.order_number || 'Sin Número'}
-                                        </h4>
+                                    <div className="flex flex-col gap-1.5">
+                                        <div>
+                                            <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Pedido Actual</span>
+                                            <h4 className="text-xl font-black text-[#ff4f00] mt-0.5">
+                                                {latestOrders[0]?.order_number || 'Sin Número'}
+                                            </h4>
+                                        </div>
+                                        {latestOrders[0]?.batch_id && (
+                                            <div>
+                                                <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Lote (Batch) Actual</span>
+                                                <div className="text-xs font-mono font-black text-blue-400 mt-0.5">
+                                                    {latestOrders[0]?.batch_id}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                                         latestOrders[0]?.status?.toUpperCase().includes('COMPLETED') || latestOrders[0]?.status?.toUpperCase().includes('PROCESADO')

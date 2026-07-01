@@ -96,6 +96,58 @@ const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
             },
         ],
     },
+    'siemens': {
+        layout: 'grid',
+        videos: [
+            {
+                title: 'Proceso Correcto — SIEMENS',
+                description:
+                    'Recorrido operativo completo del proceso correcto de empaque para la estación SIEMENS.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/logos/proceso_SIEMENS.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
+    'buddy': {
+        layout: 'grid',
+        videos: [
+            {
+                title: 'Proceso Completo — Buddy',
+                description:
+                    'Recorrido operativo completo del ciclo de trabajo del robot Buddy.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_future.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
+    'max': {
+        layout: 'grid',
+        videos: [
+            {
+                title: 'Proceso Completo — Max',
+                description:
+                    'Recorrido operativo completo del ciclo de trabajo del robot Max.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_future.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
+    'mojo': {
+        layout: 'grid',
+        videos: [
+            {
+                title: 'Proceso Completo — Mojo',
+                description:
+                    'Recorrido operativo completo del ciclo de trabajo del robot Mojo.',
+                src: 'https://hdwbmwnppatfbwntiskd.supabase.co/storage/v1/object/public/assets-videos/proceso_completo_future.mp4',
+                badge: 'OPERATIVO',
+                badgeColor: 'emerald',
+            },
+        ],
+    },
     'monty': {
         layout: 'grid',
         videos: [

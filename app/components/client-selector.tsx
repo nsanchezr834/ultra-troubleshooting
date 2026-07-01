@@ -22,6 +22,7 @@ const CLIENT_LOGOS: Record<string, string> = {
     'outerspace': '/outerspace_logo.png',
     'mountainy': '/mountainy_logo.png',
     'missouristar': '/missouristar_logo.png',
+    'shipcube': '/shipcube_logo.png',
 };
 
 export default function ClientSelector({

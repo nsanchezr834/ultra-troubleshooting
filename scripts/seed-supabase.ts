@@ -56,6 +56,10 @@ const ROBOT_TO_WORKFLOW_MAP: Record<string, string> = {
     'tote': 'internal-tote',
     'bagger-label': 'internal-bagger-label',
     'tower-stack-unstack': 'internal-tower-stack',
+    'siemens': 'siemens-workflow',
+    'buddy': 'buddy-workflow',
+    'max': 'max-workflow',
+    'mojo': 'mojo-workflow',
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

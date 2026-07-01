@@ -22,6 +22,7 @@ import SafetyCases from './safety-cases';
 import { ClientConfig, RobotConfig } from '@/config/robots-db';
 import { WorkflowConfig } from '@/config/workflows-db';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
+import { useTroubleshootingDB } from '@/hooks/useTroubleshootingDB';
 import { BookOpenCheck, MonitorPlay, Activity, Wrench, GraduationCap, ChevronRight, Settings, Server, ShieldAlert, Cpu, Siren } from 'lucide-react';
 
 interface HomeClientProps {
@@ -32,6 +33,7 @@ interface HomeClientProps {
 type ClientWithLogo = ClientConfig & { logo_url?: string };
 
 export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeClientProps) {
+    const { db: troubleshootingDb } = useTroubleshootingDB();
     const [activeModule, setActiveModule] = useState<'menu' | 'asistencia' | 'troubleshooting' | 'test' | 'seguridad'>('menu');
 
     // ESTADOS DE ASISTENCIA
@@ -142,7 +144,8 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
             'highline-commerce': 'highline_logo.png',
             'outerspace': 'outerspace_logo.png',
             'mountainy': 'mountainy_logo.png',
-            'missouristar': 'missouristar_logo.png'
+            'missouristar': 'missouristar_logo.png',
+            'shipcube': 'shipcube_logo.png',
         };
         return `/${logoMap[key] || `${key.replace('-', '_')}_logo.png`}`;
     };
@@ -397,7 +400,7 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                 {activeModule === 'troubleshooting' && (
                     <div className="w-full flex flex-col items-center gap-4 animate-fadeIn max-w-5xl">
                         <TroubleshootingSearch 
-                            knowledgeBase={TROUBLESHOOTING_DATABASE}
+                            knowledgeBase={troubleshootingDb}
                             selectedCategory={selectedTroubleCategory}
                             onCategorySelect={setSelectedTroubleCategory}
                             isDarkMode={isDarkMode}

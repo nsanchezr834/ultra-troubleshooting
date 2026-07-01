@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@mediapipe/tasks-audio": "^0.10.35",
     "@supabase/supabase-js": "^2.108.1",
     "fastest-levenshtein": "^1.0.16",
     "ffmpeg": "^0.0.4",

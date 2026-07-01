@@ -178,12 +178,54 @@ function scrapePackagingLog() {
                 ? cells[mapping.orderIdIdx].innerText.trim() 
                 : '';
 
-            orders.push({ ship_to, carrier, status, attempted_at, time_s, order_number, order_id });
+            const batch_id = getBatchIdFromPage() || '';
+
+            orders.push({ ship_to, carrier, status, attempted_at, time_s, order_number, order_id, batch_id });
         }
     }
     
     log(`Scraped ${orders.length} órdenes`);
     return orders;
+}
+
+function getBatchIdFromPage() {
+    try {
+        // 1. Buscar el elemento con texto "ACTIVE" exactamente (el badge de estatus del lote en la barra lateral)
+        const badges = Array.from(document.querySelectorAll('*')).filter(el => {
+            return el.children.length === 0 && el.innerText && el.innerText.trim().toUpperCase() === 'ACTIVE';
+        });
+        
+        for (const badge of badges) {
+            let parent = badge.parentElement;
+            while (parent && parent !== document.body) {
+                const text = parent.innerText || '';
+                // Buscar números de 7 dígitos en este contenedor (como 7414716)
+                const match = text.match(/(?:^|\D)(\d{7})(?:\D|$)/);
+                if (match) {
+                    return match[1];
+                }
+                parent = parent.parentElement;
+            }
+        }
+        
+        // Fallback: Buscar en los encabezados principales de la página números de 7 dígitos
+        const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, span, div')).filter(el => {
+            return el.children.length === 0 && /^\d{7}$/.test((el.innerText || '').trim());
+        });
+        if (elements.length > 0) {
+            return elements[0].innerText.trim();
+        }
+        
+        // Fallback 2: Buscar en todo el texto visible del body
+        const bodyText = document.body.innerText || '';
+        const bodyMatch = bodyText.match(/(?:^|\D)(\d{7})(?:\D|$)/);
+        if (bodyMatch) {
+            return bodyMatch[1];
+        }
+    } catch (e) {
+        log("Error en getBatchIdFromPage: " + e.message, "error");
+    }
+    return null;
 }
 
 async function syncData() {

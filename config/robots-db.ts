@@ -732,6 +732,20 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                     }
                 ]
             },
+            {
+                id: 'siemens',
+                name: 'SIEMENS',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'siemens__1',
+                        adviceNumber: 1,
+                        content: 'Sigue el workflow establecido para asegurar la correcta operación del robot SIEMENS.',
+                        isException: false
+                    }
+                ]
+            }
         ]
     },
     'missouristar': {
@@ -748,6 +762,54 @@ export const CLIENTS_DATABASE: Record<string, ClientConfig> = {
                         id: 'msqc__1',
                         adviceNumber: 1,
                         content: 'Sigue el workflow establecido para asegurar la correcta operación del robot.',
+                        isException: false
+                    }
+                ]
+            }
+        ]
+    },
+    'shipcube': {
+        id: 'shipcube',
+        name: 'Shipcube',
+        robots: [
+            {
+                id: 'buddy',
+                name: 'Buddy',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'buddy__1',
+                        adviceNumber: 1,
+                        content: 'Consejo operativo inicial para el robot Buddy en Shipcube.',
+                        isException: false
+                    }
+                ]
+            },
+            {
+                id: 'max',
+                name: 'Max',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'max__1',
+                        adviceNumber: 1,
+                        content: 'Consejo operativo inicial para el robot Max en Shipcube.',
+                        isException: false
+                    }
+                ]
+            },
+            {
+                id: 'mojo',
+                name: 'Mojo',
+                status: 'active',
+                faults: [],
+                advises: [
+                    {
+                        id: 'mojo__1',
+                        adviceNumber: 1,
+                        content: 'Consejo operativo inicial para el robot Mojo en Shipcube.',
                         isException: false
                     }
                 ]
