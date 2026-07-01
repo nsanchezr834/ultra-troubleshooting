@@ -106,10 +106,17 @@ export function useWakeWord(
       let buffer: Float32Array = new Float32Array(0);
 
       workletNodeRef.current.port.onmessage = (event) => {
+        if (event.data.type === 'debug') {
+          console.log("WORKLET DEBUG:", event.data.message);
+          return;
+        }
+
+        if (event.data.type !== 'audio') return;
+        
         if (!isListening || wakeWordDetected) return;
         
         // Append data to buffer
-        const data = event.data as Float32Array;
+        const data = event.data.data as Float32Array;
         const newBuffer = new Float32Array(buffer.length + data.length);
         newBuffer.set(buffer);
         newBuffer.set(data, buffer.length);
