@@ -25,6 +25,7 @@ export async function POST(req: Request) {
       'la vager': 'la bagger',
       'bager': 'bagger',
       'vager': 'bagger',
+      'bagre': 'bagger', // Añadido por error fonético común
       'toute': 'tote',
       'toti': 'tote',
       'autorix': 'autoryx',
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     });
 
     // 1. Generar Embedding con Gemini (Agent B)
-    const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+    const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
     const embeddingResult = await embeddingModel.embedContent(processedText);
     const embedding = embeddingResult.embedding.values.slice(0, 768);
 
