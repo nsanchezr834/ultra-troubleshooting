@@ -24,13 +24,10 @@ interface SearchBarProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  isListening: boolean;
-  onMicClick: () => void;
   isDarkMode?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
   /** ID of the results listbox (for aria-controls) */
   resultsId?: string;
-  children?: React.ReactNode; // slot for SpeechAgent badge
 }
 
 export function SearchBar({

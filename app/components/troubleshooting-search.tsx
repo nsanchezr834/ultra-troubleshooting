@@ -245,7 +245,7 @@ export default function TroubleshootingSearch({
     // Almacenar los parámetros de búsqueda para registrar telemetría al cerrar
     currentSearchRef.current = {
       query: searchTerm || item.symptom,
-      matches_count: lastSearchTypeRef.current === 'voice_inline' ? lastResultsRef.current.length : filteredKnowledge.length,
+      matches_count: filteredKnowledge.length,
       selected_option: item.symptom,
       source: lastSearchTypeRef.current
     };
