@@ -184,7 +184,7 @@ export function UltraAssistant() {
         className={`relative group flex items-center justify-center w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 bg-white`}
       >
         <Image 
-          src="/autoryx_badge_c2.svg" 
+          src="/autoryx_badge_v2.svg" 
           alt="Ultra Assistant Logo" 
           width={32} 
           height={32} 
