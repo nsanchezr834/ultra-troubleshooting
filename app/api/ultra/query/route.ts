@@ -15,6 +15,22 @@ export async function POST(req: Request) {
   try {
     const { text, history = [], contextMatches = null } = await req.json();
 
+    // Helper function to retry Gemini API calls
+    const generateContentWithRetry = async (model: any, prompt: string, retries = 2) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await model.generateContent(prompt);
+        } catch (error: any) {
+          if (i === retries - 1) throw error;
+          if (error?.message?.includes("503") || error?.message?.includes("429")) {
+            await new Promise(r => setTimeout(r, 1500)); // Wait 1.5s before retrying
+          } else {
+            throw error;
+          }
+        }
+      }
+    };
+
     if (!text) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
@@ -89,7 +105,7 @@ export async function POST(req: Request) {
         4. Si eligió una opción, formula una respuesta hablada (corta, natural, sin markdown) explicando la Causa Raíz y el Protocolo de Resolución de la opción elegida. Ve directo al grano.
       `;
       
-      const aiResponse = await flashModel.generateContent(prompt);
+      const aiResponse = await generateContentWithRetry(flashModel, prompt);
       finalResponse = aiResponse.response.text().trim();
       
       if (!finalResponse.includes("Operación cancelada") && !finalResponse.includes("No pude entender")) {
@@ -134,7 +150,7 @@ export async function POST(req: Request) {
             3. Si encuentras MÁS DE UNA opción válida, genera una pregunta CORTA y hablada. Dile al usuario que encontraste varias opciones y pregúntale cuál de estas opciones es su problema real, resumiéndolas de forma súper breve.
             NO uses markdown.
           `;
-          const aiResponse = await flashModel.generateContent(prompt);
+          const aiResponse = await generateContentWithRetry(flashModel, prompt);
           finalResponse = aiResponse.response.text();
           newContextMatches = matchesToLog; // Guardamos el contexto para la siguiente vuelta
         } else {
@@ -156,7 +172,7 @@ export async function POST(req: Request) {
             Usa la información técnica para darle la solución exacta al usuario.
             NO uses markdown (ni negritas, ni listas). Usa puntuación clara para que un motor Text-to-Speech la lea bien.
           `;
-          const aiResponse = await flashModel.generateContent(prompt);
+          const aiResponse = await generateContentWithRetry(flashModel, prompt);
           finalResponse = aiResponse.response.text();
         }
       }
