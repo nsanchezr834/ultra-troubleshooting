@@ -94,6 +94,7 @@ export function useWakeWord(
 
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+      await audioContextRef.current.resume(); // FORCE resume if it started suspended due to async delay
 
       // Load static worklet file to avoid blob: CSP blocking
       await audioContextRef.current.audioWorklet.addModule("/worklets/wake-word-processor.js");
