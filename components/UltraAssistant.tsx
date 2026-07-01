@@ -106,14 +106,18 @@ export function UltraAssistant() {
         const utterance = new SpeechSynthesisUtterance(initialMsg);
         utterance.lang = 'es-ES';
         
+        const checkSpeakingGreeting = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(checkSpeakingGreeting);
+            if (!recognitionRef.current) return;
+            try { recognitionRef.current.start(); } catch (e) {}
+          }
+        }, 1000);
+
         utterance.onend = () => {
+          clearInterval(checkSpeakingGreeting);
           try { recognitionRef.current.start(); } catch (e) {}
         };
-
-        setTimeout(() => {
-          if (!recognitionRef.current) return;
-          try { recognitionRef.current.start(); } catch (e) {}
-        }, 3000);
 
         window.speechSynthesis.speak(utterance);
       } else {
@@ -202,7 +206,19 @@ export function UltraAssistant() {
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(data.response);
         utterance.lang = 'es-ES';
+        // Fallback robusto: revisar periódicamente si ya dejó de hablar
+        const checkSpeaking = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(checkSpeaking);
+            if (isExpectingAnswer) {
+               try { recognitionRef.current.start(); } catch (e) {}
+            }
+          }
+        }, 1000);
+
+        // Limpiar el intervalo cuando se dispara onend normalmente
         utterance.onend = () => {
+          clearInterval(checkSpeaking);
           if (isExpectingAnswer) {
              // Esperamos respuesta, encendemos el micrófono directo
              try { recognitionRef.current.start(); } catch (e) {}
@@ -212,13 +228,6 @@ export function UltraAssistant() {
              startListening();
           }
         };
-        
-        // Timeout de seguridad en caso de que onend no dispare
-        setTimeout(() => {
-          if (isExpectingAnswer) {
-             try { recognitionRef.current.start(); } catch (e) {}
-          }
-        }, 5000);
 
         window.speechSynthesis.speak(utterance);
       } else {
