@@ -18,22 +18,51 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
-    // 0. Corrección Fonética de términos técnicos comunes
+    // 0. Corrección Fonética de términos técnicos comunes usando distancia de Levenshtein (Cálculo Matemático)
     let processedText = text;
-    const phoneticCorrections: Record<string, string> = {
-      'lavager': 'la bagger',
-      'la vager': 'la bagger',
-      'bager': 'bagger',
-      'vager': 'bagger',
-      'bagre': 'bagger', // Añadido por error fonético común
-      'toute': 'tote',
-      'toti': 'tote',
-      'autorix': 'autoryx',
-    };
     
-    Object.entries(phoneticCorrections).forEach(([bad, good]) => {
-      processedText = processedText.replace(new RegExp(`\\b${bad}\\b`, 'gi'), good);
-    });
+    const technicalTerms = {
+      'bagger': ['lavager', 'vager', 'bager', 'bagre'],
+      'tote': ['toute', 'toti', 'toti'],
+      'autoryx': ['autorix', 'autori']
+    };
+
+    const words = processedText.split(/\b/);
+    
+    // Importación dinámica para evitar problemas en Edge (fastest-levenshtein es pure JS)
+    const { distance } = require('fastest-levenshtein');
+
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i].toLowerCase();
+      // Ignorar palabras muy cortas
+      if (word.length < 4) continue;
+      
+      for (const [correctTerm, variations] of Object.entries(technicalTerms)) {
+        // Si ya está bien escrito, saltar
+        if (word === correctTerm) continue;
+
+        // Validar contra las variaciones
+        for (const variant of variations) {
+          // Si la distancia matemática es 1 o 2 (pequeño error de dictado)
+          if (distance(word, variant) <= 2) {
+             words[i] = correctTerm;
+             break;
+          }
+        }
+        
+        // También comparar contra la palabra correcta matemáticamente (por si dijo algo muy similar a bagger)
+        if (distance(word, correctTerm) <= 2 && correctTerm.length > 4) {
+           words[i] = correctTerm;
+        }
+      }
+    }
+    
+    processedText = words.join('');
+
+    // Ajuste adicional para casos de 2 palabras como "la bagger"
+    processedText = processedText.replace(/\bla bagger\b/gi, 'bagger');
+    processedText = processedText.replace(/\bla bagre\b/gi, 'bagger');
+    processedText = processedText.replace(/\blavager\b/gi, 'bagger');
 
     // 1. Generar Embedding con Gemini (Agent B)
     const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
