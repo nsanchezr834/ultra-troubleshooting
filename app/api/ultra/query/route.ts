@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
       const { data: matches, error: rpcError } = await supabase.rpc('match_knowledge', {
         query_embedding: embedding,
-        match_threshold: 0.65,
+        match_threshold: 0.40, // Bajamos el umbral para incluir más resultados
         match_count: 10
       });
 
@@ -115,26 +115,30 @@ export async function POST(req: Request) {
         const bestMatch = matchesToLog[0];
         const flashModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         
-        // Desambiguación si la confianza no es tan alta y hay múltiples opciones
-        if (bestMatch.similarity < 0.78 && matchesToLog.length > 1) {
-          const options = matchesToLog.map((m: any, index: number) => `Opción ${index + 1}: ${m.symptom || m.error_message || m.problem_description}`).join(' | ');
+        // Desambiguación si hay múltiples opciones
+        if (matchesToLog.length > 1) {
+          const options = matchesToLog.map((m: any, index: number) => `Opción ${index + 1}: ${m.symptom || m.error_message || m.problem_description} (Tipo: ${m.category})`).join('\n');
           const prompt = `
-            Eres "Ultra", un asistente de voz técnico.
+            Eres "Ultra", un asistente de voz técnico para operarios.
             Historial reciente de la conversación:
             ${JSON.stringify(history.slice(-4))}
             
-            El usuario hizo una nueva consulta vaga: "${processedText}"
-            Encontraste múltiples fallas posibles en la base de datos:
+            El usuario hizo una nueva consulta: "${processedText}"
+            
+            La base de datos arrojó esta información (contiene fallas, consejos operativos y tips unificados):
             ${options}
             
-            Tu tarea: Genera una pregunta CORTA y hablada. Dile al usuario que encontraste varias opciones y pregúntale cuál de estas opciones es su problema real, resumiendo las opciones de forma súper breve para que el usuario pueda elegir (por número o síntoma).
+            Tu tarea:
+            1. Analiza los resultados y descarta los que no tengan nada que ver con el problema del usuario.
+            2. Si encuentras solo UNA opción que resuelve exactamente su problema, NO le preguntes, dale directamente la respuesta (Causa y Resolución).
+            3. Si encuentras MÁS DE UNA opción válida, genera una pregunta CORTA y hablada. Dile al usuario que encontraste varias opciones y pregúntale cuál de estas opciones es su problema real, resumiéndolas de forma súper breve.
             NO uses markdown.
           `;
           const aiResponse = await flashModel.generateContent(prompt);
           finalResponse = aiResponse.response.text();
           newContextMatches = matchesToLog; // Guardamos el contexto para la siguiente vuelta
         } else {
-          // Alta confianza: Resolver directo
+          // Alta confianza o solo 1 resultado: Resolver directo
           isResolved = true;
           const prompt = `
             Eres "Ultra", un asistente de voz técnico.
@@ -142,13 +146,15 @@ export async function POST(req: Request) {
             ${JSON.stringify(history.slice(-4))}
             
             El usuario reporta el siguiente problema: "${processedText}"
-            La solución técnica encontrada es:
+            La información técnica encontrada en la base de datos es:
+            - Categoría/Tipo: ${bestMatch.category}
+            - Síntoma/Consejo: ${bestMatch.symptom}
             - Causa Raíz: ${bestMatch.root_cause}
-            - Protocolo de Resolución: ${bestMatch.resolution_protocol}
+            - Resolución: ${bestMatch.resolution_protocol}
             
             Tu tarea: Genera una respuesta hablada, muy natural, conversacional y corta respondiendo al problema.
+            Usa la información técnica para darle la solución exacta al usuario.
             NO uses markdown (ni negritas, ni listas). Usa puntuación clara para que un motor Text-to-Speech la lea bien.
-            Ve directo al grano explicando qué causó el problema y qué debe hacer el usuario para resolverlo.
           `;
           const aiResponse = await flashModel.generateContent(prompt);
           finalResponse = aiResponse.response.text();
