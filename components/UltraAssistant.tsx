@@ -15,11 +15,12 @@ export function UltraAssistant() {
     error: wakeWordError 
   } = useWakeWord();
 
-  const [query, setQuery] = useState("");
-  const [response, setResponse] = useState<string | null>(null);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+  const [contextMatches, setContextMatches] = useState<any[] | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const isProcessingRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Ref para SpeechRecognition (si está disponible en el navegador)
   const recognitionRef = useRef<any>(null);
@@ -28,15 +29,21 @@ export function UltraAssistant() {
     isProcessingRef.current = isProcessing;
   }, [isProcessing]);
 
+  // Auto-scroll para el chat
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
   // Manejador centralizado de errores visuales
   const triggerError = (msg: string) => {
     console.error(msg);
     setHasError(true);
-    setTimeout(() => setHasError(false), 4000); // El rojo dura 4 segundos
+    setTimeout(() => setHasError(false), 4000);
   };
 
   useEffect(() => {
-    // Inicializar SpeechRecognition para cuando se detecte el Wake Word
     if (typeof window !== "undefined" && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
@@ -46,7 +53,6 @@ export function UltraAssistant() {
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setQuery(transcript);
         handleProcessQuery(transcript);
       };
 
@@ -55,15 +61,12 @@ export function UltraAssistant() {
         setIsProcessing(false);
         resetDetection();
         
-        // Re-iniciar el detector de wake word si ocurre un error de dictado
         setTimeout(() => {
           startListening();
         }, 500);
       };
       
       recognitionRef.current.onend = () => {
-        // Si el reconocimiento termina pero no estamos procesando nada, 
-        // significa que se abortó o hubo silencio. Reiniciamos el wake word.
         if (!isProcessingRef.current) {
           resetDetection();
           setTimeout(() => {
@@ -74,64 +77,89 @@ export function UltraAssistant() {
     }
   }, [resetDetection, startListening]);
 
-  // Si se detecta el wake word, iniciamos el dictado activo
   useEffect(() => {
     if (wakeWordDetected) {
       if (!recognitionRef.current) {
-        console.error("Speech recognition not supported in this browser");
-        setResponse("Error: Tu navegador no soporta reconocimiento de voz (Usa Google Chrome).");
+        triggerError("Navegador no soporta reconocimiento de voz");
         return;
       }
       
-      // Feedback sonoro opcional
-      const beep = new Audio("/beep.mp3"); // Asumiendo que existe
+      const beep = new Audio("/beep.mp3");
       beep.play().catch(() => {});
       
-      setResponse(null);
-      setQuery("Escuchando...");
-      
-      // Decir en voz alta en qué te puedo ayudar, y luego iniciar el micrófono
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Detener cualquier cosa que esté hablando
-        const utterance = new SpeechSynthesisUtterance("¿En qué te puedo ayudar?");
+        window.speechSynthesis.cancel();
+        
+        let initialMsg = "¿En qué te puedo ayudar?";
+        if (messages.length > 0) {
+            initialMsg = "Te escucho...";
+        }
+
+        const utterance = new SpeechSynthesisUtterance(initialMsg);
         utterance.lang = 'es-ES';
         
         utterance.onend = () => {
-          try {
-            recognitionRef.current.start();
-          } catch (e) {
-            console.error("Error al iniciar reconocimiento activo", e);
-          }
+          try { recognitionRef.current.start(); } catch (e) {}
         };
 
-        // Fallback en caso de que el evento onend no dispare
         setTimeout(() => {
           if (!recognitionRef.current) return;
-          try {
-            recognitionRef.current.start();
-          } catch (e) {
-            // ignore si ya empezó
-          }
+          try { recognitionRef.current.start(); } catch (e) {}
         }, 3000);
 
         window.speechSynthesis.speak(utterance);
       } else {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          console.error("Error al iniciar reconocimiento activo", e);
-        }
+        try { recognitionRef.current.start(); } catch (e) {}
       }
     }
-  }, [wakeWordDetected]);
+  }, [wakeWordDetected]); // Removido messages.length del array de dependencias para no disparar de nuevo
 
   const handleProcessQuery = async (text: string) => {
+    const userText = text.trim();
+    const lowerText = userText.toLowerCase();
+
+    // Comandos locales
+    if (lowerText.includes("cancelar") || lowerText.includes("cancela")) {
+        setMessages([]);
+        setContextMatches(null);
+        resetDetection();
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance("Operación cancelada.");
+            utterance.lang = 'es-ES';
+            window.speechSynthesis.speak(utterance);
+        }
+        startListening();
+        return;
+    }
+
+    if (lowerText.includes("repetir") || lowerText.includes("repite")) {
+        const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
+        resetDetection();
+        if (lastAssistantMessage && 'speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(lastAssistantMessage.content);
+            utterance.lang = 'es-ES';
+            utterance.onend = () => { startListening(); };
+            window.speechSynthesis.speak(utterance);
+        } else {
+            startListening();
+        }
+        return;
+    }
+
+    // Agregar mensaje del usuario a la interfaz
+    const newMessages = [...messages, { role: 'user' as const, content: userText }];
+    setMessages(newMessages);
     setIsProcessing(true);
+
     try {
       const res = await fetch("/api/ultra/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ 
+            text: userText, 
+            history: messages, // Enviamos el historial previo
+            contextMatches: contextMatches 
+        }),
       });
       
       const data = await res.json().catch(() => null);
@@ -140,14 +168,26 @@ export function UltraAssistant() {
         throw new Error(data?.error || `Error HTTP ${res.status}`);
       }
       
-      setResponse(data.response);
+      // Actualizar historial con la respuesta de la IA
+      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
       
+      // Actualizar contexto si lo devuelve el backend (puede ser null si ya resolvió o no hay opciones)
+      if (data.matches !== undefined) {
+          setContextMatches(data.matches);
+      }
+      
+      // Si el backend dictamina que se canceló, limpiamos.
+      if (data.response.includes("Operación cancelada")) {
+          setMessages([]);
+          setContextMatches(null);
+      }
+
       // Reproducir la respuesta vía TTS
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(data.response);
         utterance.lang = 'es-ES';
         utterance.onend = () => {
-          resetDetection(); // Volver a esperar el wake word
+          resetDetection();
           startListening();
         };
         window.speechSynthesis.speak(utterance);
@@ -158,7 +198,7 @@ export function UltraAssistant() {
 
     } catch (err: any) {
       triggerError(`API Error: ${err.message}`);
-      setResponse(`Error: ${err.message}`);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
       resetDetection();
       startListening();
     } finally {
@@ -169,9 +209,9 @@ export function UltraAssistant() {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end space-y-4">
       {/* Ventana de Chat */}
-      {(wakeWordDetected || response || isProcessing) && (
-        <div className="bg-white/90 backdrop-blur-md shadow-2xl rounded-2xl p-6 w-80 border border-gray-100 transition-all duration-300 transform origin-bottom-right">
-          <div className="flex items-center justify-between mb-4">
+      {(wakeWordDetected || messages.length > 0 || isProcessing) && (
+        <div className="bg-white/90 backdrop-blur-md shadow-2xl rounded-2xl p-4 w-80 border border-gray-100 transition-all duration-300 transform origin-bottom-right flex flex-col max-h-96">
+          <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <span className="relative flex h-3 w-3">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${hasError ? 'bg-red-400' : isProcessing ? 'bg-amber-400' : 'bg-blue-400'}`}></span>
@@ -181,31 +221,35 @@ export function UltraAssistant() {
             </h3>
             <button onClick={() => {
               resetDetection();
-              setResponse(null);
+              setMessages([]);
+              setContextMatches(null);
               startListening();
             }} className="text-gray-400 hover:text-gray-600 text-sm">
               Cerrar
             </button>
           </div>
           
-          <div className="space-y-3">
-            {query && (
-              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 italic">
-                "{query}"
+          <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+            {messages.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`rounded-lg p-3 text-sm leading-relaxed max-w-[85%] ${
+                  msg.role === 'user' 
+                    ? 'bg-gray-100 text-gray-800 italic' 
+                    : hasError 
+                      ? 'bg-red-50 text-red-900' 
+                      : 'bg-blue-50 text-blue-900'
+                }`}>
+                  {msg.content}
+                </div>
               </div>
-            )}
+            ))}
             
             {isProcessing && (
               <div className="flex items-center justify-center p-4 text-blue-500">
                 <Loader2 className="w-6 h-6 animate-spin" />
               </div>
             )}
-
-            {response && (
-              <div className={`rounded-lg p-3 text-sm leading-relaxed ${hasError ? 'bg-red-50 text-red-900' : 'bg-blue-50 text-blue-900'}`}>
-                {response}
-              </div>
-            )}
+            <div ref={messagesEndRef} />
           </div>
         </div>
       )}
