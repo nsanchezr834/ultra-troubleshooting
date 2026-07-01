@@ -200,7 +200,11 @@ export function UltraAssistant() {
           setContextMatches(null);
       }
 
-      const isExpectingAnswer = data.matches !== null && data.matches !== undefined && !data.response.includes("Operación cancelada");
+      // Contamos cuántas veces ha hablado el usuario
+      const userMessageCount = newMessages.filter(m => m.role === 'user').length;
+      
+      // El Asistente seguirá escuchando a menos que se cancele explícitamente, o se llegue a 10 turnos
+      const isExpectingAnswer = !data.response.includes("Operación cancelada") && userMessageCount < 10;
 
       // Reproducir la respuesta vía TTS
       if ('speechSynthesis' in window) {

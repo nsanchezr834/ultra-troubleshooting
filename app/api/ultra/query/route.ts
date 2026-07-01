@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       const { data: matches, error: rpcError } = await supabase.rpc('match_knowledge', {
         query_embedding: embedding,
         match_threshold: 0.65,
-        match_count: 3
+        match_count: 10
       });
 
       if (rpcError) throw new Error(`RPC Error: ${rpcError.message}`);
@@ -120,7 +120,10 @@ export async function POST(req: Request) {
           const options = matchesToLog.map((m: any, index: number) => `Opción ${index + 1}: ${m.symptom || m.error_message || m.problem_description}`).join(' | ');
           const prompt = `
             Eres "Ultra", un asistente de voz técnico.
-            El usuario hizo una consulta vaga: "${processedText}"
+            Historial reciente de la conversación:
+            ${JSON.stringify(history.slice(-4))}
+            
+            El usuario hizo una nueva consulta vaga: "${processedText}"
             Encontraste múltiples fallas posibles en la base de datos:
             ${options}
             
@@ -135,12 +138,15 @@ export async function POST(req: Request) {
           isResolved = true;
           const prompt = `
             Eres "Ultra", un asistente de voz técnico.
+            Historial reciente de la conversación:
+            ${JSON.stringify(history.slice(-4))}
+            
             El usuario reporta el siguiente problema: "${processedText}"
             La solución técnica encontrada es:
             - Causa Raíz: ${bestMatch.root_cause}
             - Protocolo de Resolución: ${bestMatch.resolution_protocol}
             
-            Tu tarea: Genera una respuesta hablada, muy natural, conversacional y corta.
+            Tu tarea: Genera una respuesta hablada, muy natural, conversacional y corta respondiendo al problema.
             NO uses markdown (ni negritas, ni listas). Usa puntuación clara para que un motor Text-to-Speech la lea bien.
             Ve directo al grano explicando qué causó el problema y qué debe hacer el usuario para resolverlo.
           `;
@@ -180,8 +186,10 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Agent B Error:", error);
+    
+    // Devolver el error específico para que el Asistente lo lea en voz alta si ocurre algo
     return NextResponse.json(
-      { error: error?.message || "Ha ocurrido un error desconocido con la IA." },
+      { error: `Error en la IA: ${error?.message || "Error desconocido al procesar la respuesta."}` },
       { status: 500 }
     );
   }
