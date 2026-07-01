@@ -18,9 +18,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
+    // 0. Corrección Fonética de términos técnicos comunes
+    let processedText = text;
+    const phoneticCorrections: Record<string, string> = {
+      'lavager': 'la bagger',
+      'la vager': 'la bagger',
+      'bager': 'bagger',
+      'vager': 'bagger',
+      'toute': 'tote',
+      'toti': 'tote',
+      'autorix': 'autoryx',
+    };
+    
+    Object.entries(phoneticCorrections).forEach(([bad, good]) => {
+      processedText = processedText.replace(new RegExp(`\\b${bad}\\b`, 'gi'), good);
+    });
+
     // 1. Generar Embedding con Gemini (Agent B)
-    const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-    const embeddingResult = await embeddingModel.embedContent(text);
+    const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+    const embeddingResult = await embeddingModel.embedContent(processedText);
     const embedding = embeddingResult.embedding.values.slice(0, 768);
 
     // 2. Buscar en Supabase (Agent B)
@@ -45,7 +61,7 @@ export async function POST(req: Request) {
       const flashModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const prompt = `
         Eres "Ultra", un asistente de voz técnico.
-        El usuario reporta el siguiente problema: "${text}"
+        El usuario reporta el siguiente problema: "${processedText}"
         La solución técnica encontrada es:
         - Causa Raíz: ${bestMatch.root_cause}
         - Protocolo de Resolución: ${bestMatch.resolution_protocol}
@@ -62,7 +78,7 @@ export async function POST(req: Request) {
     // 4. Telemetría y Retención Asíncrona (Agent C - Caja Negra)
     // Fire-and-forget promise
     supabase.from('assistant_logs').insert({
-      user_query: text,
+      user_query: processedText,
       ai_response: finalResponse,
       is_resolved: isResolved
     }).then(({ error }) => {

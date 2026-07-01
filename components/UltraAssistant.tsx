@@ -18,9 +18,22 @@ export function UltraAssistant() {
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const isProcessingRef = useRef(false);
   
   // Ref para SpeechRecognition (si está disponible en el navegador)
   const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    isProcessingRef.current = isProcessing;
+  }, [isProcessing]);
+
+  // Manejador centralizado de errores visuales
+  const triggerError = (msg: string) => {
+    console.error(msg);
+    setHasError(true);
+    setTimeout(() => setHasError(false), 4000); // El rojo dura 4 segundos
+  };
 
   useEffect(() => {
     // Inicializar SpeechRecognition para cuando se detecte el Wake Word
@@ -38,12 +51,28 @@ export function UltraAssistant() {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
+        triggerError(`Speech recognition error: ${event.error}`);
         setIsProcessing(false);
-        resetDetection(); // Volver a escuchar el wake word
+        resetDetection();
+        
+        // Re-iniciar el detector de wake word si ocurre un error de dictado
+        setTimeout(() => {
+          startListening();
+        }, 500);
+      };
+      
+      recognitionRef.current.onend = () => {
+        // Si el reconocimiento termina pero no estamos procesando nada, 
+        // significa que se abortó o hubo silencio. Reiniciamos el wake word.
+        if (!isProcessingRef.current) {
+          resetDetection();
+          setTimeout(() => {
+            startListening();
+          }, 500);
+        }
       };
     }
-  }, [resetDetection]);
+  }, [resetDetection, startListening]);
 
   // Si se detecta el wake word, iniciamos el dictado activo
   useEffect(() => {
@@ -125,7 +154,7 @@ export function UltraAssistant() {
       }
 
     } catch (err) {
-      console.error(err);
+      triggerError(`API Error: ${err}`);
       setResponse("Hubo un error al procesar tu solicitud.");
       resetDetection();
       startListening();
@@ -142,8 +171,8 @@ export function UltraAssistant() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <span className="relative flex h-3 w-3">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isProcessing ? 'bg-amber-400' : 'bg-blue-400'}`}></span>
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${isProcessing ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${hasError ? 'bg-red-400' : isProcessing ? 'bg-amber-400' : 'bg-blue-400'}`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${hasError ? 'bg-red-500' : isProcessing ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
               </span>
               Asistente Ultra
             </h3>
@@ -170,7 +199,7 @@ export function UltraAssistant() {
             )}
 
             {response && (
-              <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-900 leading-relaxed">
+              <div className={`rounded-lg p-3 text-sm leading-relaxed ${hasError ? 'bg-red-50 text-red-900' : 'bg-blue-50 text-blue-900'}`}>
                 {response}
               </div>
             )}
@@ -188,10 +217,16 @@ export function UltraAssistant() {
           alt="Ultra Assistant Logo" 
           width={32} 
           height={32} 
-          className={`transition-all duration-300 ${isListening ? 'brightness-0 sepia-[1] hue-rotate-[190deg] saturate-[500%] contrast-[105%] drop-shadow-md' : 'brightness-0 opacity-80'}`} 
+          className={`transition-all duration-300 ${
+            hasError 
+              ? 'brightness-0 invert-[.2] sepia-[1] hue-rotate-[320deg] saturate-[5000%] contrast-[110%] drop-shadow-md' 
+              : isListening 
+                ? 'brightness-0 sepia-[1] hue-rotate-[190deg] saturate-[500%] contrast-[105%] drop-shadow-md' 
+                : 'brightness-0 opacity-80'
+          }`} 
         />
-        {isListening && (
-          <span className="absolute -inset-1 rounded-full border-2 border-blue-500 animate-pulse opacity-50"></span>
+        {(isListening || hasError) && (
+          <span className={`absolute -inset-1 rounded-full border-2 animate-pulse opacity-50 ${hasError ? 'border-red-500' : 'border-blue-500'}`}></span>
         )}
       </button>
       
