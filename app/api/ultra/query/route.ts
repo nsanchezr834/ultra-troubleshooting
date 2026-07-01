@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     // 2. Buscar en Supabase (Agent B)
     const { data: matches, error: rpcError } = await supabase.rpc('match_knowledge', {
       query_embedding: embedding,
-      match_threshold: 0.75,
+      match_threshold: 0.65,
       match_count: 1
     });
 
