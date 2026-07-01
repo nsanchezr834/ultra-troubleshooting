@@ -46,7 +46,13 @@ export function UltraAssistant() {
 
   // Si se detecta el wake word, iniciamos el dictado activo
   useEffect(() => {
-    if (wakeWordDetected && recognitionRef.current) {
+    if (wakeWordDetected) {
+      if (!recognitionRef.current) {
+        console.error("Speech recognition not supported in this browser");
+        setResponse("Error: Tu navegador no soporta reconocimiento de voz (Usa Google Chrome).");
+        return;
+      }
+      
       // Feedback sonoro opcional
       const beep = new Audio("/beep.mp3"); // Asumiendo que existe
       beep.play().catch(() => {});

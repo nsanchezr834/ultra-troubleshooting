@@ -126,6 +126,14 @@ export function useWakeWord(
               if (results && results.length > 0) {
                 const classifications = results[0].classifications;
                 for (const classification of classifications) {
+                  // Debug: Log the top category so the user can see it in F12 Console
+                  if (classification.categories.length > 0) {
+                     const topCat = classification.categories[0];
+                     if (topCat.score > 0.1) {
+                         console.log("Audio detectado:", topCat.categoryName, "Score:", topCat.score);
+                     }
+                  }
+
                   const wakeWordCat = classification.categories.find(c => c.categoryName === "Speech" || c.categoryName === "wake_word_ultra");
                   if (wakeWordCat && wakeWordCat.score > 0.4) { // Umbral ajustado para YAMNet
                     setWakeWordDetected(true);
