@@ -212,11 +212,12 @@ export function UltraAssistant() {
 
       {/* Contenedor del Botón y Leyenda */}
       <div className="flex items-center gap-3">
-        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-white/[0.6] backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200/50 hidden sm:flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity cursor-default">
-          <span className="bg-gradient-to-r from-[#FF5A00] to-[#00A8FC] bg-clip-text text-transparent">
-            Powered by
+        <span className="text-[10px] font-bold uppercase tracking-widest bg-[#0c0d14]/90 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-white/[0.08] hidden sm:flex items-center gap-1.5 opacity-70 hover:opacity-100 hover:border-white/[0.2] hover:shadow-[0_0_15px_rgba(255,90,0,0.15)] transition-all duration-300 cursor-default">
+          <span className="text-gray-500">Powered by</span>
+          <span className="text-white flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse shadow-[0_0_5px_#FF5A00]" />
+            Autoryx IA
           </span>
-          <span className="text-gray-700">Autoryx IA</span>
         </span>
         
         {/* Botón Flotante */}
