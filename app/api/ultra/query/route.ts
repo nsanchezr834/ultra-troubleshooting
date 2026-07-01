@@ -184,15 +184,11 @@ export async function POST(req: Request) {
     
     // Solo registrar en telemetría si NO fue una cancelación
     if (!finalResponse.includes("Operación cancelada")) {
-      const displayQuery = `${operatorName} - "${processedText}"`;
-      supabase.from('voice_telemetry').insert({
-        query: displayQuery,
-        matches_count: matchesToLog.length,
-        selected_option: isResolved ? (matchesToLog.length > 0 ? matchesToLog[0].symptom || matchesToLog[0].error_message || 'Falla resuelta' : null) : null,
-        time_spent_seconds: 0,
-        status: isResolved ? 'resolved' : (newContextMatches ? 'pending_disambiguation' : 'no_matches'),
-        source: 'ultra_ai_assistant',
-        timestamp: new Date().toISOString()
+      const displayQuery = `${operatorName} (Por Voz) - "${processedText}"`;
+      supabase.from('assistant_logs').insert({
+        user_query: displayQuery,
+        ai_response: finalResponse,
+        is_resolved: isResolved
       }).then(({ error }) => {
         if (error) console.error("Telemetry Logger Error:", error);
       });
@@ -209,9 +205,22 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Agent B Error:", error);
     
-    // Devolver el error específico para que el Asistente lo lea en voz alta si ocurre algo
+    // Mandar el error técnico al dashboard del Admin para registro
+    const cookieStore = await cookies();
+    const operatorName = cookieStore.get('operator_name')?.value || 'Operador Desconocido';
+    const technicalError = error?.message || "Error desconocido al procesar la respuesta.";
+    
+    supabase.from('assistant_logs').insert({
+      user_query: `${operatorName} (Por Voz) - Error Técnico`,
+      ai_response: `ERROR: ${technicalError}`,
+      is_resolved: false
+    }).then(({ error: logError }) => {
+      if (logError) console.error("Error logging failure:", logError);
+    });
+
+    // Devolver un mensaje genérico y amigable al usuario final
     return NextResponse.json(
-      { error: `Error en la IA: ${error?.message || "Error desconocido al procesar la respuesta."}` },
+      { error: "Lo siento, mis servidores de Inteligencia Artificial están en mantenimiento. Por favor, inténtalo más tarde." },
       { status: 500 }
     );
   }
