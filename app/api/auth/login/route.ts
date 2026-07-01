@@ -229,6 +229,15 @@ export async function POST(request: NextRequest) {
       maxAge: 7200, // 2 horas (tiempo de expiración corto)
     });
 
+    // Guardar el nombre del operador para la telemetría de voz
+    cookieStore.set('operator_name', finalName, {
+      httpOnly: false, // Accesible por el cliente y otras rutas
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 7200,
+    });
+
     // Limpiar el token CSRF para forzar uno nuevo en la siguiente sesión
     cookieStore.delete('csrf_token');
 

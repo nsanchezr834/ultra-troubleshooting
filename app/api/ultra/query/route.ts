@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
     const { data: matches, error: rpcError } = await supabase.rpc('match_knowledge', {
       query_embedding: embedding,
       match_threshold: 0.65,
-      match_count: 1
+      match_count: 3
     });
 
     if (rpcError) {
@@ -83,39 +84,73 @@ export async function POST(req: Request) {
     let finalResponse = "No encuentro esta falla. ¿Deseas que busque en manuales de robots o en el registro de consejos?";
     let isResolved = false;
 
-    // 3. Procesar Respuesta con Gemini 2.5 Flash si hay coincidencia (Agent B)
+    // 3. Procesar Respuesta con Gemini 2.5 Flash
     if (matches && matches.length > 0) {
       const bestMatch = matches[0];
-      isResolved = true;
-      
       const flashModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const prompt = `
-        Eres "Ultra", un asistente de voz técnico.
-        El usuario reporta el siguiente problema: "${processedText}"
-        La solución técnica encontrada es:
-        - Causa Raíz: ${bestMatch.root_cause}
-        - Protocolo de Resolución: ${bestMatch.resolution_protocol}
+      
+      // Lógica de Desambiguación para consultas muy generales (ahorro de tokens)
+      if (bestMatch.similarity < 0.78 && matches.length > 1) {
+        // Extraer los síntomas o descripciones de las top opciones
+        const options = matches.map((m: any, index: number) => `Opción ${index + 1}: ${m.symptom || m.error_message || m.problem_description}`).join(' | ');
         
-        Tu tarea: Genera una respuesta hablada, muy natural, conversacional y corta.
-        NO uses markdown (ni negritas, ni listas). Usa puntuación clara para que un motor Text-to-Speech la lea bien.
-        Ve directo al grano explicando qué causó el problema y qué debe hacer el usuario para resolverlo.
-      `;
-
-      const aiResponse = await flashModel.generateContent(prompt);
-      finalResponse = aiResponse.response.text();
+        const prompt = `
+          Eres "Ultra", un asistente de voz técnico.
+          El usuario hizo una consulta vaga: "${processedText}"
+          Encontraste múltiples fallas posibles en la base de datos:
+          ${options}
+          
+          Tu tarea: Genera una pregunta CORTA y hablada. Dile al usuario que encontraste varias opciones y pregúntale cuál de estas opciones es su problema real, resumiendo las opciones de forma súper breve.
+          NO uses markdown.
+        `;
+        const aiResponse = await flashModel.generateContent(prompt);
+        finalResponse = aiResponse.response.text();
+      } 
+      // Lógica de Resolución Directa (Alta confianza)
+      else {
+        isResolved = true;
+        const prompt = `
+          Eres "Ultra", un asistente de voz técnico.
+          El usuario reporta el siguiente problema: "${processedText}"
+          La solución técnica encontrada es:
+          - Causa Raíz: ${bestMatch.root_cause}
+          - Protocolo de Resolución: ${bestMatch.resolution_protocol}
+          
+          Tu tarea: Genera una respuesta hablada, muy natural, conversacional y corta.
+          NO uses markdown (ni negritas, ni listas). Usa puntuación clara para que un motor Text-to-Speech la lea bien.
+          Ve directo al grano explicando qué causó el problema y qué debe hacer el usuario para resolverlo.
+        `;
+        const aiResponse = await flashModel.generateContent(prompt);
+        finalResponse = aiResponse.response.text();
+      }
     }
 
     // 4. Telemetría y Retención Asíncrona (Agent C - Caja Negra)
     // Fire-and-forget promise
-    supabase.from('assistant_logs').insert({
-      user_query: processedText,
-      ai_response: finalResponse,
-      is_resolved: isResolved
+    const cookieStore = await cookies();
+    const operatorName = cookieStore.get('operator_name')?.value || 'Operador Desconocido';
+    
+    // Concatenar el nombre del operador para mostrarlo en el dashboard
+    const displayQuery = `${operatorName} - "${processedText}"`;
+
+    supabase.from('voice_telemetry').insert({
+      query: displayQuery,
+      matches_count: matches ? matches.length : 0,
+      selected_option: isResolved ? (matches && matches.length > 0 ? matches[0].symptom || matches[0].error_message || 'Falla resuelta' : null) : null,
+      time_spent_seconds: 0,
+      status: isResolved ? 'resolved' : 'no_matches',
+      source: 'ultra_ai_assistant',
+      timestamp: new Date().toISOString()
     }).then(({ error }) => {
       if (error) console.error("Telemetry Logger Error:", error);
     });
 
-    return NextResponse.json({ response: finalResponse });
+    return NextResponse.json({
+      success: true,
+      query: processedText,
+      response: finalResponse,
+      resolved: isResolved
+    });
 
   } catch (error: any) {
     console.error("Agent B Error:", error);

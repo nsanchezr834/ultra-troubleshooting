@@ -74,7 +74,7 @@ export default function AdminClient() {
 
     // Estados del Gestor de Contenidos (Fallas y Consejos)
     const [view, setView] = useState<'analytics' | 'editor'>('analytics');
-    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry' | 'access' | 'robots'>('faults');
+    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry' | 'access' | 'robots' | 'quotas'>('faults');
 
     // Estados para la gestión de robots/estaciones
     const [robotsList, setRobotsList] = useState<any[]>([]);
@@ -112,6 +112,24 @@ export default function AdminClient() {
         content: '',
         is_exception: false
     });
+
+    const [quotasData, setQuotasData] = useState<any>(null);
+    const [loadingQuotas, setLoadingQuotas] = useState(false);
+
+    const fetchQuotas = useCallback(async () => {
+        setLoadingQuotas(true);
+        try {
+            const res = await fetch('/api/admin/quotas');
+            if (res.ok) {
+                const json = await res.json();
+                setQuotasData(json.data);
+            }
+        } catch (error) {
+            console.error('Error fetching quotas:', error);
+        } finally {
+            setLoadingQuotas(false);
+        }
+    }, []);
 
     const fetchEditorData = useCallback(async () => {
         setLoadingEditor(true);
@@ -387,8 +405,9 @@ export default function AdminClient() {
             fetchTelemetry();
             fetchAccessLogs();
             fetchRobotsConfig();
+            fetchQuotas();
         }
-    }, [view, fetchEditorData, fetchTelemetry, fetchAccessLogs, fetchRobotsConfig]);
+    }, [view, fetchEditorData, fetchTelemetry, fetchAccessLogs, fetchRobotsConfig, fetchQuotas]);
 
     useEffect(() => {
         if (view === 'editor' && selectedEditorRobotId) {
@@ -1334,6 +1353,16 @@ export default function AdminClient() {
                                         Consultas de Voz (IA)
                                     </button>
                                     <button
+                                        onClick={() => setEditorTab('quotas')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all border ${
+                                            editorTab === 'quotas'
+                                                ? 'bg-[#FF5A00] text-white border-[#FF5A00]'
+                                                : 'bg-[#14151f] text-gray-400 border-white/[0.05] hover:text-white'
+                                        }`}
+                                    >
+                                        Cuotas (Free Tier)
+                                    </button>
+                                    <button
                                         onClick={() => setEditorTab('access')}
                                         className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all border ${
                                             editorTab === 'access'
@@ -1860,7 +1889,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                             </div>
-                        ) : (
+                        ) : editorTab === 'robots' ? (
                             /* ESTACIONES (ROBOTS) */
                             <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col w-full text-left">
                                 <h3 className="text-xs font-black text-white uppercase tracking-widest mb-4">
@@ -1929,7 +1958,89 @@ export default function AdminClient() {
                                     </div>
                                 )}
                             </div>
-                        )}
+                        ) : editorTab === 'quotas' ? (
+                            /* CUOTAS / FREE TIER */
+                            <div className="flex flex-col gap-6 w-full text-left">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Gemini API Quota */}
+                                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-[#00A8FC]" />
+                                                Gemini 2.5 Flash API
+                                            </h4>
+                                            <span className="text-[10px] font-black text-gray-400 bg-white/[0.05] px-2 py-1 rounded">Daily Limit</span>
+                                        </div>
+                                        {loadingQuotas ? (
+                                            <div className="text-xs text-gray-500 py-4">Cargando métricas...</div>
+                                        ) : quotasData?.gemini ? (
+                                            <>
+                                                <div className="flex justify-between items-end">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-3xl font-black text-white">{quotasData.gemini.requests_today}</span>
+                                                        <span className="text-xs text-gray-400 font-semibold">Peticiones Hoy</span>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-500">/ {quotasData.gemini.max_daily_requests} (Límite Gratuito)</span>
+                                                </div>
+                                                <div className="w-full bg-[#14151f] rounded-full h-3 mt-2 border border-white/[0.05] overflow-hidden">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-1000 ${quotasData.gemini.percentage > 90 ? 'bg-red-500' : quotasData.gemini.percentage > 70 ? 'bg-amber-500' : 'bg-[#00A8FC]'}`}
+                                                        style={{ width: `${Math.min(quotasData.gemini.percentage, 100)}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between text-[10px] font-bold mt-1">
+                                                    <span className="text-[#00A8FC]">{quotasData.gemini.percentage}% Consumido</span>
+                                                    <span className="text-gray-500">Free Tier (1500 RPD)</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-xs text-red-400 py-4">Error al cargar datos</div>
+                                        )}
+                                    </div>
+
+                                    {/* Supabase Storage Quota */}
+                                    <div className="bg-[#0c0d14]/75 border border-white/[0.04] rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                Supabase DB Storage
+                                            </h4>
+                                            <span className="text-[10px] font-black text-gray-400 bg-white/[0.05] px-2 py-1 rounded">Global Limit</span>
+                                        </div>
+                                        {loadingQuotas ? (
+                                            <div className="text-xs text-gray-500 py-4">Cargando métricas...</div>
+                                        ) : quotasData?.supabase ? (
+                                            <>
+                                                <div className="flex justify-between items-end">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-3xl font-black text-white">{(quotasData.supabase.used_kb / 1024).toFixed(2)} MB</span>
+                                                        <span className="text-xs text-gray-400 font-semibold">Almacenamiento Estimado</span>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-500">/ {(quotasData.supabase.max_kb / 1024).toFixed(0)} MB (Límite Gratuito)</span>
+                                                </div>
+                                                <div className="w-full bg-[#14151f] rounded-full h-3 mt-2 border border-white/[0.05] overflow-hidden">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-1000 ${quotasData.supabase.percentage > 90 ? 'bg-red-500' : quotasData.supabase.percentage > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                                        style={{ width: `${Math.max(0.5, Math.min(quotasData.supabase.percentage, 100))}%` }}
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between text-[10px] font-bold mt-1">
+                                                    <span className="text-emerald-500">{quotasData.supabase.percentage}% Consumido</span>
+                                                    <span className="text-gray-500">Free Tier (500 MB)</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-xs text-red-400 py-4">Error al cargar datos</div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="bg-[#14151f]/50 border border-white/[0.05] p-4 rounded-xl mt-4">
+                                    <p className="text-xs text-gray-400">
+                                        <strong>Nota sobre estimaciones:</strong> El uso de Gemini se calcula con base en las peticiones registradas de hoy en el historial. El almacenamiento de Supabase se calcula multiplicando el conteo de filas de la base de conocimientos por el peso promedio en KB, incluyendo los vectores semánticos que consumen 768 dimensiones por fila.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : null}
                     </div>
                 )}
             </main>

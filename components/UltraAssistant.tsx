@@ -210,28 +210,38 @@ export function UltraAssistant() {
         </div>
       )}
 
-      {/* Botón Flotante */}
-      <button
-        onClick={isListening ? stopListening : startListening}
-        className={`relative group flex items-center justify-center w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 bg-white`}
-      >
-        <Image 
-          src="/autoryx_badge_v2.svg" 
-          alt="Ultra Assistant Logo" 
-          width={32} 
-          height={32} 
-          className={`transition-all duration-300 ${
-            hasError 
-              ? 'brightness-0 invert-[.2] sepia-[1] hue-rotate-[320deg] saturate-[5000%] contrast-[110%] drop-shadow-md' 
-              : isListening 
-                ? 'brightness-0 sepia-[1] hue-rotate-[190deg] saturate-[500%] contrast-[105%] drop-shadow-md' 
-                : 'brightness-0 opacity-80'
-          }`} 
-        />
-        {(isListening || hasError) && (
-          <span className={`absolute -inset-1 rounded-full border-2 animate-pulse opacity-50 ${hasError ? 'border-red-500' : 'border-blue-500'}`}></span>
-        )}
-      </button>
+      {/* Contenedor del Botón y Leyenda */}
+      <div className="flex items-center gap-3">
+        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-white/[0.6] backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-gray-200/50 hidden sm:flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity cursor-default">
+          <span className="bg-gradient-to-r from-[#FF5A00] to-[#00A8FC] bg-clip-text text-transparent">
+            Powered by
+          </span>
+          <span className="text-gray-700">Autoryx IA</span>
+        </span>
+        
+        {/* Botón Flotante */}
+        <button
+          onClick={isListening ? stopListening : startListening}
+          className={`relative group flex items-center justify-center w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 bg-white`}
+        >
+          <Image 
+            src="/autoryx_badge_v2.svg" 
+            alt="Ultra Assistant Logo" 
+            width={32} 
+            height={32} 
+            className={`transition-all duration-300 ${
+              hasError 
+                ? 'brightness-0 invert-[.2] sepia-[1] hue-rotate-[320deg] saturate-[5000%] contrast-[110%] drop-shadow-md' 
+                : isListening 
+                  ? 'brightness-0 sepia-[1] hue-rotate-[190deg] saturate-[500%] contrast-[105%] drop-shadow-md' 
+                  : 'brightness-0 opacity-80'
+            }`} 
+          />
+          {(isListening || hasError) && (
+            <span className={`absolute -inset-1 rounded-full border-2 animate-pulse opacity-50 ${hasError ? 'border-red-500' : 'border-blue-500'}`}></span>
+          )}
+        </button>
+      </div>
       
       {wakeWordError && (
         <div className="bg-red-100 text-red-600 text-xs p-2 rounded-lg max-w-[200px] text-center shadow">
