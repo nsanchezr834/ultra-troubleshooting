@@ -37,12 +37,9 @@ export function SearchBar({
   value,
   onChange,
   placeholder = 'Escribe la falla o síntoma…',
-  isListening,
-  onMicClick,
   isDarkMode = false,
   inputRef,
   resultsId,
-  children,
 }: SearchBarProps) {
   const inputId = useId();
 
@@ -76,7 +73,7 @@ export function SearchBar({
         aria-expanded={value.trim().length > 0}
         aria-autocomplete="list"
         className={[
-          'w-full border rounded-2xl py-5 pl-14 pr-[4.5rem] sm:pr-72',
+          'w-full border rounded-2xl py-5 pl-14 pr-[4.5rem] sm:pr-8',
           'text-base font-semibold',
           'placeholder-neutral-400 focus:outline-none',
           'focus:border-ultra-orange focus:ring-1 focus:ring-ultra-orange',
@@ -84,41 +81,8 @@ export function SearchBar({
           isDarkMode
             ? 'bg-[#0f1015] border-neutral-700 text-white placeholder-neutral-500'
             : 'bg-white border-neutral-200 text-black placeholder-neutral-400',
-          // Listening pulse border
-          isListening
-            ? 'border-emerald-500 ring-1 ring-emerald-500/40 animate-[borderPulse_1s_ease-in-out_infinite]'
-            : '',
         ].join(' ')}
       />
-
-      {/* Right slot: mobile dictation mic button */}
-      <div className="absolute right-3 top-[34px] -translate-y-1/2 flex items-center gap-2">
-        {/* Mobile-only mic toggle (for the inline voice dictation in troubleshooting-search) */}
-        <button
-          type="button"
-          onClick={onMicClick}
-          aria-label={isListening ? 'Detener dictado por voz' : 'Dictado por voz'}
-          aria-pressed={isListening}
-          className={[
-            'sm:hidden p-2 rounded-xl transition-all duration-200',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ultra-orange',
-            isListening
-              ? 'bg-[#FF6A00] text-white shadow-md shadow-[#FF6A00]/25'
-              : isDarkMode
-                ? 'bg-neutral-800 text-[#FF6A00] hover:text-white hover:bg-[#FF6A00]'
-                : 'bg-neutral-100 text-neutral-500 hover:text-[#FF6A00]',
-          ].join(' ')}
-        >
-          {isListening ? (
-            <MicOff className="w-4 h-4" aria-hidden="true" />
-          ) : (
-            <Mic className="w-4 h-4" aria-hidden="true" />
-          )}
-        </button>
-      </div>
-
-      {/* SpeechAgent components (Desktop Mic + Centered Badge) */}
-      {children}
     </div>
   );
 }

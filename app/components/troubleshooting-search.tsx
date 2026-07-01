@@ -4,7 +4,6 @@ import React, { useState, useMemo, useId } from 'react';
 import { TroubleshootingKnowledge } from '../../types/troubleshooting.types';
 import { CLIENTS_DATABASE } from '../../config/robots-db';
 import { Search, Info, X, AlertCircle, Wrench, ShieldAlert, Settings, Server, Cpu, Layers, Lightbulb } from 'lucide-react';
-import SpeechAgent from './SpeechAgent';
 import { logSearch } from '../lib/telemetry';
 import { FaultCard, FaultModal, SearchBar } from './ui';
 import type { ExtendedFault } from './ui';
@@ -34,12 +33,6 @@ export default function TroubleshootingSearch({
   const [selectedItemForModal, setSelectedItemForModal] = useState<ExtendedTroubleshootingKnowledge | null>(null);
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
   const currentSearchRef = React.useRef<any>(null);
-
-  // Estados y refs para control por voz
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = React.useRef<any>(null);
-  const lastResultsRef = React.useRef<ExtendedTroubleshootingKnowledge[]>([]);
-  const isWaitingForSelectionRef = React.useRef<boolean>(false);
   
   // En Modo Experto arrancamos directo en búsqueda rápida
   const [searchMode, setSearchMode] = useState<'quick' | 'category'>(isExpert ? 'quick' : 'quick');
@@ -115,326 +108,6 @@ export default function TroubleshootingSearch({
       .replace(/ci/g, 'si')
       .replace(/[^a-z0-9\s]/g, '');    // Mantener alfanuméricos y espacios
   };
-
-  // Función para dictar por voz los resultados encontrados y habilitar la selección por voz
-  const speakResults = (results: ExtendedTroubleshootingKnowledge[]) => {
-    if (typeof window === 'undefined') return;
-
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-
-    synth.cancel(); // Cancelar cualquier lectura activa
-    if (synth.paused) {
-      synth.resume();
-    }
-
-    if (results.length === 0) {
-      lastResultsRef.current = [];
-      isWaitingForSelectionRef.current = false;
-      const utter = new SpeechSynthesisUtterance("No se encontraron fallas ni consejos para tu búsqueda.");
-      utter.lang = 'es-ES';
-      synth.speak(utter);
-      return;
-    }
-
-    // Almacenar los resultados para la selección por voz
-    lastResultsRef.current = results;
-
-    let textToSpeak = `Se encontraron ${results.length} ${results.length === 1 ? 'resultado' : 'resultados'}: `;
-    const maxToRead = Math.min(results.length, 3);
-    for (let i = 0; i < maxToRead; i++) {
-      const cleanSymptom = results[i].symptom
-        .replace(/Qué hacer en caso de que/gi, '')
-        .replace(/\(ID:.*?\)/gi, '')
-        .trim();
-      textToSpeak += `${i + 1}: ${cleanSymptom}. `;
-    }
-
-    if (results.length > 3) {
-      textToSpeak += "Y otros resultados adicionales en pantalla. ";
-    }
-
-    textToSpeak += "¿Cuál número de opción deseas seleccionar?";
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'es-ES';
-    utterance.rate = 1.05;
-
-    let spoken = false;
-    utterance.onstart = () => {
-      spoken = true;
-    };
-
-    // Al finalizar la lectura, volver a activar el micrófono para esperar la respuesta
-    utterance.onend = () => {
-      isWaitingForSelectionRef.current = true;
-      startListeningAfterSpeech();
-    };
-
-    utterance.onerror = (e) => {
-      console.warn("SpeechSynthesis error:", e);
-      if (!spoken) {
-        isWaitingForSelectionRef.current = true;
-        startListeningAfterSpeech();
-      }
-    };
-
-    synth.speak(utterance);
-
-    // Fallback de seguridad de 1.5s para móviles si el navegador bloquea la reproducción de voz
-    setTimeout(() => {
-      if (!spoken) {
-        console.warn("SpeechSynthesis no inició tras 1.5s (bloqueado por navegador). Reactivando micrófono de todos modos.");
-        isWaitingForSelectionRef.current = true;
-        startListeningAfterSpeech();
-      }
-    }, 1500);
-  };
-
-  // Función interna para arrancar el reconocimiento tras terminar de hablar la IA
-  const startListeningAfterSpeech = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition || isListening) return;
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'es-ES';
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 5;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      recognition.onresult = (event: any) => {
-        const result = event.results[event.results.length - 1];
-        const isFinal = result.isFinal;
-        
-        if (isFinal && result[0].confidence < 0.35) {
-          return; // Ignorar ruido
-        }
-        
-        const transcripts = [];
-        for (let i = 0; i < result.length; i++) {
-          if (result[i].transcript) transcripts.push(result[i].transcript);
-        }
-        
-        if (transcripts.length > 0) {
-          handleVoiceInput(transcripts, isFinal);
-        }
-      };
-
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err) {
-      console.error('Error al re-iniciar micrófono para selección:', err);
-      setIsListening(false);
-    }
-  };
-
-  // Manejador centralizado de transcripciones de voz
-  const handleVoiceInput = (transcripts: string[], isFinal: boolean = true) => {
-    // 2. Si no es el resultado final, actualizamos la búsqueda en pantalla con la mejor alternativa
-    if (!isFinal) {
-      setSearchTerm(transcripts[0]);
-      return;
-    }
-
-    let isCloseCommand = false;
-    let selectedIndex = -1;
-    let finalQuery = transcripts[0];
-
-    // Iteramos sobre las alternativas (maxAlternatives = 5) para buscar comandos
-    for (const transcript of transcripts) {
-      const normalized = transcript.toLowerCase().trim();
-      
-      // Comando cerrar
-      if (['entendido', 'cerrar', 'listo', 'salir', 'regresar', 'atras'].some(w => normalized.includes(w))) {
-        isCloseCommand = true;
-        break;
-      }
-
-      // Selección numérica
-      if (isWaitingForSelectionRef.current && lastResultsRef.current.length > 0) {
-        const tokens = normalized.split(' ').filter(Boolean);
-        if (['uno', '1', 'primera', 'primero'].some(w => tokens.includes(w))) {
-          selectedIndex = 0; break;
-        } else if (['dos', '2', 'segunda', 'segundo'].some(w => tokens.includes(w))) {
-          selectedIndex = 1; break;
-        } else if (['tres', '3', 'tercera', 'tercero'].some(w => tokens.includes(w))) {
-          selectedIndex = 2; break;
-        }
-      }
-    }
-
-    if (isCloseCommand) {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      handleCloseModalAttempt();
-      return;
-    }
-
-    if (selectedIndex >= 0 && selectedIndex < lastResultsRef.current.length) {
-      const item = lastResultsRef.current[selectedIndex];
-      if (recognitionRef.current) recognitionRef.current.stop();
-      isWaitingForSelectionRef.current = false;
-      handleOpenModal(item, `Abriendo la opción ${selectedIndex + 1}. `, true);
-      return;
-    }
-    setSearchTerm(finalQuery);
-    setShowAllFaults(false);
-    isWaitingForSelectionRef.current = false;
-    lastSearchTypeRef.current = 'voice_inline';
-
-    const stopWords = new Set([
-      'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 
-      'de', 'del', 'en', 'para', 'con', 'por', 'que', 'y', 'o', 'a',
-      'falla', 'fallas', 'error', 'errores', 'problema', 'problemas', 'fe'
-    ]);
-
-    const searchWords = finalQuery
-      .trim()
-      .split(/\s+/)
-      .map((w: string) => normalizeForSearch(w))
-      .filter((w: string) => w && !stopWords.has(w));
-
-    if (searchWords.length > 0) {
-      const scoredItems = combinedKnowledgeBase.map(item => {
-        const normSymptom = normalizeForSearch(item.symptom);
-        const normProtocol = normalizeForSearch(item.resolution_protocol);
-        const normId = normalizeForSearch(item.id);
-        const normKeywords = normalizeForSearch((item as any).keywords || '');
-
-        let score = 0;
-        searchWords.forEach((word: string) => {
-          let matches = 0;
-          if (normSymptom.includes(word)) matches += 10;
-          if (normKeywords.includes(word)) matches += 10;
-          if (normId.includes(word)) matches += 8;
-          if (normProtocol.includes(word)) matches += 1;
-
-          score += matches;
-        });
-
-        return { item, score };
-      });
-
-      const results = scoredItems
-        .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .map(x => x.item);
-
-      speakResults(results);
-      if (results.length === 0) {
-        logSearch({
-          query: finalQuery,
-          matches_count: 0,
-          status: 'no_matches',
-          source: 'voice_inline'
-        });
-      }
-    } else {
-      speakResults([]);
-      logSearch({
-        query: finalQuery,
-        matches_count: 0,
-        status: 'no_matches',
-        source: 'voice_inline'
-      });
-    }
-  };
-
-  const toggleListening = () => {
-    if (typeof window === 'undefined') return;
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('El reconocimiento de voz no está soportado en este navegador o dispositivo. Te recomendamos usar Google Chrome, Microsoft Edge o Safari actualizados.');
-      return;
-    }
-
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-    } else {
-      // Desbloquear SpeechSynthesis para navegadores móviles (iOS/Android) bajo el gesto del usuario
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        try {
-          window.speechSynthesis.getVoices();
-          const dummyUtterance = new SpeechSynthesisUtterance(' ');
-          dummyUtterance.volume = 0;
-          window.speechSynthesis.speak(dummyUtterance);
-        } catch (e) {
-          console.warn('Error al desbloquear el sintetizador de voz:', e);
-        }
-      }
-
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES';
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => {
-          setIsListening(true);
-          // Detener lectura de voz activa si inicia un nuevo dictado
-          if (window.speechSynthesis) window.speechSynthesis.cancel();
-        };
-
-        recognition.onresult = (event: any) => {
-          const result = event.results[event.results.length - 1];
-          const transcript = result[0].transcript;
-          handleVoiceInput(transcript, result.isFinal);
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error('Error en reconocimiento de voz:', event.error);
-          setIsListening(false);
-          
-          if (event.error === 'not-allowed') {
-            alert('Acceso al micrófono denegado. Por favor, ve a la configuración de tu navegador y permite el uso del micrófono para este sitio web.');
-          } else if (event.error === 'no-speech') {
-            alert('No se detectó ninguna voz. Por favor, intenta hablar de nuevo.');
-          } else if (event.error === 'network') {
-            alert('Error de red al intentar conectar con el servicio de reconocimiento de voz.');
-          } else {
-            alert(`Error en el micrófono: ${event.error}`);
-          }
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
-        recognition.start();
-      } catch (err: any) {
-        console.error('Error inicializando SpeechRecognition:', err);
-        setIsListening(false);
-        alert(`No se pudo iniciar el dictado por voz: ${err?.message || err}`);
-      }
-    }
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
 
   // Búsqueda global
   const fuseRef = React.useRef<any>(null);
@@ -562,27 +235,7 @@ export default function TroubleshootingSearch({
       spoken = true;
     };
 
-    utterance.onend = () => {
-      // Habilitar la escucha activa por comandos como "cerrar" o "entendido"
-      startListeningAfterSpeech();
-    };
-
-    utterance.onerror = (e) => {
-      console.warn("SpeechSynthesis error in modal:", e);
-      if (!spoken) {
-        startListeningAfterSpeech();
-      }
-    };
-
     synth.speak(utterance);
-
-    // Fallback de 1.5s para móviles
-    setTimeout(() => {
-      if (!spoken) {
-        console.warn("SpeechSynthesis bloqueado en modal. Reactivando micrófono de todos modos.");
-        startListeningAfterSpeech();
-      }
-    }, 1500);
   };
 
   const handleOpenModal = (item: ExtendedTroubleshootingKnowledge, prefix: string = '', readAloud: boolean = false) => {
@@ -674,7 +327,6 @@ export default function TroubleshootingSearch({
           )}
         </div>
 
-        {/* Accessible SearchBar with SpeechAgent badge in desktop slot */}
         <SearchBar
           value={searchTerm}
           onChange={(val) => {
@@ -689,22 +341,10 @@ export default function TroubleshootingSearch({
                 ? 'Escribe la falla o consejo que buscas… (Ej: brazos, camara, etiquetas, tote)'
                 : 'Filtrar fallas o consejos… (Ej: brazos, camara, etiquetas)'
           }
-          isListening={isListening}
-          onMicClick={toggleListening}
           isDarkMode={isDarkMode}
           inputRef={inputRef}
           resultsId={resultsId}
-        >
-          <SpeechAgent
-            isDarkMode={isDarkMode}
-            knowledgeBase={combinedKnowledgeBase}
-            onMatchFault={(symptom) => {
-              setSearchTerm(symptom);
-              const matchedItem = combinedKnowledgeBase.find(item => item.symptom === symptom);
-              if (matchedItem) handleOpenModal(matchedItem);
-            }}
-          />
-        </SearchBar>
+        />
       </div>
 
       <div className={`flex-1 overflow-y-auto p-6 flex flex-col justify-between transition-all duration-300 ${

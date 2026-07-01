@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useWakeWord } from "@/hooks/useWakeWord";
-import { Mic, MicOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 export function UltraAssistant() {
   const { 
@@ -59,10 +60,38 @@ export function UltraAssistant() {
       
       setResponse(null);
       setQuery("Escuchando...");
-      try {
-        recognitionRef.current.start();
-      } catch (e) {
-        console.error("Error al iniciar reconocimiento activo", e);
+      
+      // Decir en voz alta en qué te puedo ayudar, y luego iniciar el micrófono
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Detener cualquier cosa que esté hablando
+        const utterance = new SpeechSynthesisUtterance("¿En qué te puedo ayudar?");
+        utterance.lang = 'es-ES';
+        
+        utterance.onend = () => {
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            console.error("Error al iniciar reconocimiento activo", e);
+          }
+        };
+
+        // Fallback en caso de que el evento onend no dispare
+        setTimeout(() => {
+          if (!recognitionRef.current) return;
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            // ignore si ya empezó
+          }
+        }, 3000);
+
+        window.speechSynthesis.speak(utterance);
+      } else {
+        try {
+          recognitionRef.current.start();
+        } catch (e) {
+          console.error("Error al iniciar reconocimiento activo", e);
+        }
       }
     }
   }, [wakeWordDetected]);
@@ -152,15 +181,17 @@ export function UltraAssistant() {
       {/* Botón Flotante */}
       <button
         onClick={isListening ? stopListening : startListening}
-        className={`relative group flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 hover:scale-105 ${
-          isListening 
-            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-            : 'bg-gray-800 hover:bg-gray-900 text-white'
-        }`}
+        className={`relative group flex items-center justify-center w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 bg-white`}
       >
-        {isListening ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+        <Image 
+          src="/autoryx_badge_c2.svg" 
+          alt="Ultra Assistant Logo" 
+          width={32} 
+          height={32} 
+          className={`transition-all duration-300 ${isListening ? 'brightness-0 sepia-[1] hue-rotate-[190deg] saturate-[500%] contrast-[105%] drop-shadow-md' : 'brightness-0 opacity-80'}`} 
+        />
         {isListening && (
-          <span className="absolute -inset-1 rounded-full border-2 border-blue-400 animate-pulse opacity-50"></span>
+          <span className="absolute -inset-1 rounded-full border-2 border-blue-500 animate-pulse opacity-50"></span>
         )}
       </button>
       
