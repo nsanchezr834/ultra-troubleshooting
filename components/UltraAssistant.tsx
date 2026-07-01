@@ -19,6 +19,7 @@ export function UltraAssistant() {
   const [contextMatches, setContextMatches] = useState<any[] | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isDictating, setIsDictating] = useState(false);
   const isProcessingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -51,12 +52,18 @@ export function UltraAssistant() {
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = 'es-ES';
 
+      recognitionRef.current.onstart = () => {
+        setIsDictating(true);
+      };
+
       recognitionRef.current.onresult = (event: any) => {
+        setIsDictating(false);
         const transcript = event.results[0][0].transcript;
         handleProcessQuery(transcript);
       };
 
       recognitionRef.current.onerror = (event: any) => {
+        setIsDictating(false);
         triggerError(`Speech recognition error: ${event.error}`);
         setIsProcessing(false);
         resetDetection();
@@ -67,6 +74,7 @@ export function UltraAssistant() {
       };
       
       recognitionRef.current.onend = () => {
+        setIsDictating(false);
         if (!isProcessingRef.current) {
           resetDetection();
           setTimeout(() => {
@@ -138,7 +146,13 @@ export function UltraAssistant() {
         if (lastAssistantMessage && 'speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(lastAssistantMessage.content);
             utterance.lang = 'es-ES';
-            utterance.onend = () => { startListening(); };
+            utterance.onend = () => { 
+                if (contextMatches && contextMatches.length > 0) {
+                    try { recognitionRef.current.start(); } catch (e) {}
+                } else {
+                    startListening(); 
+                }
+            };
             window.speechSynthesis.speak(utterance);
         } else {
             startListening();
@@ -182,18 +196,38 @@ export function UltraAssistant() {
           setContextMatches(null);
       }
 
+      const isExpectingAnswer = data.matches !== null && data.matches !== undefined && !data.response.includes("Operación cancelada");
+
       // Reproducir la respuesta vía TTS
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(data.response);
         utterance.lang = 'es-ES';
         utterance.onend = () => {
-          resetDetection();
-          startListening();
+          if (isExpectingAnswer) {
+             // Esperamos respuesta, encendemos el micrófono directo
+             try { recognitionRef.current.start(); } catch (e) {}
+          } else {
+             // Terminamos, volvemos a esperar el "Ultra"
+             resetDetection();
+             startListening();
+          }
         };
+        
+        // Timeout de seguridad en caso de que onend no dispare
+        setTimeout(() => {
+          if (isExpectingAnswer) {
+             try { recognitionRef.current.start(); } catch (e) {}
+          }
+        }, 5000);
+
         window.speechSynthesis.speak(utterance);
       } else {
-        resetDetection();
-        startListening();
+        if (isExpectingAnswer) {
+           try { recognitionRef.current.start(); } catch (e) {}
+        } else {
+           resetDetection();
+           startListening();
+        }
       }
 
     } catch (err: any) {
@@ -277,12 +311,12 @@ export function UltraAssistant() {
             className={`transition-all duration-300 ${
               hasError 
                 ? 'brightness-0 invert-[.2] sepia-[1] hue-rotate-[320deg] saturate-[5000%] contrast-[110%] drop-shadow-md' 
-                : isListening 
+                : (isListening || isDictating)
                   ? 'brightness-0 sepia-[1] hue-rotate-[190deg] saturate-[500%] contrast-[105%] drop-shadow-md' 
                   : 'brightness-0 opacity-80'
             }`} 
           />
-          {(isListening || hasError) && (
+          {(isListening || isDictating || hasError) && (
             <span className={`absolute -inset-1 rounded-full border-2 animate-pulse opacity-50 ${hasError ? 'border-red-500' : 'border-blue-500'}`}></span>
           )}
         </button>
