@@ -91,7 +91,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Agent B Error:", error);
     return NextResponse.json(
-      { response: "Ha ocurrido un error al procesar tu solicitud con el motor semántico." },
+      { error: error?.message || "Ha ocurrido un error desconocido con la IA." },
       { status: 500 }
     );
   }

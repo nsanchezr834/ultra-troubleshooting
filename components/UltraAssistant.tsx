@@ -134,9 +134,12 @@ export function UltraAssistant() {
         body: JSON.stringify({ text }),
       });
       
-      if (!res.ok) throw new Error("Error en la solicitud");
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || `Error HTTP ${res.status}`);
+      }
       
-      const data = await res.json();
       setResponse(data.response);
       
       // Reproducir la respuesta vía TTS
@@ -153,9 +156,9 @@ export function UltraAssistant() {
         startListening();
       }
 
-    } catch (err) {
-      triggerError(`API Error: ${err}`);
-      setResponse("Hubo un error al procesar tu solicitud.");
+    } catch (err: any) {
+      triggerError(`API Error: ${err.message}`);
+      setResponse(`Error: ${err.message}`);
       resetDetection();
       startListening();
     } finally {
