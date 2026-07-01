@@ -142,7 +142,6 @@ export function useWakeWord(
       };
 
       setIsListening(true);
-      URL.revokeObjectURL(workletUrl);
 
     } catch (err: any) {
       setError(`Error al iniciar micrófono: ${err.message}`);
