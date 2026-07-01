@@ -24,6 +24,7 @@ export function useWakeWord(
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   const initClassifier = useCallback(async () => {
     if (classifierRef.current) return;
@@ -74,6 +75,11 @@ export function useWakeWord(
       mediaStreamRef.current = null;
     }
 
+    if (sourceNodeRef.current) {
+      sourceNodeRef.current.disconnect();
+      sourceNodeRef.current = null;
+    }
+
     if (audioContextRef.current && audioContextRef.current.state !== "closed") {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -97,11 +103,14 @@ export function useWakeWord(
       await audioContextRef.current.resume(); // FORCE resume if it started suspended due to async delay
 
       // Load static worklet file to avoid blob: CSP blocking
-      await audioContextRef.current.audioWorklet.addModule("/worklets/wake-word-processor.js");
-      const sourceNode = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
+      // Append a timestamp to bypass Vercel/Browser CDN caching of the static public file
+      await audioContextRef.current.audioWorklet.addModule(`/worklets/wake-word-processor.js?v=${Date.now()}`);
+      
+      // Store sourceNode in a ref to prevent aggressive Chrome Garbage Collection!
+      sourceNodeRef.current = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
       
       workletNodeRef.current = new AudioWorkletNode(audioContextRef.current, 'wake-word-processor');
-      sourceNode.connect(workletNodeRef.current);
+      sourceNodeRef.current.connect(workletNodeRef.current);
       workletNodeRef.current.connect(audioContextRef.current.destination);
 
       let buffer: Float32Array = new Float32Array(0);
@@ -113,8 +122,6 @@ export function useWakeWord(
         }
 
         if (event.data.type !== 'audio') return;
-        
-        if (!isListening || wakeWordDetected) return;
         
         // Append data to buffer
         const data = event.data.data as Float32Array;
