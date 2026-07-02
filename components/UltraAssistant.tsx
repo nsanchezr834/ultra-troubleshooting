@@ -141,6 +141,7 @@ export function UltraAssistant() {
            return;
         }
 
+        setIsProcessing(true); // <--- VITAL: Bloquear la UI mientras procesa
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         try {
@@ -153,14 +154,12 @@ export function UltraAssistant() {
           workerRef.current?.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
         } catch (err) {
           triggerError("Error decodificando audio.");
+          setIsProcessing(false);
+          resetDetection();
+          startListening();
         }
         
         stream.getTracks().forEach(t => t.stop());
-        
-        if (!isProcessingRef.current) {
-          resetDetection();
-          setTimeout(() => startListening(), 500);
-        }
       };
       
       recorder.start();
