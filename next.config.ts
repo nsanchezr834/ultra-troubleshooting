@@ -15,6 +15,15 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  turbopack: {
+    resolveAlias: {
+      "sharp": false,
+      "onnxruntime-node": false,
+    },
+    resolveFallback: {
+      fs: false,
+    }
+  },
 };
 
 export default nextConfig;
