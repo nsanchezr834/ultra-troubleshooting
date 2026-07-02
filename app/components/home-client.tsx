@@ -389,6 +389,7 @@ export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeC
                                 selectedFault={selectedFault}
                                 setSelectedFault={setSelectedFault}
                                 workflowsDatabase={workflowsDatabase}
+                                troubleshootingDb={troubleshootingDb}
                                 onRobotChange={setSelectedRobotId}
                                 onBack={handleResetFlow}
                                 isDarkMode={isDarkMode}

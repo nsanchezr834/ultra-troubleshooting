@@ -1,23 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function test() {
-    const { data: robots, error: robotsError } = await supabase.from('robots').select('*').in('id', ['packasaurus', 'captain-pack-sparrow']);
-    const { data: workflows, error: workflowsError } = await supabase.from('workflows').select('id, name').in('id', ['packasaurus', 'captain-pack-sparrow']);
-    const { data: advises, error: advisesError } = await supabase.from('advises').select('*').in('robot_id', ['packasaurus', 'captain-pack-sparrow']);
-    const { data: faults, error: faultsError } = await supabase.from('faults').select('*').in('robot_id', ['packasaurus', 'captain-pack-sparrow']);
-    console.log('robots:', { robots, robotsError });
-    console.log('workflows:', { workflows, workflowsError });
-    console.log('advises count:', advises ? advises.length : 0, advisesError);
-    console.log('faults count:', faults ? faults.length : 0, faultsError);
+  const { count: c1 } = await supabase.from('casos_estudio').select('*', { count: 'exact', head: true });
+  const { count: c2 } = await supabase.from('troubleshooting_knowledge').select('*', { count: 'exact', head: true });
+  const { count: c3 } = await supabase.from('advises').select('*', { count: 'exact', head: true });
+  console.log(`casos_estudio: ${c1}`);
+  console.log(`troubleshooting_knowledge: ${c2}`);
+  console.log(`advises: ${c3}`);
 }
-
 test();

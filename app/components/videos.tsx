@@ -620,14 +620,32 @@ function VideoCarousel({ videos }: { videos: VideoEntry[] }) {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
+import { TroubleshootingKnowledge } from '@/types/troubleshooting.types';
+
 interface VideoPlayerProps {
     robotId: string | undefined;
+    dbVideos?: TroubleshootingKnowledge[];
 }
 
-export default function VideoPlayer({ robotId }: VideoPlayerProps) {
-    const config: RobotVideoConfig | undefined = robotId ? VIDEO_LIBRARY[robotId] : undefined;
+export default function VideoPlayer({ robotId, dbVideos = [] }: VideoPlayerProps) {
+    const localConfig: RobotVideoConfig | undefined = robotId ? VIDEO_LIBRARY[robotId] : undefined;
+    
+    // Map database videos to VideoEntry format
+    const dbMappedVideos: VideoEntry[] = dbVideos.map(vid => ({
+        title: vid.symptom || 'Video Tutorial',
+        description: vid.root_cause || '',
+        src: vid.video_url || '',
+        badge: 'BASE DE DATOS',
+        badgeColor: 'blue'
+    }));
 
-    if (!config || config.videos.length === 0) {
+    // Combine local config videos and DB videos
+    const finalVideos = [
+        ...(localConfig?.videos || []),
+        ...dbMappedVideos
+    ];
+
+    if (finalVideos.length === 0) {
         return (
             <div className="w-full flex flex-col items-center justify-center py-20 text-center gap-3">
                 <span className="text-4xl">🎬</span>
@@ -638,9 +656,12 @@ export default function VideoPlayer({ robotId }: VideoPlayerProps) {
         );
     }
 
-    return config.layout === 'grid' ? (
-        <VideoGrid videos={config.videos} />
+    // Determine layout: Default to grid if we have DB videos and no local config saying otherwise
+    const layout = localConfig?.layout || 'grid';
+
+    return layout === 'grid' ? (
+        <VideoGrid videos={finalVideos} />
     ) : (
-        <VideoCarousel videos={config.videos} />
+        <VideoCarousel videos={finalVideos} />
     );
 }

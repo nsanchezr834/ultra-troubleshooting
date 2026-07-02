@@ -9,6 +9,7 @@ import VideoPlayer from './videos';
 import WorkflowTabs, { TabType } from './workflow-tabs';
 import { Sparkles, Activity, Clock, User, Truck, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { TroubleshootingKnowledge } from '@/types/troubleshooting.types';
 
 interface TelemetryDashboardProps {
     currentClient: ClientConfig | undefined;
@@ -19,6 +20,7 @@ interface TelemetryDashboardProps {
     selectedFault?: string | null;
     setSelectedFault?: (fault: string | null) => void;
     workflowsDatabase?: Record<string, WorkflowConfig>;
+    troubleshootingDb?: TroubleshootingKnowledge[];
     onRobotChange?: (robotId: string) => void;
     onBack?: () => void;
     isDarkMode?: boolean;
@@ -130,10 +132,16 @@ export default function TelemetryDashboard({
         };
     }, [currentRobot?.id]);
 
-    // Robots con material de vídeo disponible
-    const ROBOTS_WITH_VIDEOS = ['future-2.0', 'phil', 'fleetwood-pack', 'fleetwood', 'packie-2.0', 'monty', 'venus', 'mercury', 'bagger-label', 'box-fold', 'pick-sort', 'tower-stack-unstack', 'mabel', 'captain-pack-sparrow', 'packasaurus', 'msqc'];
-    const showVideoTab = !!(currentRobot?.id && ROBOTS_WITH_VIDEOS.includes(currentRobot.id));
-    const showTipsTab = !!(currentRobot?.advises && currentRobot.advises.length > 0);
+    // Extraer consejos (tips) y videos dinámicamente de Supabase (troubleshootingDb)
+    const dbTips = (troubleshootingDb || []).filter(
+        item => item.category === 'Consejos Operativos' && item.robotName === currentRobot?.name
+    );
+    const dbVideos = (troubleshootingDb || []).filter(
+        item => item.category === 'Video Tutorial' && item.robotName === currentRobot?.name && item.video_url
+    );
+
+    const showVideoTab = dbVideos.length > 0;
+    const showTipsTab = dbTips.length > 0;
 
     useEffect(() => {
         if (activeTab === 'videos' && !showVideoTab) {
@@ -394,7 +402,7 @@ export default function TelemetryDashboard({
             {activeTab === 'videos' && showVideoTab ? (
                 /* VISTA VIDEOS */
                 <div className="w-full animate-fadeIn">
-                    <VideoPlayer robotId={currentRobot?.id} />
+                    <VideoPlayer dbVideos={dbVideos} robotId={currentRobot?.id} />
                 </div>
             ) : activeTab === 'tips' && showTipsTab ? (
                 /* VISTA CONSEJOS */
@@ -416,30 +424,31 @@ export default function TelemetryDashboard({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(currentRobot?.advises ?? []).map((adv) => {
-                            const isException = adv.isException;
+                        {dbTips.map((adv, index) => {
+                            const isException = false; // By default, DB tips are not exceptions
+                            const contentStr = adv.resolution_protocol || '';
                             
                             // Detect YouTube URLs and extract video ID
                             const ytUrlRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-                            const match = adv.content.match(ytUrlRegex);
-                            let displayContent = adv.content;
+                            const match = contentStr.match(ytUrlRegex);
+                            let displayContent = contentStr;
                             let youtubeId: string | null = null;
                             let directVideoUrl: string | null = null;
                              
                             // Detectar URLs de video directo (.mp4)
                             const videoUrlRegex = /href=["']([^"']+\.mp4[^"']*)["']/i;
-                            const videoMatch = adv.content.match(videoUrlRegex);
+                            const videoMatch = contentStr.match(videoUrlRegex);
                              
                             if (match) {
                                 youtubeId = match[1];
                                 // Remove the link tags pointing to youtube
-                                displayContent = adv.content.replace(/<a\s+[^>]*href="[^"]*youtube[^"]*"[^>]*>.*?<\/a>/gi, '');
+                                displayContent = contentStr.replace(/<a\s+[^>]*href="[^"]*youtube[^"]*"[^>]*>.*?<\/a>/gi, '');
                                 // Clean up trailing colons or spaces
                                 displayContent = displayContent.trim().replace(/:\s*$/, '');
                             } else if (videoMatch) {
                                 directVideoUrl = videoMatch[1];
                                 // Remove the link tags pointing to the direct video (.mp4)
-                                displayContent = adv.content.replace(/<a\s+[^>]*href=["'][^"']+\.mp4[^"']*["'][^>]*>.*?<\/a>/gi, '');
+                                displayContent = contentStr.replace(/<a\s+[^>]*href=["'][^"']+\.mp4[^"']*["'][^>]*>.*?<\/a>/gi, '');
                                 displayContent = displayContent.trim().replace(/:\s*$/, '');
                             }
 
@@ -463,7 +472,7 @@ export default function TelemetryDashboard({
                                                 : isDarkMode ? 'bg-[#ff4f00]/15 text-[#ff4f00]' : 'bg-orange-100 text-[#ff4f00]'
                                         }`}
                                     >
-                                        {isException ? '⚠️' : adv.adviceNumber}
+                                        {isException ? '⚠️' : index + 1}
                                     </div>
                                     <div className="grow">
                                         {isException && (
