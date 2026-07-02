@@ -33,7 +33,7 @@ export function useWakeWord(
       if (typeof window !== "undefined" && !window.isSecureContext) {
         throw new Error("MediaPipe requiere HTTPS o localhost (Secure Context) para WebAssembly y micrófono.");
       }
-      
+
       const audio = await FilesetResolver.forAudioTasks(
         typeof window !== "undefined" ? window.location.origin + "/wasm/audio" : "/wasm/audio"
       );
@@ -54,7 +54,7 @@ export function useWakeWord(
     } catch (err: any) {
       let errText = err?.message || String(err);
       if (err instanceof Event) {
-         errText = `Error de red al cargar el motor (¿CORS o HTTP?). Tipo de evento: ${err.type}`;
+        errText = `Error de red al cargar el motor (¿CORS o HTTP?). Tipo de evento: ${err.type}`;
       }
       const msg = `MediaPipe Init Error: ${errText}`;
       console.error("DETALLE DEL ERROR:", err);
@@ -105,10 +105,10 @@ export function useWakeWord(
       // Load static worklet file to avoid blob: CSP blocking
       // Append a timestamp to bypass Vercel/Browser CDN caching of the static public file
       await audioContextRef.current.audioWorklet.addModule(`/worklets/wake-word-processor.js?v=${Date.now()}`);
-      
+
       // Store sourceNode in a ref to prevent aggressive Chrome Garbage Collection!
       sourceNodeRef.current = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
-      
+
       workletNodeRef.current = new AudioWorkletNode(audioContextRef.current, 'wake-word-processor');
       sourceNodeRef.current.connect(workletNodeRef.current);
       workletNodeRef.current.connect(audioContextRef.current.destination);
@@ -122,7 +122,7 @@ export function useWakeWord(
         }
 
         if (event.data.type !== 'audio') return;
-        
+
         // Append data to buffer
         const data = event.data.data as Float32Array;
         const newBuffer = new Float32Array(buffer.length + data.length);
@@ -134,7 +134,7 @@ export function useWakeWord(
         if (buffer.length >= 4096) {
           const chunk = buffer.slice(0, 4096);
           buffer = buffer.slice(4096);
-          
+
           if (classifierRef.current) {
             try {
               const results = classifierRef.current.classify(chunk, performance.now());
@@ -143,10 +143,10 @@ export function useWakeWord(
                 for (const classification of classifications) {
                   // Debug: Log the top category so the user can see it in F12 Console
                   if (classification.categories.length > 0) {
-                     const topCat = classification.categories[0];
-                     if (topCat.score > 0.1) {
-                         console.log("Audio detectado:", topCat.categoryName, "Score:", topCat.score);
-                     }
+                    const topCat = classification.categories[0];
+                    if (topCat.score > 0.1) {
+                      console.log("Audio detectado:", topCat.categoryName, "Score:", topCat.score);
+                    }
                   }
 
                   const wakeWordCat = classification.categories.find(c => c.categoryName === "Speech" || c.categoryName === "wake_word_ultra");
