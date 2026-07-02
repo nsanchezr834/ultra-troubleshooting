@@ -56,9 +56,16 @@ export function UltraAssistant() {
 
     workerRef.current.onmessage = (e) => {
       const { type, text, message, data } = e.data;
-      if (type === 'TRANSCRIPT' && text?.trim()) {
+      if (type === 'TRANSCRIPT') {
         setDownloadProgress(null);
-        handleProcessQuery(text.trim());
+        if (text?.trim()) {
+          handleProcessQuery(text.trim());
+        } else {
+          triggerError("No entendí bien, intenta de nuevo.");
+          setIsProcessing(false);
+          resetDetection();
+          setTimeout(() => startListening(), 500);
+        }
       } else if (type === 'INIT_MODEL') {
         setDownloadProgress(0);
       } else if (type === 'DOWNLOAD_PROGRESS') {
