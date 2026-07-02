@@ -3,20 +3,20 @@ import { pipeline, env } from '@xenova/transformers';
 // Desactivar la lectura de modelos locales, forzar descarga desde el CDN de HuggingFace
 env.allowLocalModels = false;
 
-let transcriber: any = null;
+let transcriberPromise: Promise<any> | null = null;
 
 self.addEventListener('message', async (e: MessageEvent) => {
     const { type, audioData } = e.data;
 
     if (type === 'PRELOAD_MODEL' || type === 'TRANSCRIBE') {
         try {
-            // 1. Inicializar de forma perezosa (Lazy Load) el modelo Whisper
-            if (!transcriber) {
+            // 1. Inicializar de forma perezosa y segura contra concurrencia
+            if (!transcriberPromise) {
                 // Notificar que inicia la carga
                 self.postMessage({ type: 'INIT_MODEL' });
                 
-                // Usamos el modelo multilingüe para que pueda entender español
-                transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+                // Guardar la promesa para que futuras llamadas esperen a esta misma
+                transcriberPromise = pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
                     progress_callback: (x: any) => {
                         if (x.status === 'progress') {
                             self.postMessage({ type: 'DOWNLOAD_PROGRESS', data: x });
@@ -26,6 +26,9 @@ self.addEventListener('message', async (e: MessageEvent) => {
                     }
                 });
             }
+
+            // Esperar a que el modelo cargue (ya sea la primera vez o si ya estaba cargando)
+            const transcriber = await transcriberPromise;
 
             if (type === 'PRELOAD_MODEL') return;
 
