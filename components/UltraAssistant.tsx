@@ -23,9 +23,6 @@ export function UltraAssistant() {
   const isProcessingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Ref para SpeechRecognition (si está disponible en el navegador)
-  const recognitionRef = useRef<any>(null);
-
   useEffect(() => {
     isProcessingRef.current = isProcessing;
   }, [isProcessing]);
@@ -43,55 +40,88 @@ export function UltraAssistant() {
     setHasError(true);
     setTimeout(() => setHasError(false), 4000);
   };
+  
+  const workerRef = useRef<Worker | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'es-ES';
+    // Inicializar Web Worker
+    workerRef.current = new Worker(
+      new URL('../workers/whisper.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
 
-      recognitionRef.current.onstart = () => {
-        setIsDictating(true);
-      };
-
-      recognitionRef.current.onresult = (event: any) => {
-        setIsDictating(false);
-        const transcript = event.results[0][0].transcript;
-        handleProcessQuery(transcript);
-      };
-
-      recognitionRef.current.onerror = (event: any) => {
-        setIsDictating(false);
-        triggerError(`Speech recognition error: ${event.error}`);
+    workerRef.current.onmessage = (e) => {
+      const { type, text, message } = e.data;
+      if (type === 'TRANSCRIPT' && text?.trim()) {
+        handleProcessQuery(text.trim());
+      } else if (type === 'ERROR') {
+        triggerError(`Whisper error: ${message}`);
         setIsProcessing(false);
         resetDetection();
-        
-        setTimeout(() => {
-          startListening();
-        }, 500);
-      };
+        setTimeout(() => startListening(), 500);
+      }
+    };
+
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, [resetDetection, startListening]);
+
+  const startDictation = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      setIsDictating(true);
       
-      recognitionRef.current.onend = () => {
+      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+      recorder.onstop = async () => {
         setIsDictating(false);
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        try {
+          // Decode WebM to 16kHz PCM Float32Array
+          const arrayBuffer = await blob.arrayBuffer();
+          const audioContext = new window.AudioContext({ sampleRate: 16000 });
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const float32Data = audioBuffer.getChannelData(0);
+          
+          workerRef.current?.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
+        } catch (err) {
+          triggerError("Error decodificando audio.");
+        }
+        
+        stream.getTracks().forEach(t => t.stop());
+        
         if (!isProcessingRef.current) {
           resetDetection();
-          setTimeout(() => {
-            startListening();
-          }, 500);
+          setTimeout(() => startListening(), 500);
         }
       };
+      
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+    } catch (err) {
+      triggerError("Error al iniciar grabación.");
     }
-  }, [resetDetection, startListening]);
+  };
+
+  const stopDictation = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
 
   useEffect(() => {
     if (wakeWordDetected) {
-      if (!recognitionRef.current) {
-        triggerError("Navegador no soporta reconocimiento de voz");
-        return;
-      }
-      
       const beep = new Audio("/beep.mp3");
       beep.play().catch(() => {});
       
@@ -109,19 +139,18 @@ export function UltraAssistant() {
         const checkSpeakingGreeting = setInterval(() => {
           if (!window.speechSynthesis.speaking) {
             clearInterval(checkSpeakingGreeting);
-            if (!recognitionRef.current) return;
-            try { recognitionRef.current.start(); } catch (e) {}
+            startDictation();
           }
         }, 1000);
 
         utterance.onend = () => {
           clearInterval(checkSpeakingGreeting);
-          try { recognitionRef.current.start(); } catch (e) {}
+          startDictation();
         };
 
         window.speechSynthesis.speak(utterance);
       } else {
-        try { recognitionRef.current.start(); } catch (e) {}
+        startDictation();
       }
     }
   }, [wakeWordDetected]); // Removido messages.length del array de dependencias para no disparar de nuevo
@@ -150,9 +179,9 @@ export function UltraAssistant() {
         if (lastAssistantMessage && 'speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(lastAssistantMessage.content);
             utterance.lang = 'es-ES';
-            utterance.onend = () => { 
+            utterance.onend = () => {
                 if (contextMatches && contextMatches.length > 0) {
-                    try { recognitionRef.current.start(); } catch (e) {}
+                    startDictation();
                 } else {
                     startListening(); 
                 }
@@ -215,7 +244,7 @@ export function UltraAssistant() {
           if (!window.speechSynthesis.speaking) {
             clearInterval(checkSpeaking);
             if (isExpectingAnswer) {
-               try { recognitionRef.current.start(); } catch (e) {}
+               startDictation();
             }
           }
         }, 1000);
@@ -225,7 +254,7 @@ export function UltraAssistant() {
           clearInterval(checkSpeaking);
           if (isExpectingAnswer) {
              // Esperamos respuesta, encendemos el micrófono directo
-             try { recognitionRef.current.start(); } catch (e) {}
+             startDictation();
           } else {
              // Terminamos, volvemos a esperar el "Ultra"
              resetDetection();
@@ -236,13 +265,12 @@ export function UltraAssistant() {
         window.speechSynthesis.speak(utterance);
       } else {
         if (isExpectingAnswer) {
-           try { recognitionRef.current.start(); } catch (e) {}
+           startDictation();
         } else {
            resetDetection();
            startListening();
         }
       }
-
     } catch (err: any) {
       triggerError(`API Error: ${err.message}`);
       setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
