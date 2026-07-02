@@ -20,6 +20,8 @@ export function UltraAssistant() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isDictating, setIsDictating] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  
   const isProcessingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -53,10 +55,18 @@ export function UltraAssistant() {
     );
 
     workerRef.current.onmessage = (e) => {
-      const { type, text, message } = e.data;
+      const { type, text, message, data } = e.data;
       if (type === 'TRANSCRIPT' && text?.trim()) {
+        setDownloadProgress(null);
         handleProcessQuery(text.trim());
+      } else if (type === 'INIT_MODEL') {
+        setDownloadProgress(0);
+      } else if (type === 'DOWNLOAD_PROGRESS') {
+        setDownloadProgress(Math.round(data.progress));
+      } else if (type === 'MODEL_READY') {
+        setDownloadProgress(null);
       } else if (type === 'ERROR') {
+        setDownloadProgress(null);
         triggerError(`Whisper error: ${message}`);
         setIsProcessing(false);
         resetDetection();
@@ -120,6 +130,14 @@ export function UltraAssistant() {
         cancelAnimationFrame(vadAnimationId);
         vadContext.close().catch(() => {});
         
+        if (!hasSpoken) {
+           triggerError("No detecté tu voz. Verifica tu micrófono.");
+           stream.getTracks().forEach(t => t.stop());
+           resetDetection();
+           setTimeout(() => startListening(), 500);
+           return;
+        }
+
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         try {
@@ -356,9 +374,22 @@ export function UltraAssistant() {
               </div>
             ))}
             
-            {isProcessing && (
-              <div className="flex items-center justify-center p-4 text-blue-500">
+            {isProcessing && downloadProgress === null && (
+              <div className="flex flex-col items-center justify-center p-4 text-blue-500 space-y-2">
                 <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="text-xs text-blue-400">Procesando audio...</span>
+              </div>
+            )}
+
+            {downloadProgress !== null && (
+              <div className="flex flex-col items-center justify-center p-4 space-y-2">
+                <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                <span className="text-xs font-semibold text-purple-600 text-center">
+                  Iniciando motor de IA<br/>(Descargando modelo: {downloadProgress}%)
+                </span>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                  <div className="bg-purple-500 h-1.5 rounded-full transition-all duration-300" style={{ width: `${downloadProgress}%` }}></div>
+                </div>
               </div>
             )}
             <div ref={messagesEndRef} />

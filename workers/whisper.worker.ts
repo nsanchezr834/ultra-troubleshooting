@@ -12,8 +12,19 @@ self.addEventListener('message', async (e: MessageEvent) => {
         try {
             // 1. Inicializar de forma perezosa (Lazy Load) el modelo Whisper
             if (!transcriber) {
+                // Notificar que inicia la carga
+                self.postMessage({ type: 'INIT_MODEL' });
+                
                 // Usamos el modelo multilingüe para que pueda entender español
-                transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+                transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+                    progress_callback: (x: any) => {
+                        if (x.status === 'progress') {
+                            self.postMessage({ type: 'DOWNLOAD_PROGRESS', data: x });
+                        } else if (x.status === 'ready') {
+                            self.postMessage({ type: 'MODEL_READY' });
+                        }
+                    }
+                });
             }
 
             // 2. Ejecutar la transcripción
