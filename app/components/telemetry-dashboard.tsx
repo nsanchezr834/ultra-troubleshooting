@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ClientConfig, RobotConfig } from '../../config/robots-db';
 import { WorkflowConfig } from '../../config/workflows-db';
 import WorkflowVisualizer from './workflow-visualizer';
-import VideoPlayer from './videos';
+import VideoPlayer, { VIDEO_LIBRARY } from './videos';
 import WorkflowTabs, { TabType } from './workflow-tabs';
 import { Sparkles, Activity, Clock, User, Truck, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -138,15 +138,12 @@ export default function TelemetryDashboard({
         };
     }, [currentRobot?.id]);
 
-    // Extraer consejos (tips) y videos dinámicamente de Supabase (troubleshootingDb)
-    const dbTips = (troubleshootingDb || []).filter(
-        item => item.category === 'Consejos Operativos' && item.sop_reference?.includes(currentRobot?.name || '')
-    );
-    const dbVideos = (troubleshootingDb || []).filter(
-        item => item.category === 'Video Tutorial' && item.sop_reference?.includes(currentRobot?.name || '') && item.video_url
-    );
+    // Extraer consejos (tips) y videos puramente de datos locales según solicitud del usuario
+    const dbTips = currentRobot?.advises || [];
+    const hasLocalVideos = currentRobot?.id ? VIDEO_LIBRARY[currentRobot.id]?.videos?.length > 0 : false;
+    const dbVideos: any[] = []; // Se enviará vacío porque VideoPlayer carga los locales si le pasas el ID
 
-    const showVideoTab = dbVideos.length > 0;
+    const showVideoTab = hasLocalVideos;
     const showTipsTab = dbTips.length > 0;
 
     useEffect(() => {
@@ -432,7 +429,7 @@ export default function TelemetryDashboard({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {dbTips.map((adv, index) => {
                             const isException = false; // By default, DB tips are not exceptions
-                            const contentStr = adv.resolution_protocol || '';
+                            const contentStr = (adv as any).resolution_protocol || (adv as any).content || '';
                             
                             // Detect YouTube URLs and extract video ID
                             const ytUrlRegex = /https?:\/\/(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;

@@ -32,7 +32,7 @@ interface RobotVideoConfig {
     videos: VideoEntry[];
 }
 
-const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
+export const VIDEO_LIBRARY: Record<string, RobotVideoConfig> = {
     'fleetwood-pack': {
         layout: 'grid',
         videos: [

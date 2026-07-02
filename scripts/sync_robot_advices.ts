@@ -58,7 +58,7 @@ async function syncAdvices() {
                root_cause: 'Operating Tip',
                severity: 'LOW',
                resolution_protocol: resolution,
-               sop_reference: 'Operating Tips',
+               sop_reference: `Consejo Operativo - ${robot.name}`,
                embedding: embeddingValues
             }, { onConflict: 'id' });
             
