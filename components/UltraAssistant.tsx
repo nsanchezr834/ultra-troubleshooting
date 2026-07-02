@@ -27,7 +27,8 @@ export function UltraAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sleepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const transcriberRef = useRef<any>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const transcriberReadyRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -66,31 +67,44 @@ export function UltraAssistant() {
   };
 
   useEffect(() => {
-    const loadWhisper = async () => {
-      try {
-        console.warn("[MAIN] Iniciando carga dinámica de Whisper en hilo principal...");
-        setDownloadProgress(0);
-        const { pipeline, env } = await import('@xenova/transformers');
-        env.allowLocalModels = false;
-        
-        transcriberRef.current = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
-            progress_callback: (x: any) => {
-                if (x.status === 'progress') {
-                    setDownloadProgress(Math.round(x.progress));
-                } else if (x.status === 'ready') {
-                    setDownloadProgress(null);
-                    console.warn("[MAIN] Whisper descargado y listo en memoria.");
-                }
-            }
-        });
-      } catch (err) {
-        console.error("[MAIN] Error cargando Whisper:", err);
-        setDownloadProgress(null);
+    workerRef.current = new Worker(new URL('../workers/whisper.worker.ts', import.meta.url));
+    workerRef.current.postMessage({ type: 'PRELOAD_MODEL' });
+    
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
       }
     };
-    
-    loadWhisper();
   }, []);
+
+  useEffect(() => {
+    if (!workerRef.current) return;
+    workerRef.current.onmessage = (e) => {
+      const { type, data, text, message } = e.data;
+      if (type === 'INIT_MODEL') {
+        setDownloadProgress(0);
+      } else if (type === 'DOWNLOAD_PROGRESS') {
+        setDownloadProgress(Math.round(data.progress));
+      } else if (type === 'MODEL_READY') {
+        setDownloadProgress(null);
+        transcriberReadyRef.current = true;
+      } else if (type === 'TRANSCRIPT') {
+        if (text?.trim()) {
+          handleProcessQuery(text.trim());
+        } else {
+          triggerError("No entendí.");
+          setIsProcessing(false);
+          resetDetection();
+          setTimeout(() => startListening(), 500);
+        }
+      } else if (type === 'ERROR') {
+        triggerError(message || "Error procesando.");
+        setIsProcessing(false);
+        resetDetection();
+        setTimeout(() => startListening(), 500);
+      }
+    };
+  });
 
   const startDictation = async () => {
     resetSleepTimer();
@@ -159,19 +173,9 @@ export function UltraAssistant() {
           const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
           const float32Data = audioBuffer.getChannelData(0);
           
-          if (!transcriberRef.current) throw new Error("IA no lista.");
+          if (!transcriberReadyRef.current || !workerRef.current) throw new Error("IA no lista.");
 
-          const result = await transcriberRef.current(float32Data, { language: 'spanish', task: 'transcribe' });
-          const text = result.text;
-
-          if (text?.trim()) {
-            handleProcessQuery(text.trim());
-          } else {
-            triggerError("No entendí.");
-            setIsProcessing(false);
-            resetDetection();
-            setTimeout(() => startListening(), 500);
-          }
+          workerRef.current.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
         } catch (err: any) {
           triggerError(err.message || "Error procesando.");
           setIsProcessing(false);
