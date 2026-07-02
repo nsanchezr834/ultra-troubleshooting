@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { CLIENTS_DATABASE } from '../config/robots-db';
+import { CLIENTS_DATABASE } from '../config/robots-db.ts';
 
 dotenv.config({ path: '.env.local' });
 
@@ -34,10 +34,10 @@ async function syncAdvices() {
           }
           const id = rawId;
           const symptom = `Consejo Operativo ${robot.name}: ${cleanContent.substring(0, 100)}`;
-          const resolution = cleanContent;
+          const resolution = advice.content; // Do not strip HTML so video links are preserved!
           
-          // Generar embedding
-          const textToEmbed = `Síntoma/Pregunta: ${symptom}\n\nResolución: ${resolution}`;
+          // Generar embedding (using clean text for embedding to avoid confusing the AI with HTML)
+          const textToEmbed = `Síntoma/Pregunta: ${symptom}\n\nResolución: ${cleanContent}`;
           let embeddingValues = null;
           
           try {

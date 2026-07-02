@@ -140,10 +140,10 @@ export default function TelemetryDashboard({
 
     // Extraer consejos (tips) y videos dinámicamente de Supabase (troubleshootingDb)
     const dbTips = (troubleshootingDb || []).filter(
-        item => item.category === 'Consejos Operativos' && item.robotName === currentRobot?.name
+        item => item.category === 'Consejos Operativos' && item.sop_reference?.includes(currentRobot?.name || '')
     );
     const dbVideos = (troubleshootingDb || []).filter(
-        item => item.category === 'Video Tutorial' && item.robotName === currentRobot?.name && item.video_url
+        item => item.category === 'Video Tutorial' && item.sop_reference?.includes(currentRobot?.name || '') && item.video_url
     );
 
     const showVideoTab = dbVideos.length > 0;
