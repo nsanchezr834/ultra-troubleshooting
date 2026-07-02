@@ -6,12 +6,12 @@ let transcriberPromise: Promise<any> | null = null;
 
 self.addEventListener('message', async (e: MessageEvent) => {
     const { type, audioData } = e.data;
-    console.log(`[WORKER] Recibido mensaje tipo: ${type}`);
+    console.warn(`[WORKER] Recibido mensaje tipo: ${type}`);
 
     if (type === 'PRELOAD_MODEL' || type === 'TRANSCRIBE') {
         try {
             if (!transcriberPromise) {
-                console.log("[WORKER] Iniciando descarga del modelo Whisper...");
+                console.warn("[WORKER] Iniciando descarga del modelo Whisper...");
                 self.postMessage({ type: 'INIT_MODEL' });
                 
                 transcriberPromise = pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
@@ -19,26 +19,26 @@ self.addEventListener('message', async (e: MessageEvent) => {
                         if (x.status === 'progress') {
                             self.postMessage({ type: 'DOWNLOAD_PROGRESS', data: x });
                         } else if (x.status === 'ready') {
-                            console.log("[WORKER] Modelo descargado y listo.");
+                            console.warn("[WORKER] Modelo descargado y listo.");
                             self.postMessage({ type: 'MODEL_READY' });
                         }
                     }
                 });
             }
 
-            console.log("[WORKER] Esperando a que la promesa del modelo se resuelva...");
+            console.warn("[WORKER] Esperando a que la promesa del modelo se resuelva...");
             const transcriber = await transcriberPromise;
-            console.log("[WORKER] Promesa del modelo resuelta.");
+            console.warn("[WORKER] Promesa del modelo resuelta.");
 
             if (type === 'PRELOAD_MODEL') {
-                console.log("[WORKER] Preload finalizado, ignorando transcripción.");
+                console.warn("[WORKER] Preload finalizado, ignorando transcripción.");
                 return;
             }
 
-            console.log(`[WORKER] Iniciando transcripción. Longitud del audio: ${audioData?.length}`);
+            console.warn(`[WORKER] Iniciando transcripción. Longitud del audio: ${audioData?.length}`);
             
             if (!audioData || audioData.length === 0) {
-                 console.log("[WORKER] ERROR: audioData está vacío.");
+                 console.warn("[WORKER] ERROR: audioData está vacío.");
                  throw new Error("El arreglo de audio está vacío");
             }
 
@@ -47,7 +47,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
                 task: 'transcribe',
             });
 
-            console.log("[WORKER] Transcripción exitosa:", result.text);
+            console.warn("[WORKER] Transcripción exitosa:", result.text);
 
             self.postMessage({
                 type: 'TRANSCRIPT',

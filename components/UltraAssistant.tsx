@@ -141,7 +141,7 @@ export function UltraAssistant() {
         vadContext.close().catch(() => {});
         
         if (!hasSpoken) {
-           console.log("[MAIN] VAD: No se detectó voz. Cancelando.");
+           console.warn("[MAIN] VAD: No se detectó voz. Cancelando.");
            triggerError("No detecté tu voz. Verifica tu micrófono.");
            stream.getTracks().forEach(t => t.stop());
            resetDetection();
@@ -149,19 +149,19 @@ export function UltraAssistant() {
            return;
         }
 
-        console.log("[MAIN] VAD: Voz detectada. Procesando audio...");
+        console.warn("[MAIN] VAD: Voz detectada. Procesando audio...");
         setIsProcessing(true); // <--- VITAL: Bloquear la UI mientras procesa
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         try {
-          console.log(`[MAIN] Blob creado. Tamaño: ${blob.size} bytes. Decodificando WebM a PCM...`);
+          console.warn(`[MAIN] Blob creado. Tamaño: ${blob.size} bytes. Decodificando WebM a PCM...`);
           // Decode WebM to 16kHz PCM Float32Array
           const arrayBuffer = await blob.arrayBuffer();
           const decodeContext = new window.AudioContext({ sampleRate: 16000 });
           const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
           const float32Data = audioBuffer.getChannelData(0);
           
-          console.log(`[MAIN] Decodificación exitosa. Float32Array length: ${float32Data.length}. Enviando a Worker...`);
+          console.warn(`[MAIN] Decodificación exitosa. Float32Array length: ${float32Data.length}. Enviando a Worker...`);
           workerRef.current?.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
         } catch (err) {
           console.error("[MAIN] Error decodificando audio:", err);
