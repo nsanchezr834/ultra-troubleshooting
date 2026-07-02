@@ -80,6 +80,8 @@ export default function TroubleshootingSearch({
               id: advice.id,
               category: "Consejos Operativos",
               symptom: `Consejo Operativo: ${cleanContent.substring(0, 80)}${cleanContent.length > 80 ? '...' : ''}`,
+              root_cause: "Directriz Operativa",
+              severity: "LOW",
               resolution_protocol: advice.content,
               sop_reference: `Consejo Operativo - ${robot.name}`,
               clientKey: client.id,

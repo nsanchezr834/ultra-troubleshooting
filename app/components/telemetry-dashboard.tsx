@@ -11,6 +11,11 @@ import { Sparkles, Activity, Clock, User, Truck, RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase';
 import { TroubleshootingKnowledge } from '@/types/troubleshooting.types';
 
+export interface ExtendedTroubleshootingKnowledge extends TroubleshootingKnowledge {
+  clientKey?: string;
+  robotName?: string;
+}
+
 interface TelemetryDashboardProps {
     currentClient: ClientConfig | undefined;
     currentRobot: RobotConfig | undefined;
@@ -20,7 +25,7 @@ interface TelemetryDashboardProps {
     selectedFault?: string | null;
     setSelectedFault?: (fault: string | null) => void;
     workflowsDatabase?: Record<string, WorkflowConfig>;
-    troubleshootingDb?: TroubleshootingKnowledge[];
+    troubleshootingDb?: ExtendedTroubleshootingKnowledge[];
     onRobotChange?: (robotId: string) => void;
     onBack?: () => void;
     isDarkMode?: boolean;
@@ -62,6 +67,7 @@ export default function TelemetryDashboard({
     logoError,
     setLogoError,
     workflowsDatabase,
+    troubleshootingDb,
     onRobotChange,
     onBack,
     isDarkMode = false,
