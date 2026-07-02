@@ -90,7 +90,9 @@ export function UltraAssistant() {
   }, [resetDetection, startListening]);
 
   const startDictation = async () => {
+    console.warn("[MAIN] startDictation llamado!");
     try {
+      console.warn("[MAIN] Pidiendo permisos de micrófono...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
@@ -98,6 +100,7 @@ export function UltraAssistant() {
           autoGainControl: false,
         },
       });
+      console.warn("[MAIN] Micrófono concedido. Creando MediaRecorder...");
       audioChunksRef.current = [];
       const recorder = new MediaRecorder(stream);
       setIsDictating(true);
@@ -106,13 +109,14 @@ export function UltraAssistant() {
       const vadContext = new window.AudioContext();
       const source = vadContext.createMediaStreamSource(stream);
       const analyser = vadContext.createAnalyser();
-      analyser.minDecibels = -50;
+      analyser.minDecibels = -45; // Subido para evitar ruido blanco estático
       source.connect(analyser);
       
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       let silenceStart = performance.now();
       let hasSpoken = false;
       let vadAnimationId: number;
+      let lastLogTime = 0;
 
       const checkSilence = () => {
         if (recorder.state === 'inactive') return;
@@ -120,13 +124,20 @@ export function UltraAssistant() {
         analyser.getByteFrequencyData(dataArray);
         const isSpeaking = dataArray.some(val => val > 0);
         
+        if (performance.now() - lastLogTime > 1000) {
+           console.warn(`[MAIN] VAD loop... isSpeaking: ${isSpeaking}, hasSpoken: ${hasSpoken}`);
+           lastLogTime = performance.now();
+        }
+
         if (isSpeaking) {
           hasSpoken = true;
           silenceStart = performance.now();
         } else if (hasSpoken && performance.now() - silenceStart > 1500) {
+           console.warn("[MAIN] VAD: Silencio detectado después de hablar. Deteniendo grabación...");
            recorder.stop();
            return;
         } else if (!hasSpoken && performance.now() - silenceStart > 7000) {
+           console.warn("[MAIN] VAD: 7 segundos sin hablar. Deteniendo grabación por inactividad...");
            recorder.stop();
            return;
         }
