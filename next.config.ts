@@ -17,11 +17,8 @@ const nextConfig: NextConfig = {
   },
   turbopack: {
     resolveAlias: {
-      "sharp": false,
-      "onnxruntime-node": false,
-    },
-    resolveFallback: {
-      fs: false,
+      "sharp": "./lib/empty.js",
+      "onnxruntime-node": "./lib/empty.js",
     }
   },
 };
