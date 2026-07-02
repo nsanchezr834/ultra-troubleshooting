@@ -74,6 +74,9 @@ export function UltraAssistant() {
       }
     };
 
+    // Pre-descargar el modelo en background al cargar la página
+    workerRef.current.postMessage({ type: 'PRELOAD_MODEL' });
+
     return () => {
       workerRef.current?.terminate();
     };
@@ -374,6 +377,17 @@ export function UltraAssistant() {
               </div>
             ))}
             
+            {isDictating && (
+              <div className="flex flex-col items-center justify-center p-4 text-blue-500 space-y-2 animate-pulse">
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-4 bg-blue-500 rounded-full animate-[bounce_1s_infinite_100ms]"></div>
+                  <div className="w-1.5 h-6 bg-blue-500 rounded-full animate-[bounce_1s_infinite_200ms]"></div>
+                  <div className="w-1.5 h-4 bg-blue-500 rounded-full animate-[bounce_1s_infinite_300ms]"></div>
+                </div>
+                <span className="text-xs font-semibold">Te escucho...</span>
+              </div>
+            )}
+
             {isProcessing && downloadProgress === null && (
               <div className="flex flex-col items-center justify-center p-4 text-blue-500 space-y-2">
                 <Loader2 className="w-6 h-6 animate-spin" />

@@ -8,7 +8,7 @@ let transcriber: any = null;
 self.addEventListener('message', async (e: MessageEvent) => {
     const { type, audioData } = e.data;
 
-    if (type === 'TRANSCRIBE') {
+    if (type === 'PRELOAD_MODEL' || type === 'TRANSCRIBE') {
         try {
             // 1. Inicializar de forma perezosa (Lazy Load) el modelo Whisper
             if (!transcriber) {
@@ -26,6 +26,8 @@ self.addEventListener('message', async (e: MessageEvent) => {
                     }
                 });
             }
+
+            if (type === 'PRELOAD_MODEL') return;
 
             // 2. Ejecutar la transcripción
             // audioData ya debe ser un Float32Array a 16kHz enviado por el hilo principal
