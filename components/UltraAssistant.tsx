@@ -54,6 +54,10 @@ export function UltraAssistant() {
       { type: 'module' }
     );
 
+    workerRef.current.onerror = (e) => {
+      console.error("[MAIN] WORKER FATAL ERROR:", e.message, e.filename, e.lineno);
+    };
+
     workerRef.current.onmessage = (e) => {
       const { type, text, message, data } = e.data;
       if (type === 'TRANSCRIPT') {

@@ -1,3 +1,5 @@
+console.warn("[WORKER] El archivo worker.ts se ha cargado e interpretado correctamente.");
+
 import { pipeline, env } from '@xenova/transformers';
 
 env.allowLocalModels = false;
