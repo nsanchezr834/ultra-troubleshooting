@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { CLIENTS_DATABASE } from '../config/robots-db.ts';
+import { CLIENTS_DATABASE } from '../config/robots-db';
 
 dotenv.config({ path: '.env.local' });
 
