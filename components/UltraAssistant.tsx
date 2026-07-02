@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useWakeWord } from "@/hooks/useWakeWord";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -21,34 +21,50 @@ export function UltraAssistant() {
   const [hasError, setHasError] = useState(false);
   const [isDictating, setIsDictating] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [isAsleep, setIsAsleep] = useState(false);
   
   const isProcessingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sleepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Referencia para guardar el transcriptor de Whisper cargado dinámicamente
   const transcriberRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  const resetSleepTimer = useCallback(() => {
+    if (sleepTimeoutRef.current) {
+      clearTimeout(sleepTimeoutRef.current);
+    }
+    sleepTimeoutRef.current = setTimeout(() => {
+      console.warn("[MAIN] 5 minutos de inactividad. Apagando Ultra...");
+      setIsAsleep(true);
+      stopListening();
+    }, 300000);
+  }, [stopListening]);
+
+  useEffect(() => {
+    resetSleepTimer();
+    return () => {
+      if (sleepTimeoutRef.current) clearTimeout(sleepTimeoutRef.current);
+    };
+  }, [resetSleepTimer]);
 
   useEffect(() => {
     isProcessingRef.current = isProcessing;
   }, [isProcessing]);
 
-  // Auto-scroll para el chat
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // Manejador centralizado de errores visuales
   const triggerError = (msg: string) => {
     console.error(msg);
     setHasError(true);
     setTimeout(() => setHasError(false), 4000);
   };
 
-  // Pre-cargar Whisper dinámicamente en el hilo principal para evitar el bug de Vercel con Workers
   useEffect(() => {
     const loadWhisper = async () => {
       try {
@@ -77,9 +93,9 @@ export function UltraAssistant() {
   }, []);
 
   const startDictation = async () => {
+    resetSleepTimer();
     console.warn("[MAIN] startDictation llamado!");
     try {
-      console.warn("[MAIN] Pidiendo permisos de micrófono...");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
@@ -87,109 +103,81 @@ export function UltraAssistant() {
           autoGainControl: false,
         },
       });
-      console.warn("[MAIN] Micrófono concedido. Creando MediaRecorder...");
       audioChunksRef.current = [];
       const recorder = new MediaRecorder(stream);
       setIsDictating(true);
       
-      // Implement VAD (Voice Activity Detection)
       const vadContext = new window.AudioContext();
       const source = vadContext.createMediaStreamSource(stream);
       const analyser = vadContext.createAnalyser();
-      analyser.minDecibels = -45; // Subido para evitar ruido blanco estático
+      analyser.minDecibels = -45;
       source.connect(analyser);
       
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       let silenceStart = performance.now();
       let hasSpoken = false;
       let vadAnimationId: number;
-      let lastLogTime = 0;
 
       const checkSilence = () => {
         if (recorder.state === 'inactive') return;
-        
         analyser.getByteFrequencyData(dataArray);
         const isSpeaking = dataArray.some(val => val > 0);
         
-        if (performance.now() - lastLogTime > 1000) {
-           console.warn(`[MAIN] VAD loop... isSpeaking: ${isSpeaking}, hasSpoken: ${hasSpoken}`);
-           lastLogTime = performance.now();
-        }
-
         if (isSpeaking) {
           hasSpoken = true;
           silenceStart = performance.now();
         } else if (hasSpoken && performance.now() - silenceStart > 1500) {
-           console.warn("[MAIN] VAD: Silencio detectado después de hablar. Deteniendo grabación...");
            recorder.stop();
            return;
         } else if (!hasSpoken && performance.now() - silenceStart > 7000) {
-           console.warn("[MAIN] VAD: 7 segundos sin hablar. Deteniendo grabación por inactividad...");
            recorder.stop();
            return;
         }
-        
         vadAnimationId = requestAnimationFrame(checkSilence);
       };
 
-      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       recorder.onstop = async () => {
         setIsDictating(false);
         cancelAnimationFrame(vadAnimationId);
         vadContext.close().catch(() => {});
         
         if (!hasSpoken) {
-           console.warn("[MAIN] VAD: No se detectó voz. Cancelando.");
-           triggerError("No detecté tu voz. Verifica tu micrófono.");
+           triggerError("No detecté tu voz.");
            stream.getTracks().forEach(t => t.stop());
            resetDetection();
            setTimeout(() => startListening(), 500);
            return;
         }
 
-        console.warn("[MAIN] VAD: Voz detectada. Procesando audio...");
-        setIsProcessing(true); // <--- VITAL: Bloquear la UI mientras procesa
+        setIsProcessing(true);
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         try {
-          console.warn(`[MAIN] Blob creado. Tamaño: ${blob.size} bytes. Decodificando WebM a PCM...`);
-          // Decode WebM to 16kHz PCM Float32Array
           const arrayBuffer = await blob.arrayBuffer();
           const decodeContext = new window.AudioContext({ sampleRate: 16000 });
           const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
           const float32Data = audioBuffer.getChannelData(0);
           
-          console.warn(`[MAIN] Decodificación exitosa. Float32Array length: ${float32Data.length}. Transcribiendo...`);
-          
-          if (!transcriberRef.current) {
-             throw new Error("El motor de IA no está listo. Intenta de nuevo en unos segundos.");
-          }
+          if (!transcriberRef.current) throw new Error("IA no lista.");
 
-          const result = await transcriberRef.current(float32Data, {
-             language: 'spanish',
-             task: 'transcribe'
-          });
-
+          const result = await transcriberRef.current(float32Data, { language: 'spanish', task: 'transcribe' });
           const text = result.text;
-          console.warn(`[MAIN] Transcripción completada: ${text}`);
 
-          setDownloadProgress(null);
           if (text?.trim()) {
             handleProcessQuery(text.trim());
           } else {
-            triggerError("No entendí bien, intenta de nuevo.");
+            triggerError("No entendí.");
             setIsProcessing(false);
             resetDetection();
             setTimeout(() => startListening(), 500);
           }
         } catch (err: any) {
-          console.error("[MAIN] Error transcribiendo:", err);
-          triggerError(err.message || "Error decodificando audio.");
+          triggerError(err.message || "Error procesando.");
           setIsProcessing(false);
           resetDetection();
           setTimeout(() => startListening(), 500);
         }
-        
         stream.getTracks().forEach(t => t.stop());
       };
       
@@ -209,78 +197,41 @@ export function UltraAssistant() {
 
   useEffect(() => {
     if (wakeWordDetected) {
+      resetSleepTimer();
       const beep = new Audio("/beep.mp3");
       beep.play().catch(() => {});
       
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        
-        let initialMsg = "¿En qué te puedo ayudar?";
-        if (messages.length > 0) {
-            initialMsg = "Te escucho...";
-        }
-
-        const utterance = new SpeechSynthesisUtterance(initialMsg);
+        const utterance = new SpeechSynthesisUtterance(messages.length > 0 ? "Te escucho..." : "¿En qué te puedo ayudar?");
         utterance.lang = 'es-ES';
-        
         const checkSpeakingGreeting = setInterval(() => {
           if (!window.speechSynthesis.speaking) {
             clearInterval(checkSpeakingGreeting);
             startDictation();
           }
         }, 1000);
-
-        utterance.onend = () => {
-          clearInterval(checkSpeakingGreeting);
-          startDictation();
-        };
-
+        utterance.onend = () => { clearInterval(checkSpeakingGreeting); startDictation(); };
         window.speechSynthesis.speak(utterance);
       } else {
         startDictation();
       }
     }
-  }, [wakeWordDetected]); // Removido messages.length del array de dependencias para no disparar de nuevo
+  }, [wakeWordDetected, resetSleepTimer]);
 
   const handleProcessQuery = async (text: string) => {
+    resetSleepTimer();
     const userText = text.trim();
     const lowerText = userText.toLowerCase();
 
-    // Comandos locales
     if (lowerText.includes("cancelar") || lowerText.includes("cancela")) {
         setMessages([]);
         setContextMatches(null);
         resetDetection();
-        if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance("Operación cancelada.");
-            utterance.lang = 'es-ES';
-            window.speechSynthesis.speak(utterance);
-        }
         startListening();
         return;
     }
 
-    if (lowerText.includes("repetir") || lowerText.includes("repite")) {
-        const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
-        resetDetection();
-        if (lastAssistantMessage && 'speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(lastAssistantMessage.content);
-            utterance.lang = 'es-ES';
-            utterance.onend = () => {
-                if (contextMatches && contextMatches.length > 0) {
-                    startDictation();
-                } else {
-                    startListening(); 
-                }
-            };
-            window.speechSynthesis.speak(utterance);
-        } else {
-            startListening();
-        }
-        return;
-    }
-
-    // Agregar mensaje del usuario a la interfaz
     const newMessages = [...messages, { role: 'user' as const, content: userText }];
     setMessages(newMessages);
     setIsProcessing(true);
@@ -289,80 +240,42 @@ export function UltraAssistant() {
       const res = await fetch("/api/ultra/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            text: userText, 
-            history: messages, // Enviamos el historial previo
-            contextMatches: contextMatches 
-        }),
+        body: JSON.stringify({ text: userText, history: messages, contextMatches: contextMatches }),
       });
       
       const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.error || `Error HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(data?.error || `Error ${res.status}`);
       
-      // Actualizar historial con la respuesta de la IA
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-      
-      // Actualizar contexto si lo devuelve el backend (puede ser null si ya resolvió o no hay opciones)
-      if (data.matches !== undefined) {
-          setContextMatches(data.matches);
-      }
-      
-      // Si el backend dictamina que se canceló, limpiamos.
-      if (data.response.includes("Operación cancelada")) {
-          setMessages([]);
-          setContextMatches(null);
-      }
+      if (data.matches !== undefined) setContextMatches(data.matches);
 
-      // Contamos cuántas veces ha hablado el usuario
-      const userMessageCount = newMessages.filter(m => m.role === 'user').length;
-      
-      // El Asistente seguirá escuchando a menos que se cancele explícitamente, o se llegue a 10 turnos
-      const isExpectingAnswer = !data.response.includes("Operación cancelada") && userMessageCount < 10;
+      const isExpectingAnswer = !data.response.includes("Operación cancelada") && newMessages.filter(m => m.role === 'user').length < 10;
 
-      // Reproducir la respuesta vía TTS
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(data.response);
         utterance.lang = 'es-ES';
-        // Fallback robusto: revisar periódicamente si ya dejó de hablar
         const checkSpeaking = setInterval(() => {
           if (!window.speechSynthesis.speaking) {
             clearInterval(checkSpeaking);
-            if (isExpectingAnswer) {
-               startDictation();
-            }
+            if (isExpectingAnswer) startDictation();
           }
         }, 1000);
-
-        // Limpiar el intervalo cuando se dispara onend normalmente
         utterance.onend = () => {
           clearInterval(checkSpeaking);
-          if (isExpectingAnswer) {
-             // Esperamos respuesta, encendemos el micrófono directo
-             startDictation();
-          } else {
-             // Terminamos, volvemos a esperar el "Ultra"
-             resetDetection();
-             startListening();
-          }
+          if (isExpectingAnswer) startDictation();
+          else { resetDetection(); startListening(); resetSleepTimer(); }
         };
-
         window.speechSynthesis.speak(utterance);
       } else {
-        if (isExpectingAnswer) {
-           startDictation();
-        } else {
-           resetDetection();
-           startListening();
-        }
+        if (isExpectingAnswer) startDictation();
+        else { resetDetection(); startListening(); resetSleepTimer(); }
       }
     } catch (err: any) {
       triggerError(`API Error: ${err.message}`);
       setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
       resetDetection();
       startListening();
+      resetSleepTimer();
     } finally {
       setIsProcessing(false);
     }
@@ -370,7 +283,6 @@ export function UltraAssistant() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end space-y-4">
-      {/* Ventana de Chat */}
       {(wakeWordDetected || messages.length > 0 || isProcessing) && (
         <div className="bg-white/90 backdrop-blur-md shadow-2xl rounded-2xl p-4 w-80 border border-gray-100 transition-all duration-300 transform origin-bottom-right flex flex-col max-h-96">
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
