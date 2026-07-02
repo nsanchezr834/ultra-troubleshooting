@@ -82,16 +82,51 @@ export function UltraAssistant() {
       const recorder = new MediaRecorder(stream);
       setIsDictating(true);
       
+      // Implement VAD (Voice Activity Detection)
+      const vadContext = new window.AudioContext();
+      const source = vadContext.createMediaStreamSource(stream);
+      const analyser = vadContext.createAnalyser();
+      analyser.minDecibels = -50;
+      source.connect(analyser);
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let silenceStart = performance.now();
+      let hasSpoken = false;
+      let vadAnimationId: number;
+
+      const checkSilence = () => {
+        if (recorder.state === 'inactive') return;
+        
+        analyser.getByteFrequencyData(dataArray);
+        const isSpeaking = dataArray.some(val => val > 0);
+        
+        if (isSpeaking) {
+          hasSpoken = true;
+          silenceStart = performance.now();
+        } else if (hasSpoken && performance.now() - silenceStart > 1500) {
+           recorder.stop();
+           return;
+        } else if (!hasSpoken && performance.now() - silenceStart > 7000) {
+           recorder.stop();
+           return;
+        }
+        
+        vadAnimationId = requestAnimationFrame(checkSilence);
+      };
+
       recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
       recorder.onstop = async () => {
         setIsDictating(false);
+        cancelAnimationFrame(vadAnimationId);
+        vadContext.close().catch(() => {});
+        
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         try {
           // Decode WebM to 16kHz PCM Float32Array
           const arrayBuffer = await blob.arrayBuffer();
-          const audioContext = new window.AudioContext({ sampleRate: 16000 });
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const decodeContext = new window.AudioContext({ sampleRate: 16000 });
+          const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
           const float32Data = audioBuffer.getChannelData(0);
           
           workerRef.current?.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
@@ -109,6 +144,7 @@ export function UltraAssistant() {
       
       recorder.start();
       mediaRecorderRef.current = recorder;
+      checkSilence();
     } catch (err) {
       triggerError("Error al iniciar grabación.");
     }
@@ -295,6 +331,7 @@ export function UltraAssistant() {
               Asistente Ultra
             </h3>
             <button onClick={() => {
+              if (isDictating) stopDictation();
               resetDetection();
               setMessages([]);
               setContextMatches(null);
@@ -341,7 +378,15 @@ export function UltraAssistant() {
         
         {/* Botón Flotante */}
         <button
-          onClick={isListening ? stopListening : startListening}
+          onClick={() => {
+            if (isDictating) {
+              stopDictation();
+            } else if (isListening) {
+              stopListening();
+            } else {
+              startListening();
+            }
+          }}
           className={`relative group flex items-center justify-center w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 bg-white`}
         >
           <Image 
