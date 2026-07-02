@@ -15,6 +15,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 60;
+
 const supabase = createClient(
     process.env.SUPABASE_URL || '',
     process.env.SUPABASE_SERVICE_KEY || ''
