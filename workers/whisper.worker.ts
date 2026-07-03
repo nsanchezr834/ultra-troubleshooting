@@ -1,9 +1,6 @@
 console.warn("[WORKER] El archivo worker.ts se ha cargado e interpretado correctamente.");
 
-import { pipeline, env } from '@xenova/transformers';
-
-env.allowLocalModels = false;
-
+let transformers: any;
 let transcriberPromise: Promise<any> | null = null;
 
 self.addEventListener('message', async (e: MessageEvent) => {
@@ -16,16 +13,30 @@ self.addEventListener('message', async (e: MessageEvent) => {
                 console.warn("[WORKER] Iniciando descarga del modelo Whisper...");
                 self.postMessage({ type: 'INIT_MODEL' });
                 
-                transcriberPromise = pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
-                    progress_callback: (x: any) => {
-                        if (x.status === 'progress') {
-                            self.postMessage({ type: 'DOWNLOAD_PROGRESS', data: x });
-                        } else if (x.status === 'ready') {
-                            console.warn("[WORKER] Modelo descargado y listo.");
-                            self.postMessage({ type: 'MODEL_READY' });
+                transcriberPromise = (async () => {
+                    if (!transformers) {
+                        try {
+                            transformers = await import('@xenova/transformers');
+                            transformers.env.allowLocalModels = false;
+                            console.warn("[WORKER] Transformers.js cargado dinámicamente.");
+                        } catch (err) {
+                            console.error("[WORKER] Error importando @xenova/transformers:", err);
+                            throw err;
                         }
                     }
-                });
+                    const { pipeline } = transformers;
+                    
+                    return await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+                        progress_callback: (x: any) => {
+                            if (x.status === 'progress') {
+                                self.postMessage({ type: 'DOWNLOAD_PROGRESS', data: x });
+                            } else if (x.status === 'ready') {
+                                console.warn("[WORKER] Modelo descargado y listo.");
+                                self.postMessage({ type: 'MODEL_READY' });
+                            }
+                        }
+                    });
+                })();
             }
 
             console.warn("[WORKER] Esperando a que la promesa del modelo se resuelva...");

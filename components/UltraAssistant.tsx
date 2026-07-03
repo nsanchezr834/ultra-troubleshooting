@@ -109,6 +109,19 @@ export function UltraAssistant() {
   const startDictation = async () => {
     resetSleepTimer();
     console.warn("[MAIN] startDictation llamado!");
+
+    if (!transcriberReadyRef.current || !workerRef.current) {
+      triggerError("Aún estoy despertando, dame unos segundos...");
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance("Todavía estoy cargando, dame un momento.");
+        u.lang = 'es-ES';
+        window.speechSynthesis.speak(u);
+      }
+      resetDetection();
+      setTimeout(() => startListening(), 1500);
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -173,8 +186,6 @@ export function UltraAssistant() {
           const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
           const float32Data = audioBuffer.getChannelData(0);
           
-          if (!transcriberReadyRef.current || !workerRef.current) throw new Error("IA no lista.");
-
           workerRef.current.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
         } catch (err: any) {
           triggerError(err.message || "Error procesando.");
