@@ -186,7 +186,7 @@ export function UltraAssistant() {
           const audioBuffer = await decodeContext.decodeAudioData(arrayBuffer);
           const float32Data = audioBuffer.getChannelData(0);
           
-          workerRef.current.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
+          workerRef.current?.postMessage({ type: 'TRANSCRIBE', audioData: float32Data });
         } catch (err: any) {
           triggerError(err.message || "Error procesando.");
           setIsProcessing(false);
