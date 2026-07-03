@@ -19,10 +19,6 @@ const nextConfig: NextConfig = {
     resolveAlias: {
       "sharp": "./lib/empty.js",
       "onnxruntime-node": "./lib/empty.js",
-      "fs": "./lib/empty.js",
-      "path": "./lib/empty.js",
-      "os": "./lib/empty.js",
-      "crypto": "./lib/empty.js",
     }
   },
 };

@@ -16,9 +16,10 @@ self.addEventListener('message', async (e: MessageEvent) => {
                 transcriberPromise = (async () => {
                     if (!transformers) {
                         try {
-                            transformers = await import('@xenova/transformers');
+                            // @ts-ignore
+                            transformers = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
                             transformers.env.allowLocalModels = false;
-                            console.warn("[WORKER] Transformers.js cargado dinámicamente.");
+                            console.warn("[WORKER] Transformers.js cargado dinámicamente desde CDN.");
                         } catch (err) {
                             console.error("[WORKER] Error importando @xenova/transformers:", err);
                             throw err;
