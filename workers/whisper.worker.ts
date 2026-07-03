@@ -17,8 +17,9 @@ self.addEventListener('message', async (e: MessageEvent) => {
                     if (!transformers) {
                         try {
                             // @ts-ignore
-                            transformers = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+                            transformers = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js');
                             transformers.env.allowLocalModels = false;
+                            transformers.env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/';
                             console.warn("[WORKER] Transformers.js cargado dinámicamente desde CDN.");
                         } catch (err) {
                             console.error("[WORKER] Error importando @xenova/transformers:", err);
