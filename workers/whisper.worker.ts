@@ -39,7 +39,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
                         }
                     });
                 })().catch(err => {
-                    console.error("[WORKER] Error crítico cargando modelo:", err);
+                    console.error("[WORKER] Error crítico cargando modelo:", err, err?.stack);
                     self.postMessage({ type: 'ERROR', message: `Fallo al cargar modelo: ${err.message}` });
                     transcriberPromise = null;
                     throw err;
