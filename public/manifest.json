@@ -8,14 +8,14 @@
     "theme_color": "#FF5A00",
     "icons": [
         {
-            "src": "/manifest_logo.png",
+            "src": "/ultra_logo.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/manifest_logo.png",
+            "src": "/autoryx_logo.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/webp"
         }
     ]
 }

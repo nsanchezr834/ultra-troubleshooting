@@ -281,6 +281,8 @@ export default function TroubleshootingSearch({
       logSearch({
         ...currentSearchRef.current,
         status: solved ? 'resolved' : 'no_matches', // 'no_matches' se muestra como 'SIN SOLUCIÓN' en el admin
+        user_feedback: solved,
+        ai_response: currentSearchRef.current.selected_option
       });
     }
     forceCloseModal();

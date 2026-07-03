@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Orbitron } from "next/font/google";
 import { UltraAssistant } from "@/components/UltraAssistant";
+import { cookies } from "next/headers";
+import { verifySessionToken } from "./lib/security";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,11 +25,15 @@ export const metadata: Metadata = {
   description: "Training Tool",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get('session_id')?.value;
+  const isAuthenticated = verifySessionToken(sessionToken);
+
   return (
     <html
       lang="en"
@@ -38,7 +44,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         {children}
-        <UltraAssistant />
+        {isAuthenticated && <UltraAssistant />}
       </body>
     </html>
   );

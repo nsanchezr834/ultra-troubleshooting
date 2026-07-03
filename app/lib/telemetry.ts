@@ -5,6 +5,8 @@ export interface LogSearchParams {
   time_spent_seconds?: number;
   status: 'resolved' | 'no_matches' | 'abandoned' | 'retried';
   source: 'text' | 'voice_inline' | 'speech_agent';
+  user_feedback?: boolean;
+  ai_response?: string;
 }
 
 export function logSearch(params: LogSearchParams) {

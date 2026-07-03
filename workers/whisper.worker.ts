@@ -12,7 +12,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
             if (!transcriberPromise) {
                 console.warn("[WORKER] Iniciando descarga del modelo Whisper...");
                 self.postMessage({ type: 'INIT_MODEL' });
-                
+
                 transcriberPromise = (async () => {
                     if (!transformers) {
                         try {
@@ -27,8 +27,8 @@ self.addEventListener('message', async (e: MessageEvent) => {
                         }
                     }
                     const { pipeline } = transformers;
-                    
-                    return await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+
+                    return await pipeline('automatic-speech-recognition', 'Xenova/whisper-base', {
                         progress_callback: (x: any) => {
                             if (x.status === 'progress') {
                                 self.postMessage({ type: 'DOWNLOAD_PROGRESS', data: x });
@@ -56,10 +56,10 @@ self.addEventListener('message', async (e: MessageEvent) => {
             }
 
             console.warn(`[WORKER] Iniciando transcripción. Longitud del audio: ${audioData?.length}`);
-            
+
             if (!audioData || audioData.length === 0) {
-                 console.warn("[WORKER] ERROR: audioData está vacío.");
-                 throw new Error("El arreglo de audio está vacío");
+                console.warn("[WORKER] ERROR: audioData está vacío.");
+                throw new Error("El arreglo de audio está vacío");
             }
 
             const result = await transcriber(audioData, {
@@ -67,11 +67,30 @@ self.addEventListener('message', async (e: MessageEvent) => {
                 task: 'transcribe',
             });
 
-            console.warn("[WORKER] Transcripción exitosa:", result.text);
+            console.warn("[WORKER] Transcripción cruda:", result.text);
+
+            // Post-procesamiento Fonético (Auto-corrector de palabras técnicas)
+            let correctedText = result.text.toLowerCase()
+                .replace(/\bcueyo\b/g, "cuello")
+                .replace(/\bcuyo\b/g, "cuello")
+                .replace(/\bgríper\b/g, "gripper")
+                .replace(/\bgriper\b/g, "gripper")
+                .replace(/\bvager\b/g, "bagger")
+                .replace(/\bbaguer\b/g, "bagger")
+                .replace(/\bvaguer\b/g, "bagger")
+                .replace(/\bpaki\b/g, "packie")
+                .replace(/\bpaqui\b/g, "packie")
+                .replace(/\bjome\b/g, "home")
+                .replace(/\bgome\b/g, "home")
+                .replace(/\bome\b/g, "home");
+
+
+
+            console.warn("[WORKER] Transcripción corregida:", correctedText);
 
             self.postMessage({
                 type: 'TRANSCRIPT',
-                text: result.text
+                text: correctedText
             });
         } catch (error: any) {
             console.error("[WORKER] Error capturado:", error);

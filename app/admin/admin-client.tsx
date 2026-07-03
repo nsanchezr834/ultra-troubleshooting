@@ -91,6 +91,7 @@ export default function AdminClient() {
     const [loadingEditor, setLoadingEditor] = useState(false);
     const [selectedTelemetryIds, setSelectedTelemetryIds] = useState<string[]>([]);
     const [expandedAccessLogUser, setExpandedAccessLogUser] = useState<string | null>(null);
+    const [expandedTelemetryUser, setExpandedTelemetryUser] = useState<string | null>(null);
     
     const [faultModalOpen, setFaultModalOpen] = useState(false);
     const [selectedFault, setSelectedFault] = useState<any | null>(null);
@@ -1618,12 +1619,11 @@ export default function AdminClient() {
                                                         />
                                                     </th>
                                                     <th className="p-4">Fecha</th>
+                                                    <th className="p-4">Usuario</th>
                                                     <th className="p-4">Consulta del Operador</th>
-                                                    <th className="p-4 text-center">Coincidencias</th>
-                                                    <th className="p-4">Selección Realizada</th>
+                                                    <th className="p-4">Solución / IA</th>
+                                                    <th className="p-4 text-center">¿Útil?</th>
                                                     <th className="p-4 text-center">Origen</th>
-                                                    <th className="p-4 text-center">Estatus</th>
-                                                    <th className="p-4 text-center">Tiempo Lector</th>
                                                     <th className="p-4 text-center">Acciones</th>
                                                 </tr>
                                             </thead>
@@ -1641,8 +1641,31 @@ export default function AdminClient() {
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    telemetryList.map((item) => (
-                                                        <tr key={item.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02]">
+                                                    Object.entries(
+                                                        telemetryList.reduce((acc: Record<string, any[]>, item: any) => {
+                                                            const user = item.operator_name || 'Desconocido';
+                                                            if (!acc[user]) acc[user] = [];
+                                                            acc[user].push(item);
+                                                            return acc;
+                                                        }, {})
+                                                    ).map(([user, items]) => (
+                                                        <React.Fragment key={user}>
+                                                            <tr 
+                                                                className="bg-[#1a1b26] cursor-pointer hover:bg-[#1a1b26]/80 transition-colors"
+                                                                onClick={() => setExpandedTelemetryUser(expandedTelemetryUser === user ? null : user)}
+                                                            >
+                                                                <td colSpan={8} className="p-4">
+                                                                    <div className="flex items-center gap-3 font-bold text-white">
+                                                                        <span className="text-xl">{expandedTelemetryUser === user ? '📂' : '📁'}</span>
+                                                                        <span>{user}</span>
+                                                                        <span className="text-gray-500 text-xs font-normal px-2 py-0.5 bg-white/5 rounded-full">
+                                                                            {items.length} consultas
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                            {expandedTelemetryUser === user && items.map((item: any) => (
+                                                                <tr key={item.id} className="hover:bg-white/[0.01] transition-colors border-b border-white/[0.02] bg-[#0c0d14]/30">
                                                             <td className="p-4 text-center">
                                                                 <input 
                                                                     type="checkbox" 
@@ -1652,16 +1675,25 @@ export default function AdminClient() {
                                                                 />
                                                             </td>
                                                             <td className="p-4 text-gray-400 font-medium whitespace-nowrap">
-                                                                {formatDate(item.timestamp)}
+                                                                {new Date(item.timestamp).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                            </td>
+                                                            <td className="p-4 text-white font-bold whitespace-nowrap">
+                                                                {item.operator_name || 'Desconocido'}
                                                             </td>
                                                             <td className="p-4 text-white font-bold max-w-xs truncate" title={item.query}>
                                                                 "{item.query}"
                                                             </td>
-                                                            <td className="p-4 text-center font-bold text-gray-300">
-                                                                {item.matches_count}
+                                                            <td className="p-4 text-gray-400 truncate max-w-[180px]" title={item.ai_response || item.selected_option || 'Ninguna'}>
+                                                                {item.ai_response || item.selected_option || <span className="text-gray-600">—</span>}
                                                             </td>
-                                                            <td className="p-4 text-gray-400 truncate max-w-[180px]" title={item.selected_option || 'Ninguna'}>
-                                                                {item.selected_option || <span className="text-gray-600">—</span>}
+                                                            <td className="p-4 text-center">
+                                                                {item.user_feedback === true ? (
+                                                                    <span className="text-emerald-400 font-bold" title="Útil">👍</span>
+                                                                ) : item.user_feedback === false ? (
+                                                                    <span className="text-red-400 font-bold" title="No útil">👎</span>
+                                                                ) : (
+                                                                    <span className="text-gray-600">—</span>
+                                                                )}
                                                             </td>
                                                             <td className="p-4 text-center">
                                                                 {item.source === 'text' && (
@@ -1679,31 +1711,6 @@ export default function AdminClient() {
                                                                         🤖 IA
                                                                     </span>
                                                                 )}
-                                                            </td>
-                                                            <td className="p-4 text-center">
-                                                                {item.status === 'resolved' && (
-                                                                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
-                                                                        RESUELTO
-                                                                    </span>
-                                                                )}
-                                                                {item.status === 'no_matches' && (
-                                                                    <span className="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
-                                                                        SIN SOLUCIÓN
-                                                                    </span>
-                                                                )}
-                                                                {item.status === 'abandoned' && (
-                                                                    <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
-                                                                        ABANDONADO
-                                                                    </span>
-                                                                )}
-                                                                {item.status === 'retried' && (
-                                                                    <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
-                                                                        REINTENTADO
-                                                                    </span>
-                                                                )}
-                                                            </td>
-                                                            <td className="p-4 text-center font-mono text-gray-400">
-                                                                {item.time_spent_seconds ? `${item.time_spent_seconds}s` : '—'}
                                                             </td>
                                                             <td className="p-4 text-center">
                                                                  <div className="flex items-center justify-center gap-2">
@@ -1737,6 +1744,8 @@ export default function AdminClient() {
                                                                  </div>
                                                             </td>
                                                         </tr>
+                                                            ))}
+                                                        </React.Fragment>
                                                     ))
                                                 )}
                                             </tbody>
