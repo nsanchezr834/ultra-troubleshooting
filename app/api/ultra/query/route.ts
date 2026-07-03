@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 // Inicializar clientes
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''; 
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const runtime = 'edge';
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     // 0. Corrección Fonética de términos técnicos comunes usando distancia de Levenshtein (Cálculo Matemático)
     let processedText = text;
-    
+
     const technicalTerms = {
       'bagger': ['lavager', 'vager', 'bager', 'bagre'],
       'tote': ['toute', 'toti', 'toti'],
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     };
 
     const words = processedText.split(/\b/);
-    
+
     // Importación dinámica para evitar problemas en Edge (fastest-levenshtein es pure JS)
     const { distance } = require('fastest-levenshtein');
 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       const word = words[i].toLowerCase();
       // Ignorar palabras muy cortas
       if (word.length < 4) continue;
-      
+
       for (const [correctTerm, variations] of Object.entries(technicalTerms)) {
         // Si ya está bien escrito, saltar
         if (word === correctTerm) continue;
@@ -62,13 +62,13 @@ export async function POST(req: Request) {
         for (const variant of variations) {
           // Si la distancia matemática es 1 o 2 (pequeño error de dictado)
           if (distance(word, variant) <= 2) {
-             words[i] = correctTerm;
-             break;
+            words[i] = correctTerm;
+            break;
           }
         }
       }
     }
-    
+
     processedText = words.join('');
 
     // Ajuste adicional para casos de 2 palabras como "la bagger"
@@ -84,9 +84,9 @@ export async function POST(req: Request) {
     // FLUJO CONVERSACIONAL
     if (contextMatches && contextMatches.length > 0) {
       // 1. Fase de Desambiguación (Usando contexto previo)
-      const flashModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const flashModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const options = contextMatches.map((m: any, index: number) => `Opción ${index + 1}: ${m.symptom || m.error_message || m.problem_description} \nCausa Raíz: ${m.root_cause} \nResolución: ${m.resolution_protocol}`).join('\n\n');
-      
+
       const prompt = `
         Eres "Ultra", un asistente de voz técnico.
         El usuario estaba respondiendo a una pregunta de desambiguación para elegir su problema.
@@ -104,10 +104,10 @@ export async function POST(req: Request) {
         3. Si la respuesta del usuario elige una de las opciones (ya sea mencionando el número 1, 2, 3 o describiendo el síntoma de la opción), identifica cuál es.
         4. Si eligió una opción, formula una respuesta hablada (corta, natural, sin markdown) explicando la Causa Raíz y el Protocolo de Resolución de la opción elegida. Ve directo al grano.
       `;
-      
+
       const aiResponse = await generateContentWithRetry(flashModel, prompt);
       finalResponse = aiResponse.response.text().trim();
-      
+
       if (!finalResponse.includes("Operación cancelada") && !finalResponse.includes("No pude entender")) {
         isResolved = true;
       }
@@ -130,7 +130,7 @@ export async function POST(req: Request) {
       if (matchesToLog.length > 0) {
         const bestMatch = matchesToLog[0];
         const flashModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
+
         // Desambiguación si hay múltiples opciones
         if (matchesToLog.length > 1) {
           const options = matchesToLog.map((m: any, index: number) => `Opción ${index + 1}: ${m.symptom || m.error_message || m.problem_description} (Tipo: ${m.category})`).join('\n');
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
     // 4. Telemetría y Retención Asíncrona (Agent C - Caja Negra)
     const cookieStore = await cookies();
     const operatorName = cookieStore.get('operator_name')?.value || 'Operador Desconocido';
-    
+
     // Solo registrar en telemetría si NO fue una cancelación
     if (!finalResponse.includes("Operación cancelada")) {
       const displayQuery = `${operatorName} (Por Voz) - "${processedText}"`;
@@ -204,12 +204,12 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Agent B Error:", error);
-    
+
     // Mandar el error técnico al dashboard del Admin para registro
     const cookieStore = await cookies();
     const operatorName = cookieStore.get('operator_name')?.value || 'Operador Desconocido';
     const technicalError = error?.message || "Error desconocido al procesar la respuesta.";
-    
+
     supabase.from('assistant_logs').insert({
       user_query: `${operatorName} (Por Voz) - Error Técnico`,
       ai_response: `ERROR: ${technicalError}`,
