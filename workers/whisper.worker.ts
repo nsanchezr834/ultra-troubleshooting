@@ -36,7 +36,12 @@ self.addEventListener('message', async (e: MessageEvent) => {
                             }
                         }
                     });
-                })();
+                })().catch(err => {
+                    console.error("[WORKER] Error crítico cargando modelo:", err);
+                    self.postMessage({ type: 'ERROR', message: `Fallo al cargar modelo: ${err.message}` });
+                    transcriberPromise = null;
+                    throw err;
+                });
             }
 
             console.warn("[WORKER] Esperando a que la promesa del modelo se resuelva...");
