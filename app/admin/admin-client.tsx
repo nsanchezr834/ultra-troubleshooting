@@ -6,7 +6,7 @@ import {
     Users, TrendingUp, BookOpenCheck, LogOut,
     ChevronDown, BarChart3, Target, Clock, Award,
     X, Check, Download, ShieldAlert, Star, Shield, ArrowLeft, RefreshCw, HelpCircle,
-    Wrench, Plus, Trash2, Edit
+    Wrench, Plus, Trash2, Edit, Bot
 } from 'lucide-react';
 import Image from 'next/image';
 import { CLIENTS_DATABASE } from '../../config/robots-db';
@@ -238,14 +238,12 @@ export default function AdminClient() {
     const fetchAccessLogs = useCallback(async () => {
         setLoadingAccessLogs(true);
         try {
-            const { data, error } = await supabase
-                .from('user_access_logs')
-                .select('*')
-                .order('accessed_at', { ascending: false });
-            if (data) {
-                setAccessLogsList(data);
-            } else if (error) {
-                console.error('Error fetching access logs:', error);
+            const res = await fetch('/api/admin/access-logs');
+            if (res.ok) {
+                const json = await res.json();
+                setAccessLogsList(json.data || []);
+            } else {
+                console.error('Error fetching access logs:', await res.text());
             }
         } catch (err) {
             console.error('Error fetching access logs:', err);
@@ -803,192 +801,103 @@ export default function AdminClient() {
         const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `Reporte_Admin_ROI_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reporte_general_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     };
 
     return (
-        <div className="h-screen bg-[#f4f7fb] text-gray-800 flex font-sans select-none overflow-hidden">
+        <div className="h-screen bg-[#f4f7fb] text-gray-800 flex font-sans select-none overflow-hidden p-4 gap-4">
             {/* Sidebar */}
-            <aside className="w-72 shrink-0 bg-white/80 backdrop-blur-xl border-r border-white/60 flex flex-col z-20">
+            <aside className="w-20 shrink-0 bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl flex flex-col items-center py-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] z-20">
                 {/* Logo */}
-                <div className="px-6 py-6 border-b border-white/60 flex justify-center items-center">
+                <div className="pb-4 border-b border-white/60 flex justify-center items-center w-full">
                     <img
                         src="/autoryx_logo.webp"
                         alt="Autoryx Logo"
-                        className="w-full h-auto max-w-[220px] object-contain"
+                        className="w-10 h-10 object-contain"
                     />
                 </div>
 
                 {/* Navegación Principal */}
-                <div className="p-6 border-b border-white/60 flex flex-col gap-2 flex-1">
-                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Vistas y Herramientas</h4>
+                <div className="py-4 border-b border-white/60 flex flex-col gap-3 flex-1 w-full items-center">
                     
                     <button
                         onClick={() => setView('analytics')}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-xs ${view === 'analytics' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                        title="Analíticas ROI"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'analytics' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
-                        <BarChart3 className="w-4 h-4" />
-                        Analíticas ROI
+                        <BarChart3 className="w-5 h-5" />
                     </button>
                     
                     <button
                         onClick={() => { setView('editor'); setEditorTab('faults'); }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-xs ${view === 'editor' && editorTab === 'faults' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                        title="Fallas (Troubleshooting)"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'faults' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
-                        <ShieldAlert className="w-4 h-4" />
-                        Fallas (Troubleshooting)
+                        <ShieldAlert className="w-5 h-5" />
                     </button>
 
                     <button
                         onClick={() => { setView('editor'); setEditorTab('advises'); }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-xs ${view === 'editor' && editorTab === 'advises' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                        title="Consejos de Operación"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'advises' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
-                        <BookOpenCheck className="w-4 h-4" />
-                        Consejos de Operación
+                        <BookOpenCheck className="w-5 h-5" />
                     </button>
 
                     <button
                         onClick={() => { setView('editor'); setEditorTab('telemetry'); }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-xs ${view === 'editor' && editorTab === 'telemetry' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                        title="Consultas de Voz (IA)"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'telemetry' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
-                        <HelpCircle className="w-4 h-4" />
-                        Consultas de Voz (IA)
+                        <HelpCircle className="w-5 h-5" />
                     </button>
 
                     <button
                         onClick={() => { setView('editor'); setEditorTab('access'); }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-xs ${view === 'editor' && editorTab === 'access' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                        title="Accesos de Usuarios"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'access' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
-                        <Users className="w-4 h-4" />
-                        Accesos de Usuarios
+                        <Users className="w-5 h-5" />
                     </button>
 
                     <button
                         onClick={() => { setView('editor'); setEditorTab('robots'); }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-xs ${view === 'editor' && editorTab === 'robots' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                        title="Estaciones (Robots)"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'robots' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
-                        <Target className="w-4 h-4" />
-                        Estaciones (Robots)
+                        <Bot className="w-5 h-5" />
                     </button>
 
                     <button
                         onClick={() => { setView('editor'); setEditorTab('quotas'); }}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold text-xs ${view === 'editor' && editorTab === 'quotas' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                        title="Cuotas (Free Tier)"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'quotas' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
-                        <Shield className="w-4 h-4" />
-                        Cuotas (Free Tier)
+                        <Shield className="w-5 h-5" />
                     </button>
                 </div>
-
-                {/* Logout */}
-                <div className="p-6">
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-2xl transition-all text-xs border border-gray-200"
-                    >
-                        <LogOut className="w-4 h-4" />
-                        Cerrar Sesión
-                    </button>
-                </div>
-
-                {/* Filtros Globales (solo si estamos en analytics) */}
-                {view === 'analytics' && (
-                    <div className="p-6 flex-1 flex flex-col gap-5 overflow-y-auto custom-scrollbar">
-                        <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-                            Filtros Globales
-                        </h4>
-                        
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Grupo de Estudio:</span>
-                            <div className="relative">
-                                <select
-                                    value={selectedSessionId}
-                                    onChange={(e) => setSelectedSessionId(e.target.value)}
-                                    className="w-full bg-white/50 hover:bg-white/80 border border-white/60 focus:border-[#00A8FC]/50 rounded-2xl pl-4 pr-10 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none appearance-none transition-colors"
-                                >
-                                    <option value="all">Todos los Grupos</option>
-                                    {sessions.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name} ({s.trainer})</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Tipo Examen:</span>
-                            <div className="relative">
-                                <select
-                                    value={examTypeFilter}
-                                    onChange={(e) => setExamTypeFilter(e.target.value as any)}
-                                    className="w-full bg-white/50 hover:bg-white/80 border border-white/60 focus:border-[#00A8FC]/50 rounded-2xl pl-4 pr-10 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none appearance-none transition-colors"
-                                >
-                                    <option value="all">Todos</option>
-                                    <option value="theory">Teórico</option>
-                                    <option value="simulation">Simulador</option>
-                                </select>
-                                <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Categoría:</span>
-                            <div className="relative">
-                                <select
-                                    value={categoryFilter}
-                                    onChange={(e) => setCategoryFilter(e.target.value as any)}
-                                    className="w-full bg-white/50 hover:bg-white/80 border border-white/60 focus:border-[#00A8FC]/50 rounded-2xl pl-4 pr-10 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none appearance-none transition-colors"
-                                >
-                                    <option value="all">Todas</option>
-                                    <option value="Training 1">Training 1</option>
-                                    <option value="Training 2">Training 2</option>
-                                    <option value="Training 3">Training 3</option>
-                                    <option value="DC">DC</option>
-                                    <option value="Customer">Customer</option>
-                                </select>
-                                <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Fecha:</span>
-                            <div className="relative">
-                                <select
-                                    value={dateFilter}
-                                    onChange={(e) => setDateFilter(e.target.value as any)}
-                                    className="w-full bg-white/50 hover:bg-white/80 border border-white/60 focus:border-[#00A8FC]/50 rounded-2xl pl-4 pr-10 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none appearance-none transition-colors"
-                                >
-                                    <option value="all">Histórico</option>
-                                    <option value="today">Hoy</option>
-                                    <option value="week">Últimos 7 días</option>
-                                    <option value="month">Este mes</option>
-                                </select>
-                                <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Botones de acción inferiores */}
-                <div className="p-6 border-t border-white/60 flex flex-col gap-3 mt-auto">
+                <div className="pt-4 border-t border-white/60 flex flex-col gap-3 mt-auto items-center w-full">
                     <button
                         onClick={exportToCSV}
-                        className="flex items-center justify-center gap-2 w-full bg-[#00A8FC]/10 hover:bg-[#00A8FC]/20 text-[#00A8FC] border border-[#FF5A00]/25 hover:border-[#FF5A00]/40 rounded-2xl px-4 py-2.5 transition-all font-bold text-xs"
+                        title="Exportar Reporte"
+                        className="flex items-center justify-center w-10 h-10 bg-[#00A8FC]/10 hover:bg-[#00A8FC]/20 text-[#00A8FC] border border-[#FF5A00]/25 hover:border-[#FF5A00]/40 rounded-xl transition-all"
                     >
-                        <Download className="w-4 h-4" />
-                        Exportar Reporte
+                        <Download className="w-5 h-5" />
                     </button>
                     <button
                         onClick={handleLogout}
-                        className="flex items-center justify-center gap-2 w-full bg-white/50 hover:bg-red-500/10 text-neutral-300 hover:text-red-400 border border-white/60 hover:border-red-500/30 rounded-2xl px-4 py-2.5 transition-all font-bold text-xs"
+                        title="Cerrar Sesión"
+                        className="flex items-center justify-center w-10 h-10 bg-white/50 hover:bg-red-500/10 text-neutral-400 hover:text-red-400 border border-white/60 hover:border-red-500/30 rounded-xl transition-all"
                     >
-                        <LogOut className="w-4 h-4" />
-                        Cerrar Sesión
+                        <LogOut className="w-5 h-5" />
                     </button>
                 </div>
             </aside>
@@ -1014,7 +923,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                                 <div className="z-10">
-                                    <div className="text-4xl tracking-tighter font-black bg-clip-text text-transparent bg-gradient-to-br from-white to-neutral-500">{trainerHoursSaved}h</div>
+                                    <div className="text-4xl tracking-tighter font-black text-[#00A8FC]">{trainerHoursSaved}h</div>
                                     <p className="text-[10px] text-gray-500 mt-1 uppercase font-medium tracking-wide">Horas de trainer administradas guardadas</p>
                                 </div>
                             </div>
@@ -1028,7 +937,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                                 <div className="z-10">
-                                    <div className="text-4xl tracking-tighter font-black flex items-end gap-1.5 bg-clip-text text-transparent bg-gradient-to-br from-white to-neutral-500">
+                                    <div className="text-4xl tracking-tighter font-black flex items-end gap-1.5 text-[#00A8FC]">
                                         {avgConfidenceRating} <span className="text-sm text-gray-500 font-medium mb-1 tracking-normal">/ 5</span>
                                     </div>
                                     <p className="text-[10px] text-gray-500 mt-1 uppercase font-medium tracking-wide">Percepción promedio del operador (Paso 4)</p>
@@ -1045,7 +954,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                                 <div className="z-10">
-                                    <div className="text-4xl tracking-tighter font-black bg-clip-text text-transparent bg-gradient-to-br from-white to-neutral-500">{passRate}%</div>
+                                    <div className="text-4xl tracking-tighter font-black text-[#00A8FC]">{passRate}%</div>
                                     <p className="text-[10px] text-gray-500 mt-1 uppercase font-medium tracking-wide">De {totalAttempts} intentos totales registrados</p>
                                 </div>
                             </div>
@@ -1059,7 +968,7 @@ export default function AdminClient() {
                                     </div>
                                 </div>
                                 <div className="z-10">
-                                    <div className="text-4xl tracking-tighter font-black bg-clip-text text-transparent bg-gradient-to-br from-white to-neutral-500">
+                                    <div className="text-4xl tracking-tighter font-black text-[#00A8FC]">
                                         {avgDurationSec ? `${Math.floor(avgDurationSec / 60)}m ${avgDurationSec % 60}s` : '—'}
                                     </div>
                                     <p className="text-[10px] text-gray-500 mt-1 uppercase font-medium tracking-wide">Tiempo promedio de resolución activa</p>
@@ -1761,11 +1670,11 @@ export default function AdminClient() {
                                     </div>
                                     <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-3xl p-5 flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                                         <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Accesos Totales</span>
-                                        <span className="text-3xl font-black text-gray-700">{accessLogsList.length}</span>
+                                        <span className="text-3xl font-black text-[#00A8FC]">{accessLogsList.length}</span>
                                     </div>
                                     <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-3xl p-5 flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                                         <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Usuarios Distintos</span>
-                                        <span className="text-3xl font-black text-emerald-400">{uniqueUsersCount}</span>
+                                        <span className="text-3xl font-black text-[#00A8FC]">{uniqueUsersCount}</span>
                                     </div>
                                 </div>
 
