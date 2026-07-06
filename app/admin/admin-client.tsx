@@ -6,7 +6,7 @@ import {
     Users, TrendingUp, BookOpenCheck, LogOut,
     ChevronDown, BarChart3, Target, Clock, Award,
     X, Check, Download, ShieldAlert, Star, Shield, ArrowLeft, RefreshCw, HelpCircle,
-    Wrench, Plus, Trash2, Edit, Bot
+    Wrench, Plus, Trash2, Edit, Bot, Activity
 } from 'lucide-react';
 import Image from 'next/image';
 import { CLIENTS_DATABASE } from '../../config/robots-db';
@@ -74,7 +74,7 @@ export default function AdminClient() {
 
     // Estados del Gestor de Contenidos (Fallas y Consejos)
     const [view, setView] = useState<'analytics' | 'editor'>('analytics');
-    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry' | 'access' | 'robots' | 'quotas'>('faults');
+    const [editorTab, setEditorTab] = useState<'faults' | 'advises' | 'telemetry' | 'session_telemetry' | 'access' | 'robots' | 'quotas'>('faults');
 
     // Estados para la gestión de robots/estaciones
     const [robotsList, setRobotsList] = useState<any[]>([]);
@@ -85,8 +85,10 @@ export default function AdminClient() {
     const [editorFaults, setEditorFaults] = useState<any[]>([]);
     const [editorAdvises, setEditorAdvises] = useState<any[]>([]);
     const [telemetryList, setTelemetryList] = useState<any[]>([]);
+    const [sessionTelemetryList, setSessionTelemetryList] = useState<any[]>([]);
     const [accessLogsList, setAccessLogsList] = useState<any[]>([]);
     const [loadingTelemetry, setLoadingTelemetry] = useState(false);
+    const [loadingSessionTelemetry, setLoadingSessionTelemetry] = useState(false);
     const [loadingAccessLogs, setLoadingAccessLogs] = useState(false);
     const [loadingEditor, setLoadingEditor] = useState(false);
     const [selectedTelemetryIds, setSelectedTelemetryIds] = useState<string[]>([]);
@@ -252,6 +254,23 @@ export default function AdminClient() {
         }
     }, []);
 
+    const fetchSessionTelemetry = useCallback(async () => {
+        setLoadingSessionTelemetry(true);
+        try {
+            const res = await fetch('/api/admin/session-telemetry');
+            if (res.ok) {
+                const json = await res.json();
+                setSessionTelemetryList(json.data || []);
+            } else {
+                console.error('Error fetching session telemetry:', await res.text());
+            }
+        } catch (err) {
+            console.error('Error fetching session telemetry:', err);
+        } finally {
+            setLoadingSessionTelemetry(false);
+        }
+    }, []);
+
     const todayAccessCount = useMemo(() => {
         const todayStr = new Date().toDateString();
         return accessLogsList.filter(log => log.accessed_at && new Date(log.accessed_at).toDateString() === todayStr).length;
@@ -402,11 +421,12 @@ export default function AdminClient() {
         if (view === 'editor') {
             fetchEditorData();
             fetchTelemetry();
+            fetchSessionTelemetry();
             fetchAccessLogs();
             fetchRobotsConfig();
             fetchQuotas();
         }
-    }, [view, fetchEditorData, fetchTelemetry, fetchAccessLogs, fetchRobotsConfig, fetchQuotas]);
+    }, [view, fetchEditorData, fetchTelemetry, fetchSessionTelemetry, fetchAccessLogs, fetchRobotsConfig, fetchQuotas]);
 
     useEffect(() => {
         if (view === 'editor' && selectedEditorRobotId) {
@@ -856,6 +876,14 @@ export default function AdminClient() {
                         className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'telemetry' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
                     >
                         <HelpCircle className="w-5 h-5" />
+                    </button>
+
+                    <button
+                        onClick={() => { setView('editor'); setEditorTab('session_telemetry'); }}
+                        title="Navegación de Usuarios"
+                        className={`flex justify-center items-center w-10 h-10 rounded-xl transition-all ${view === 'editor' && editorTab === 'session_telemetry' ? 'bg-[#00A8FC]/10 text-[#00A8FC] border border-[#00A8FC]/20 shadow-[0_0_15px_rgba(0,168,252,0.15)]' : 'text-gray-500 hover:text-[#00A8FC] hover:bg-white/80 border border-transparent'}`}
+                    >
+                        <Activity className="w-5 h-5" />
                     </button>
 
                     <button
@@ -1656,6 +1684,50 @@ export default function AdminClient() {
                                                 )}
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : editorTab === 'session_telemetry' ? (
+                            <div className="flex flex-col gap-6 w-full text-left">
+                                <div className="bg-white/60 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6 flex flex-col">
+                                    <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest mb-4">
+                                        Navegación de Usuarios (Telemetría de Sesión)
+                                    </h4>
+                                    <div className="overflow-hidden rounded-3xl border border-white/60">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-xs">
+                                                <thead>
+                                                    <tr className="bg-gray-100/50 border-b border-white/60 text-gray-500 font-semibold">
+                                                        <th className="p-4">Fecha</th>
+                                                        <th className="p-4">Usuario</th>
+                                                        <th className="p-4">Sección</th>
+                                                        <th className="p-4 text-center">Duración (seg)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {loadingSessionTelemetry ? (
+                                                        <tr>
+                                                            <td colSpan={4} className="p-8 text-center text-gray-500">Cargando telemetría...</td>
+                                                        </tr>
+                                                    ) : sessionTelemetryList.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={4} className="p-8 text-center text-gray-500">No hay datos de navegación registrados.</td>
+                                                        </tr>
+                                                    ) : (
+                                                        sessionTelemetryList.map((item, index) => (
+                                                            <tr key={item.id || index} className="hover:bg-white/80 transition-colors border-b border-gray-100">
+                                                                <td className="p-4 text-gray-500 whitespace-nowrap">
+                                                                    {new Date(item.start_time).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                                </td>
+                                                                <td className="p-4 text-gray-800 font-bold">{item.full_name}</td>
+                                                                <td className="p-4 text-[#00A8FC] font-semibold">{item.section.toUpperCase()}</td>
+                                                                <td className="p-4 text-center font-mono font-bold text-gray-600">{item.duration_seconds}s</td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -23,6 +23,7 @@ import { ClientConfig, RobotConfig } from '@/config/robots-db';
 import { WorkflowConfig } from '@/config/workflows-db';
 import { TROUBLESHOOTING_DATABASE } from '@/config/troubleshooting-db';
 import { useTroubleshootingDB } from '@/hooks/useTroubleshootingDB';
+import { useTelemetry } from '@/hooks/useTelemetry';
 import { BookOpenCheck, MonitorPlay, Activity, Wrench, GraduationCap, ChevronRight, Settings, Server, ShieldAlert, Cpu, Siren } from 'lucide-react';
 
 interface HomeClientProps {
@@ -35,6 +36,9 @@ type ClientWithLogo = ClientConfig & { logo_url?: string };
 export default function HomeClient({ clientsDatabase, workflowsDatabase }: HomeClientProps) {
     const { db: troubleshootingDb } = useTroubleshootingDB();
     const [activeModule, setActiveModule] = useState<'menu' | 'asistencia' | 'troubleshooting' | 'test' | 'seguridad'>('menu');
+
+    // Telemetría de tiempo por sección
+    useTelemetry(activeModule);
 
     // ESTADOS DE ASISTENCIA
     const [selectedClientKey, setSelectedClientKey] = useState<string>('');
