@@ -1118,7 +1118,8 @@ async function generatePDF(
     percent: number,
     passed: boolean,
     answersLog: UserAnswerLog[],
-    examLevel: string
+    examLevel: string,
+    suggestions: string = ''
 ): Promise<void> {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
@@ -1258,6 +1259,37 @@ async function generatePDF(
     doc.text(`${score}/${total}`, PAGE_W - MARGIN - 16, y + 18);
 
     y += 36;
+
+    // ── Suggestions (Gemini) ──────────────────────────────────────────────────
+    if (suggestions) {
+        doc.setTextColor(GRAY);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('RETROALIMENTACIÓN Y SUGERENCIAS DE ESTUDIO', MARGIN, y);
+        doc.setDrawColor('#e5e7eb');
+        doc.line(MARGIN, y + 2, PAGE_W - MARGIN, y + 2);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(DARK);
+        
+        // El cajón de feedback
+        const suggestionsLines = splitLines(doc, suggestions, CONTENT_W - 8);
+        const suggestionsH = suggestionsLines.length * 5 + 8;
+        
+        doc.setFillColor('#fff7ed'); // orange-50
+        doc.setDrawColor('#fed7aa'); // orange-200
+        doc.roundedRect(MARGIN, y, CONTENT_W, suggestionsH, 2, 2, 'FD');
+        
+        let sy = y + 7;
+        suggestionsLines.forEach((line: string) => {
+            doc.text(line, MARGIN + 4, sy);
+            sy += 5;
+        });
+        
+        y += suggestionsH + 12;
+    }
 
     // ── Section title ─────────────────────────────────────────────────────────
     doc.setTextColor(GRAY);
@@ -1730,6 +1762,36 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
     const handleDownloadPDF = async () => {
         setIsGeneratingPdf(true);
         try {
+            let dynamicSuggestions = "Sugerencias no disponibles.";
+            try {
+                const incorrectQuestions = answersLog
+                    .filter(log => !log.isCorrect)
+                    .map(log => ({
+                        questionText: log.questionText,
+                        selectedText: log.selectedText,
+                        correctText: log.correctText
+                    }));
+                
+                const response = await fetch('/api/generate-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        applicantName,
+                        score,
+                        total: questions.length,
+                        examLevel,
+                        passed,
+                        incorrectQuestions
+                    })
+                });
+                const data = await response.json();
+                if (data.success && data.suggestions) {
+                    dynamicSuggestions = data.suggestions;
+                }
+            } catch (fetchError) {
+                console.error('Error fetching suggestions:', fetchError);
+            }
+
             await generatePDF(
                 applicantName,
                 traineeIdentity?.sessionName ?? '',
@@ -1739,7 +1801,8 @@ export default function ExamModal({ onClose, onLaunchSimulatorExam }: ExamModalP
                 percent,
                 passed,
                 answersLog,
-                examLevel
+                examLevel,
+                dynamicSuggestions
             );
         } catch (error) {
             console.error('Error generando el PDF:', error);

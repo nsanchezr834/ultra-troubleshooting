@@ -620,21 +620,17 @@ export default function TrainerClient() {
 
         // Caja de Alerta si requiere refuerzo urgente
         doc.setTextColor(50, 50, 50);
+        let currentY = 100;
         if (totalIntentos >= 3 && !passed) {
             doc.setFillColor(254, 243, 199); // Amarillo claro
             doc.setDrawColor(245, 158, 11);
-            doc.rect(15, 100, 180, 14, 'FD');
+            doc.rect(15, currentY, 180, 14, 'FD');
             doc.setTextColor(180, 83, 9);
             doc.setFontSize(8.5);
-            doc.text('ATENCIÓN: Este participante ha fallado 3 o más intentos. Es imperativo revisar las sugerencias de', 20, 105);
-            doc.text('estudio y videos de soporte abajo detallados antes de permitirle realizar una nueva evaluación.', 20, 109);
+            doc.text('ATENCIÓN: Este participante ha fallado 3 o más intentos. Es imperativo revisar las sugerencias de', 20, currentY + 5);
+            doc.text('estudio y videos de soporte abajo detallados antes de permitirle realizar una nueva evaluación.', 20, currentY + 9);
+            currentY += 20;
         }
-        
-        // --- SECCIÓN: Análisis de Preguntas Falladas y Sugerencias de Estudio ---
-        doc.setTextColor(50, 50, 50);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.text('Detección de Áreas Críticas & Conceptos Erróneos', 15, 120);
         
         // Obtener preguntas incorrectas y acumularlas
         const wrongQuestions: { text: string; correctText: string; selectedText: string; count: number }[] = [];
@@ -657,8 +653,71 @@ export default function TrainerClient() {
                 });
             }
         });
+
+        // FETCH GEMINI SUGGESTIONS
+        let dynamicSuggestions = "";
+        try {
+            const formattedWrong = wrongQuestions.map(wq => ({
+                questionText: wq.text,
+                correctText: wq.correctText,
+                selectedText: wq.selectedText
+            }));
+            const response = await fetch('/api/generate-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    applicantName: traineeName,
+                    score: bestScore,
+                    total: 100, // Representando porcentaje
+                    examLevel: 'General',
+                    passed,
+                    incorrectQuestions: formattedWrong
+                })
+            });
+            const data = await response.json();
+            if (data.success && data.suggestions) {
+                dynamicSuggestions = data.suggestions;
+            }
+        } catch (fetchError) {
+            console.error('Error fetching suggestions:', fetchError);
+        }
+
+        if (dynamicSuggestions) {
+            doc.setTextColor(80, 80, 80);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.text('RETROALIMENTACIÓN Y SUGERENCIAS DE ESTUDIO', 15, currentY);
+            doc.setDrawColor(229, 231, 235);
+            doc.line(15, currentY + 2, 195, currentY + 2);
+            currentY += 6;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(22, 24, 32);
+            
+            const suggestionsLines = doc.splitTextToSize(dynamicSuggestions, 172);
+            const suggestionsH = suggestionsLines.length * 5 + 8;
+            
+            doc.setFillColor(255, 247, 237); // orange-50
+            doc.setDrawColor(254, 215, 170); // orange-200
+            doc.roundedRect(15, currentY, 180, suggestionsH, 2, 2, 'FD');
+            
+            let sy = currentY + 7;
+            suggestionsLines.forEach((line: string) => {
+                doc.text(line, 19, sy);
+                sy += 5;
+            });
+            
+            currentY += suggestionsH + 12;
+        }
+
+        // --- SECCIÓN: Análisis de Preguntas Falladas y Sugerencias de Estudio ---
+        doc.setTextColor(50, 50, 50);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('Detección de Áreas Críticas & Conceptos Erróneos', 15, currentY);
         
-        let yPos = 130;
+        let yPos = currentY + 10;
         
         if (wrongQuestions.length === 0) {
             doc.setFont('helvetica', 'normal');
